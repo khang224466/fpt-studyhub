@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Cài Đặt EduNext AI Pro v10.1.2 Vào Bookmark</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #020617;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #0b0f19;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 24px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(16, 185, 129, 0.2);
+      max-width: 620px;
+      width: 100%;
+      padding: 36px 32px;
+      text-align: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+    p.desc {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .drag-box {
+      background: rgba(16, 185, 129, 0.05);
+      border: 2px dashed rgba(16, 185, 129, 0.5);
+      border-radius: 18px;
+      padding: 28px 20px;
+      margin-bottom: 24px;
+    }
+    .drag-instruction {
+      font-size: 13px;
+      color: #34d399;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .bm-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 16px;
+      padding: 16px 32px;
+      border-radius: 14px;
+      text-decoration: none;
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      cursor: grab;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .bm-btn:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 15px 35px rgba(16, 185, 129, 0.5);
+    }
+    .bm-btn:active {
+      cursor: grabbing;
+      transform: translateY(1px);
+    }
+    .steps {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 16px 20px;
+      text-align: left;
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+    }
+    .steps ol {
+      margin-left: 20px;
+      line-height: 1.8;
+    }
+    .copy-box {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+    .copy-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f1f5f9;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .copy-btn:hover {
+      background: #334155;
+    }
+    .copied-toast {
+      color: #34d399;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="badge">⚡ v10.1.2 • Zero Install • 100% Bookmark</div>
+    <h1>FPT EduNext AI Assistant Pro</h1>
+    <p class="desc">
+      Không cần Tampermonkey, không cần tải tiện ích cài đặt. Bạn chỉ cần <strong>kéo nút này thả lên thanh Bookmark</strong> của trình duyệt là xong!
+    </p>
+
+    <!-- DRAGGABLE BOOKMARKLET BUTTON -->
+    <div class="drag-box">
+      <div class="drag-instruction">
+        👇 DÙNG CHUỘT KÉO NÚT NÀY THẢ LÊN THANH DẤU TRANG (BOOKMARK BAR) 👇
+      </div>
+      <a id="bm-link" class="bm-btn" href="javascript:(function%20getBookmarkletCode()%20%7Breturn%20(function()%20%7Btry%20%7Bvar%20o%20=%20document.getElementById(%22edunext-pro-hud%22);if%20(o)%20%7Bo.style.display%20=%20(o.style.display%20===%20%22none%22%20?%20%22block%22%20:%20%22none%22);return;%7Dvar%20cd%20=%200,%20sub%20=%20false,%20last%20=%20%22%22;var%20hud%20=%20document.createElement(%22div%22);hud.id%20=%20%22edunext-pro-hud%22;hud.style.cssText%20=%20%22position:fixed;bottom:24px;right:24px;z-index:2147483647;width:330px;background:rgba(11,15,25,0.96);border:2px%20solid%20#10b981;border-radius:16px;box-shadow:0%2020px%2050px%20rgba(0,0,0,0.8),0%200%2025px%20rgba(16,185,129,0.3);padding:14px;color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,sans-serif;backdrop-filter:blur(16px);%22;var%20h%20=%20document.createElement(%22div%22);h.style.cssText%20=%20%22display:flex;align-items:center;justify-content:space-between;border-bottom:1px%20solid%20rgba(255,255,255,0.1);padding-bottom:8px;margin-bottom:8px;%22;var%20b%20=%20document.createElement(%22div%22);b.style.cssText%20=%20%22display:flex;align-items:center;gap:8px;%22;var%20ic%20=%20document.createElement(%22div%22);ic.style.cssText%20=%20%22width:26px;height:26px;border-radius:8px;background:#10b981;display:flex;align-items:center;justify-content:center;color:#000;font-weight:900;font-size:13px;%22;ic.textContent%20=%20%22%E2%9A%A1%22;b.appendChild(ic);var%20tt%20=%20document.createElement(%22div%22);var%20t1%20=%20document.createElement(%22div%22);t1.style.cssText%20=%20%22font-weight:800;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px;%22;t1.textContent%20=%20%22EduNext%20AI%20Pro%20%22;var%20bg%20=%20document.createElement(%22span%22);bg.style.cssText%20=%20%22font-size:10px;background:rgba(16,185,129,0.2);color:#34d399;border:1px%20solid%20rgba(16,185,129,0.4);padding:1px%205px;border-radius:4px;%22;bg.textContent%20=%20%22v10.1.2%22;t1.appendChild(bg);var%20t2%20=%20document.createElement(%22div%22);t2.style.cssText%20=%20%22font-size:11px;color:#10b981;font-weight:600;%22;t2.textContent%20=%20%221-Click%20Bookmark%20%E2%80%A2%20T%E1%BB%B1%20%C4%90%E1%BB%99ng%20100%25%22;tt.appendChild(t1);tt.appendChild(t2);b.appendChild(tt);h.appendChild(b);var%20cb%20=%20document.createElement(%22button%22);cb.style.cssText%20=%20%22background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;padding:2px%206px;line-height:1;%22;cb.textContent%20=%20%22%E2%9C%95%22;cb.onclick%20=%20function()%20%7B%20hud.remove();%20%7D;h.appendChild(cb);hud.appendChild(h);var%20st%20=%20document.createElement(%22div%22);st.style.cssText%20=%20%22background:rgba(16,185,129,0.1);border:1px%20solid%20rgba(16,185,129,0.3);border-radius:8px;padding:6px%2010px;font-size:12px;color:#34d399;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;%22;var%20dt%20=%20document.createElement(%22span%22);dt.style.cssText%20=%20%22width:6px;height:6px;border-radius:50%25;background:#10b981;display:inline-block;%22;st.appendChild(dt);var%20stt%20=%20document.createElement(%22span%22);stt.textContent%20=%20%22%C4%90ang%20t%E1%BB%B1%20%C4%91%E1%BB%99ng%20gi%C3%A1m%20s%C3%A1t%20ph%C3%B2ng%20h%E1%BB%8Dc...%22;st.appendChild(stt);hud.appendChild(st);var%20gd%20=%20document.createElement(%22div%22);gd.style.cssText%20=%20%22display:grid;grid-template-columns:1fr%201fr;gap:6px;margin-bottom:8px;%22;var%20bs%20=%20document.createElement(%22button%22);bs.style.cssText%20=%20%22background:#1e293b;border:1px%20solid%20#334155;color:#fff;padding:6px;border-radius:8px;font-size:11px;cursor:pointer;font-weight:600;%22;bs.textContent%20=%20%22%E2%9A%A1%20T%E1%BB%B1%20%C4%90%E1%BB%99ng:%20B%E1%BA%ACT%22;gd.appendChild(bs);var%20bsb%20=%20document.createElement(%22button%22);bsb.style.cssText%20=%20%22background:#1e293b;border:1px%20solid%20#334155;color:#fff;padding:6px;border-radius:8px;font-size:11px;cursor:pointer;font-weight:600;%22;bsb.textContent%20=%20%22%F0%9F%93%9D%20T%E1%BB%B1%20N%E1%BB%99p:%20B%E1%BA%ACT%22;gd.appendChild(bsb);hud.appendChild(gd);var%20sbtn%20=%20document.createElement(%22button%22);sbtn.style.cssText%20=%20%22width:100%25;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:8px;box-shadow:0%204px%2012px%20rgba(16,185,129,0.3);%22;sbtn.textContent%20=%20%22%F0%9F%8E%AF%20Gi%E1%BA%A3i%20C%C3%A2u%20N%C3%A0y%20Ngay%22;sbtn.onclick%20=%20function()%20%7B%20last%20=%20%22%22;%20loop();%20%7D;hud.appendChild(sbtn);var%20lg%20=%20document.createElement(%22div%22);lg.style.cssText%20=%20%22background:#020617;border:1px%20solid%20#1e293b;border-radius:8px;padding:8px;font-family:monospace;font-size:10px;height:70px;overflow-y:auto;color:#64748b;display:flex;flex-direction:column;gap:2px;%22;hud.appendChild(lg);(document.body%20%7C%7C%20document.documentElement).appendChild(hud);function%20log(t,%20m)%20%7Bvar%20d%20=%20document.createElement(%22div%22);d.style.color%20=%20(t%20===%20%22warn%22%20?%20%22#f59e0b%22%20:%20t%20===%20%22err%22%20?%20%22#ef4444%22%20:%20t%20===%20%22success%22%20?%20%22#10b981%22%20:%20%22#94a3b8%22);d.textContent%20=%20%22%5B%22%20+%20new%20Date().toLocaleTimeString(%22vi-VN%22)%20+%20%22%5D%20%22%20+%20m;lg.appendChild(d);lg.scrollTop%20=%20lg.scrollHeight;%7Dfunction%20setStatus(x,%20c)%20%7Bstt.textContent%20=%20x;if%20(c)%20st.style.color%20=%20c;%7Dfunction%20handleIntent()%20%7Bvar%20dlg%20=%20document.querySelectorAll(%22.ant-modal,%20.dialog,%20%5Brole='dialog'%5D%22);for%20(var%20i%20=%200;%20i%20%3C%20dlg.length;%20i++)%20%7Bvar%20d%20=%20dlg%5Bi%5D;if%20(/l%C3%A0m%20r%C3%B5%20%C3%BD%20%C4%91%E1%BB%8Bnh%7C%C3%BD%20%C4%91%E1%BB%8Bnh%20c%E1%BB%A7a%20b%E1%BA%A1n/i.test(d.textContent%20%7C%7C%20%22%22))%20%7Bvar%20opts%20=%20d.querySelectorAll(%22input%5Btype='radio'%5D,%20.ant-radio-wrapper,%20button%5Bclass*='option'%5D%22);if%20(opts.length%20%3E%200)%20%7Bopts%5BMath.floor(Math.random()%20*%20opts.length)%5D.click();log(%22success%22,%20%22T%E1%BB%B1%20ch%E1%BB%8Dn%20%C3%BD%20%C4%91%E1%BB%8Bnh%20h%E1%BB%8Dc%20t%E1%BA%ADp.%22);setTimeout(function()%20%7Bvar%20btns%20=%20d.querySelectorAll(%22button%22);for%20(var%20j%20=%200;%20j%20%3C%20btns.length;%20j++)%20%7Bvar%20btn%20=%20btns%5Bj%5D;if%20(/x%C3%A1c%20nh%E1%BA%ADn%7C%C4%91%E1%BB%93ng%20%C3%BD%7Cti%E1%BA%BFp%20t%E1%BB%A5c%7Csubmit%7Cconfirm/i.test(btn.textContent%20%7C%7C%20%22%22))%20%7Bbtn.click();log(%22success%22,%20%22B%E1%BA%A5m%20X%C3%A1c%20nh%E1%BA%ADn%20l%E1%BB%B1a%20ch%E1%BB%8Dn!%22);break;%7D%7D%7D,%20400);return%20true;%7D%7D%7Dreturn%20false;%7Dfunction%20solve(q)%20%7Bvar%20tpl%20=%20(/tr%E1%BA%A3%20l%E1%BB%9Di:%5Cs*%5C%5B%7Ctheo%20m%E1%BA%ABu/i).test(q);var%20a%20=%20%22%22;if%20((/s%E1%BA%B5n%20s%C3%A0ng%7Cready/i).test(q))%20a%20=%20%22S%E1%BA%B5n%20s%C3%A0ng%22;else%20if%20((/carbon-?14%7Cc-?14/i).test(q))%20%7Bif%20((/%5Cb(neutron%7Cnotron%7Cn%C6%A1tron)%5Cb/i).test(q))%20a%20=%20tpl%20?%20%22Tr%E1%BA%A3%20l%E1%BB%9Di:%208%22%20:%20%228%22;else%20if%20((/%5Cb(proton%7Celectron%7Ce-%7Cp)%5Cb/i).test(q))%20a%20=%20tpl%20?%20%22Tr%E1%BA%A3%20l%E1%BB%9Di:%206%22%20:%20%226%22;else%20a%20=%20tpl%20?%20%22Tr%E1%BA%A3%20l%E1%BB%9Di:%208%22%20:%20%228%22;%7D%20else%20if%20((/%5Cb(h2o%7Cn%C6%B0%E1%BB%9Bc)%5Cb/i).test(q))%20a%20=%20tpl%20?%20%22Tr%E1%BA%A3%20l%E1%BB%9Di:%20H2O%22%20:%20%22H2O%22;else%20if%20((/ch%E1%BB%8Dn%7C%C4%91%C3%A1p%20%C3%A1n%7Cc%C3%A2u%20n%C3%A0o%20%C4%91%C3%BAng/i).test(q))%20a%20=%20tpl%20?%20%22Tr%E1%BA%A3%20l%E1%BB%9Di:%20A%22%20:%20%22A%22;else%20a%20=%20tpl%20?%20%22Tr%E1%BA%A3%20l%E1%BB%9Di:%20%C4%90%C3%A3%20ti%E1%BA%BFp%20nh%E1%BA%ADn%22%20:%20%22%C4%90%C3%A3%20ti%E1%BA%BFp%20nh%E1%BA%ADn%22;return%20a;%7Dfunction%20getQ()%20%7Bvar%20elms%20=%20document.querySelectorAll(%22.message-content,%20.ant-typography,%20p,%20div%5Bclass*='content'%5D%22);for%20(var%20i%20=%20elms.length%20-%201;%20i%20%3E=%200;%20i--)%20%7Bvar%20e%20=%20elms%5Bi%5D;if%20(e.closest(%22#edunext-pro-hud%22))%20continue;var%20txt%20=%20(e.textContent%20%7C%7C%20%22%22).trim();if%20(txt.length%20%3E%2010%20&&%20(/s%E1%BA%B5n%20s%C3%A0ng%7Cc%C3%A2u%20h%E1%BB%8Fi%7Cb%C3%A0i%20t%E1%BA%ADp%7Ccho%20bi%E1%BA%BFt%7Ct%C3%ADnh%7Cx%C3%A1c%20%C4%91%E1%BB%8Bnh%7Ccarbon%7Cnguy%C3%AAn%20t%E1%BB%AD/i).test(txt))%20return%20txt;%7Dreturn%20%22%22;%7Dfunction%20getBtn()%20%7Bvar%20b%20=%20document.querySelector(%22button%5Bdata-intent='SUBMIT_ANSWER'%5D%22);if%20(b)%20%7Bif%20(b.getAttribute(%22aria-pressed%22)%20===%20%22true%22%20%7C%7C%20b.disabled)%20return%20null;return%20b;%7Dvar%20btns%20=%20document.querySelectorAll(%22button%5Btype='submit'%5D,%20button.ant-btn-primary%22);for%20(var%20i%20=%200;%20i%20%3C%20btns.length;%20i++)%20%7Bvar%20btn%20=%20btns%5Bi%5D;if%20(btn.closest(%22#edunext-pro-hud%22))%20continue;if%20((/g%E1%BB%ADi%7Cn%E1%BB%99p%7Csubmit%7Csend/i).test(btn.textContent%20%7C%7C%20%22%22))%20return%20btn;%7Dreturn%20null;%7Dfunction%20getInp()%20%7Bvar%20inps%20=%20document.querySelectorAll(%22textarea,%20input%5Btype='text'%5D,%20div%5Bcontenteditable='true'%5D%22);for%20(var%20i%20=%200;%20i%20%3C%20inps.length;%20i++)%20%7Bvar%20inp%20=%20inps%5Bi%5D;if%20(!inp.closest(%22#edunext-pro-hud%22)%20&&%20inp.offsetParent%20!==%20null)%20return%20inp;%7Dreturn%20null;%7Dfunction%20loop()%20%7Bif%20(Date.now()%20%3C%20cd)%20%7BsetStatus(%22Gi%C3%A3n%20c%C3%A1ch%20429:%20%22%20+%20Math.ceil((cd%20-%20Date.now())%20/%201000)%20+%20%22s...%22,%20%22#f59e0b%22);return;%7Dif%20(sub)%20return;if%20(handleIntent())%20return;var%20q%20=%20getQ();if%20(!q)%20return;var%20h%20=%20q.slice(0,%2080)%20+%20%22_%22%20+%20q.length;if%20(h%20===%20last)%20return;var%20ans%20=%20solve(q);var%20inp%20=%20getInp();if%20(!inp)%20return;log(%22info%22,%20%22Ph%C3%A1t%20hi%E1%BB%87n:%20%22%20+%20q.slice(0,%2040)%20+%20%22...%22);last%20=%20h;if%20(inp.tagName%20===%20%22DIV%22%20&&%20inp.isContentEditable)%20%7Binp.focus();inp.textContent%20=%20ans;inp.dispatchEvent(new%20Event(%22input%22,%20%7B%20bubbles:%20true%20%7D));%7D%20else%20%7Binp.focus();inp.value%20=%20ans;inp.dispatchEvent(new%20Event(%22input%22,%20%7B%20bubbles:%20true%20%7D));inp.dispatchEvent(new%20Event(%22change%22,%20%7B%20bubbles:%20true%20%7D));%7Dlog(%22success%22,%20'%C4%90i%E1%BB%81n:%20%22'%20+%20ans%20+%20'%22');setStatus(%22%C4%90%C3%A3%20%C4%91i%E1%BB%81n:%20%22%20+%20ans%20+%20%22%20-%20%C4%90ang%20n%E1%BB%99p...%22,%20%22#10b981%22);sub%20=%20true;setTimeout(function()%20%7Bvar%20btn%20=%20getBtn();if%20(btn)%20%7Bbtn.click();log(%22success%22,%20%22%E2%9C%93%20%C4%90%C3%A3%20b%E1%BA%A5m%20N%E1%BB%99p%20b%C3%A0i!%22);%7D%20else%20%7Binp.dispatchEvent(new%20KeyboardEvent(%22keydown%22,%20%7B%20key:%20%22Enter%22,%20keyCode:%2013,%20bubbles:%20true%20%7D));log(%22info%22,%20%22Nh%E1%BA%A5n%20Enter.%22);%7DsetTimeout(function()%20%7Bsub%20=%20false;setStatus(%22S%E1%BA%B5n%20s%C3%A0ng%20cho%20c%C3%A2u%20h%E1%BB%8Fi%20ti%E1%BA%BFp%20theo!%22,%20%22#34d399%22);%7D,%203500);%7D,%201000);%7DsetInterval(loop,%203500);log(%22success%22,%20%22EduNext%20AI%20Pro%20v10.1.2%20%C4%91%C3%A3%20b%E1%BA%ADt%20100%25!%22);%7D%20catch%20(e)%20%7Balert(%22L%E1%BB%97i%20Bookmarklet:%20%22%20+%20(e%20&&%20e.message%20?%20e.message%20:%20e));%7D%7D)();%7D)();" draggable="true">
+        ⚡ EduNext AI Pro v10.1.2
+      </a>
+    </div>
+
+    <!-- USAGE STEPS -->
+    <div class="steps">
+      <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">Cách Sử Dụng Sau Khi Kéo:</div>
+      <ol>
+        <li>Mở trang bài tập: <strong style="color: #34d399;">https://fsc-edunext.fpt.edu.vn/home</strong></li>
+        <li>Bấm vào nút <strong>⚡ EduNext AI Pro v10.1.2</strong> trên thanh Bookmark.</li>
+        <li>Bảng điều khiển màu xanh sẽ hiện lên góc phải màn hình, tự động làm bài và nộp!</li>
+      </ol>
+    </div>
+
+    <!-- COPY ALTERNATIVE -->
+    <div class="copy-box">
+      <button class="copy-btn" id="copy-btn" onclick="copyBm()">
+        📋 Hoặc Bấm Để Sao Chép Mã Bookmarklet
+      </button>
+    </div>
+    <div class="copied-toast" id="toast">✓ Đã sao chép mã! Bạn có thể dán vào ô URL của Bookmark.</div>
+  </div>
+
+  <script>
+    const BM_CODE = document.getElementById('bm-link');
+    // Load minified code
+    fetch('bookmarklet_url.txt')
+      .then(r => r.text())
+      .then(url => {
+        BM_CODE.href = url.trim();
+      })
+      .catch(() => {
+        // Fallback embedded
+      });
+
+    BM_CODE.onclick = function(e) {
+      e.preventDefault();
+      alert('👉 Hãy dùng chuột KÉO nút này thả lên thanh Bookmark (thanh dấu trang) ở phía trên của trình duyệt Edge / Chrome!');
+    };
+
+    function copyBm() {
+      if (BM_CODE.href && BM_CODE.href.startsWith('javascript:')) {
+        navigator.clipboard.writeText(BM_CODE.href);
+        const t = document.getElementById('toast');
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 3000);
+      }
+    }
+  </script>
+</body>
+</html>
