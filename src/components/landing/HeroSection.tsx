@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import { Bookmark, Sparkles, CheckCircle2, Play, RefreshCw, Zap, ShieldCheck, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { generateBookmarkletCode } from '@/lib/utils';
 
 export function HeroSection() {
+  const bmCode = generateBookmarkletCode();
   const [simStep, setSimStep] = useState<'idle' | 'clicked' | 'injected' | 'ready'>('idle');
 
   const triggerSim = () => {
