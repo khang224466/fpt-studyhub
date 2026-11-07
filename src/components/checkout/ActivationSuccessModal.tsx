@@ -55,7 +55,7 @@ export function ActivationSuccessModal({
 
   const copyFullUserscript = async () => {
     try {
-      const res = await fetch('/FPT_EduNext_Assistant_v10.1.1.user.js');
+      const res = await fetch('/FPT_EduNext_Assistant_v10.1.2.user.js');
       if (res.ok) {
         const text = await res.text();
         await navigator.clipboard.writeText(text);
@@ -65,7 +65,7 @@ export function ActivationSuccessModal({
       }
     } catch (_) {}
     // Fallback if fetch fails
-    navigator.clipboard.writeText(`// Tải từ http://localhost:8443/FPT_EduNext_Assistant_v10.1.1.user.js`);
+    navigator.clipboard.writeText(`// Tải từ http://localhost:8443/FPT_EduNext_Assistant_v10.1.2.user.js`);
     setCopiedFullScript(true);
     setTimeout(() => setCopiedFullScript(false), 3000);
   };
@@ -95,7 +95,7 @@ export function ActivationSuccessModal({
             </div>
             <div>
               <div className="font-bold text-white text-sm">
-                Đã mở khóa: {service.name} (v10.1.1)
+                Đã mở khóa: {service.name} (v10.1.2)
               </div>
               <div className="text-xs text-emerald-300">
                 Thời hạn: {order.durationLabel} • Trạng thái: Đã cấp quyền
@@ -132,53 +132,67 @@ export function ActivationSuccessModal({
           </div>
         </div>
 
-        {/* PRIMARY HERO: TAMPERMONKEY 1-CLICK (RECOMMENDED) */}
-        <div className="p-6 rounded-2xl bg-gradient-to-b from-slate-900 via-slate-900/90 to-emerald-950/40 border-2 border-emerald-500/60 space-y-4">
+        {/* PRIMARY HERO: STANDALONE EXTENSION (NO TAMPERMONKEY NEEDED) */}
+        <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900 via-slate-900/90 to-emerald-950/40 border-2 border-emerald-500/60 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
               <h4 className="text-base font-bold text-white flex items-center gap-2">
-                <span>Cách 1 (Khuyên Dùng): Cài Qua Tampermonkey</span>
-                <Badge variant="emerald" size="sm">Chuẩn 100%</Badge>
+                <span>Cách 1 (Khuyên Dùng): Tiện Ích Trình Duyệt Độc Lập</span>
+                <Badge variant="emerald" size="sm">Zero Tampermonkey</Badge>
               </h4>
             </div>
-            <span className="text-xs text-slate-400">Không bị chặn CSP</span>
+            <span className="text-xs text-emerald-400 font-semibold">Tự động 100%</span>
           </div>
 
           <p className="text-xs text-slate-300 leading-relaxed">
-            Tampermonkey chạy ở tầng Extension của trình duyệt, vượt qua hoàn toàn rào cản bảo mật của EduNext và tự động hiển thị bảng điều khiển HUD mỗi khi bạn mở bài học.
+            Tiện ích mở rộng chuyên dụng cho Microsoft Edge & Google Chrome (Manifest V3), tự động chạy vĩnh viễn trên EduNext, <strong>hoàn toàn không cần cài Tampermonkey</strong> và không bao giờ bị chặn CSP.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <Button
-              size="md"
-              variant="primary"
-              onClick={copyFullUserscript}
-              className="gap-2 text-xs font-bold shadow-lg shadow-emerald-950/80"
-            >
-              {copiedFullScript ? <Check className="w-4 h-4 text-emerald-200" /> : <Copy className="w-4 h-4" />}
-              <span>{copiedFullScript ? '✓ Đã chép toàn bộ mã script!' : '📋 Sao Chép Mã Userscript v10.1.1'}</span>
-            </Button>
-
-            <a
-              href={`${host}/FPT_EduNext_Assistant_v10.1.1.user.js`}
-              download="FPT_EduNext_Assistant_v10.1.1.user.js"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-700 bg-slate-800 text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-700 transition-colors"
-            >
-              <Code2 className="w-4 h-4 text-emerald-400" />
-              <span>📥 Tải Tệp .user.js Về Máy</span>
-            </a>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 space-y-1.5">
-            <div className="font-bold text-white text-[11px] uppercase tracking-wider">
-              3 Bước Dán Vào Tampermonkey:
+          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 space-y-2">
+            <div className="font-bold text-white text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-emerald-400" />
+              <span>3 Bước Cài Đặt Trong 10 Giây:</span>
             </div>
-            <ol className="list-decimal list-inside space-y-1 text-slate-400 text-[11px]">
-              <li>Bấm nút <strong>"Sao Chép Mã Userscript"</strong> ở trên.</li>
-              <li>Mở Tampermonkey trên Edge/Chrome 👉 Chọn <strong>"Thêm script mới"</strong> (hoặc dấu <code>+</code>).</li>
-              <li>Dán mã vào (<code>Ctrl + V</code>) rồi nhấn <code>Ctrl + S</code> để Lưu. F5 lại trang EduNext là xong!</li>
+            <ol className="list-decimal list-inside space-y-1.5 text-slate-400 text-[11px]">
+              <li>Mở trình duyệt, truy cập vào: <code className="text-emerald-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">edge://extensions</code> (hoặc <code className="text-emerald-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">chrome://extensions</code>).</li>
+              <li>Bật công tắc <strong>"Chế độ dành cho nhà phát triển" (Developer mode)</strong> ở góc trái/phải.</li>
+              <li>Bấm nút <strong>"Tải phần mở rộng đã giải nén" (Load unpacked)</strong> 👉 Chọn thư mục:
+                <div className="mt-1 p-2 bg-slate-900 rounded border border-slate-800 font-mono text-emerald-300 select-all text-[11px] break-all">
+                  d:\BUISINESS\edunext_chrome_extension
+                </div>
+              </li>
             </ol>
+          </div>
+        </div>
+
+        {/* SECONDARY: 100% INLINE BOOKMARKLET */}
+        <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="font-bold text-white text-xs flex items-center gap-1.5">
+              <Bookmark className="w-4 h-4 text-emerald-400" />
+              <span>Cách 2: Bookmarklet Trực Tiếp (Không Cần Tampermonkey)</span>
+            </div>
+            <Badge variant="cyan" size="sm">1-Click Bookmark</Badge>
+          </div>
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            Mã chạy độc lập 100% in-memory (đã sửa toàn bộ lỗi cú pháp và mã hóa URI an toàn). Nhấn nút dưới đây để sao chép mã và dán vào ô <strong>URL của Bookmark</strong> trên trình duyệt:
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => {
+                const code = generateBookmarkletCode(licenseKey, host || 'http://localhost:8443');
+                navigator.clipboard.writeText(code);
+                setCopiedFullScript(true);
+                setTimeout(() => setCopiedFullScript(false), 2000);
+              }}
+              className="text-xs gap-1.5 font-bold"
+            >
+              {copiedFullScript ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedFullScript ? '✓ Đã sao chép Bookmarklet' : '📋 Sao Chép Mã Bookmarklet'}</span>
+            </Button>
           </div>
         </div>
 
