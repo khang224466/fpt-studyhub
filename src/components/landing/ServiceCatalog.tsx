@@ -64,7 +64,7 @@ export function ServiceCatalog({ onSelectPlan }: ServiceCatalogProps) {
             Kho Dịch Vụ Sinh Viên FPT
           </h2>
           <p className="mt-3 text-slate-400 text-base sm:text-lg">
-            Hiện tại hệ thống đang mở hoạt động chính thức cho <strong>FPT EduNext Assistant Pro (v10.1.2)</strong>. Các dịch vụ Khảo Thí và SEB đang trong giai đoạn kiểm thử hoàn thiện.
+            Hiện tại hệ thống đang mở hoạt động chính thức cho <strong>FPT EduNext Assistant Pro (v10.1.3)</strong>. Các dịch vụ Khảo Thí và SEB đang trong giai đoạn kiểm thử hoàn thiện.
           </p>
 
           {/* Filter Categories */}

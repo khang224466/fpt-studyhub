@@ -3,7 +3,7 @@ import { verifyLicense } from '@/lib/licenseStore';
 import { decryptApiKey } from '@/lib/cryptoKey';
 
 const SYSTEM_PROMPT = `
-Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.1.0).
+Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.1.3).
 Nhiệm vụ của bạn là giải bài tập trắc nghiệm, tự luận, hóa học, toán học, vật lí, tiếng Anh cho sinh viên FPT trên hệ thống EduNext LMS.
 
 [QUY TẮC BẮT BUỘC]:
@@ -171,6 +171,14 @@ export async function POST(req: NextRequest) {
       // Rule-based instant solver for common patterns
       if (/sẵn sàng|ready/i.test(cleanQuestion)) {
         answer = 'Sẵn sàng';
+      } else if (/\b(li|lithium)\b/i.test(cleanQuestion) && /electron\s*lớp\s*ngoài\s*cùng|2s\^?1/i.test(cleanQuestion)) {
+        answer = needsTemplate ? 'Trả lời: 1' : '1';
+      } else if (/\b(na|natri|sodium)\b/i.test(cleanQuestion) && /electron\s*lớp\s*ngoài\s*cùng|3s\^?1/i.test(cleanQuestion)) {
+        answer = needsTemplate ? 'Trả lời: 1' : '1';
+      } else if (/\b(k|kali|potassium)\b/i.test(cleanQuestion) && /electron\s*lớp\s*ngoài\s*cùng|4s\^?1/i.test(cleanQuestion)) {
+        answer = needsTemplate ? 'Trả lời: 1' : '1';
+      } else if (/\b(c|carbon)\b/i.test(cleanQuestion) && /electron\s*lớp\s*ngoài\s*cùng/i.test(cleanQuestion)) {
+        answer = needsTemplate ? 'Trả lời: 4' : '4';
       } else if (/carbon-?14|c-?14/i.test(cleanQuestion)) {
         if (/\b(neutron|notron|nơtron)\b/i.test(cleanQuestion)) {
           answer = needsTemplate ? 'Trả lời: 8' : '8';

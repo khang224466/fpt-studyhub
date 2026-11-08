@@ -7,13 +7,13 @@ export async function GET(req: NextRequest) {
 
   const scriptContent = `
 /**
- * FPT EduNext AI Assistant Pro v10.1.2 (Cloud AI Proxy & Encrypted Trial Guard)
+ * FPT EduNext AI Assistant Pro v10.1.3 (Cloud AI Proxy & Encrypted Trial Guard)
  * Auto Solver, Intent Auto-Select, Hard Submit Lock & Anti-429 Guard
  */
 (function() {
   'use strict';
 
-  const CURRENT_VERSION = '10.1.2';
+  const CURRENT_VERSION = '10.1.3';
   const LICENSE_KEY = ${JSON.stringify(licenseKey)};
   const API_SOLVE_ENDPOINT = ${JSON.stringify(origin + '/api/v1/ai/solve')};
   const API_CLAIM_ENDPOINT = ${JSON.stringify(origin + '/api/v1/auth/session-claim')};
@@ -300,16 +300,25 @@ export async function GET(req: NextRequest) {
   }
 
   function findSubmitButton() {
-    // 1. Check data-intent="SUBMIT_ANSWER"
+    const clickables = Array.from(document.querySelectorAll('button, [role="button"], div, span, a')).filter(el => {
+      if (el.closest('#edunext-pro-hud')) return false;
+      if (el.disabled || el.offsetParent === null) return false;
+      const txt = (el.innerText || el.textContent || '').trim();
+      const aria = (el.getAttribute('aria-label') || '').trim();
+      const title = (el.getAttribute('title') || '').trim();
+      return /^(?:nộp\\s+câu\\s+trả\\s+lời|nộp\\s+bài|nộp\\s+đáp\\s+án|submit\\s+answer)$/i.test(txt) ||
+             /nộp\\s+câu\\s+trả\\s+lời|nộp\\s+bài|nộp\\s+đáp\\s+án/i.test(aria) ||
+             /nộp\\s+câu\\s+trả\\s+lời|nộp\\s+bài|nộp\\s+đáp\\s+án/i.test(title);
+    });
+    if (clickables.length > 0) {
+      const first = clickables[0];
+      return first.closest('button, [role="button"], div[class*="action"], div[class*="btn"], div[class*="item"]') || first;
+    }
     const intentBtn = document.querySelector('button[data-intent="SUBMIT_ANSWER"]');
-    if (intentBtn) {
-      if (intentBtn.getAttribute('aria-pressed') === 'true' || intentBtn.disabled || intentBtn.classList.contains('is-loading')) {
-        return null; // Locked
-      }
+    if (intentBtn && !intentBtn.closest('#edunext-pro-hud')) {
+      if (intentBtn.getAttribute('aria-pressed') === 'true' || intentBtn.disabled || intentBtn.classList.contains('is-loading')) return null;
       return intentBtn;
     }
-
-    // 2. Generic buttons
     const buttons = document.querySelectorAll('button[type="submit"], button.ant-btn-primary, button[class*="send"]');
     for (const b of buttons) {
       if (b.closest('#edunext-pro-hud')) continue;

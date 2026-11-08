@@ -7,11 +7,11 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     slug: 'edunext-assistant',
     category: 'edunext',
     categoryLabel: 'EduNext LMS',
-    tagline: 'Trợ lý học tập thông minh v10.1.2: Cloud AI Proxy mã hóa toàn bộ API Key, tự giải Hóa/Toán/Lý, chống 429 Rate Limit, nhận diện câu hỏi tự động',
+    tagline: 'Trợ lý học tập thông minh v10.1.3: Bảo mật License Key, tự động nộp bài 100%, Cloud AI Proxy mã hóa API Key, chống 429 Rate Limit',
     iconName: 'GraduationCap',
     targetDomain: 'fsc-edunext.fpt.edu.vn',
     authMethod: 'extensionBridge',
-    badge: 'Đang Hoạt Động (v10.1.2)',
+    badge: 'Đang Hoạt Động (v10.1.3)',
     isComingSoon: false,
     features: [
       'Cloud AI Proxy: Toàn bộ API Key được mã hóa trên máy chủ bảo mật 100%',
@@ -19,7 +19,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
       'Cơ chế Dual XHR/Fetch chống triệt để lỗi 429 Too Many Requests (25s backoff)',
       'Tự động phát hiện & khớp mẫu "Trả lời: [đáp án của bạn]" chuẩn AI EduNext',
       'Khóa nộp đơn nhất (Single Submit Lock) ngăn bão spam nút Nộp khi aria-pressed',
-      'Tiện ích Chrome/Edge v10.1.2 độc lập (Không cần Tampermonkey)'
+      'Bookmarklet 1-Click Zero-Install độc lập v10.1.3 (Không cần Tampermonkey)'
     ],
     plans: [
       { id: 'edunext-2h', duration: '2h', durationLabel: 'Trải Nghiệm (2 Tiếng)', price: 0, originalPrice: 20000, badge: 'Miễn Phí' },

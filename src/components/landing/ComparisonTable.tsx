@@ -68,7 +68,7 @@ export function ComparisonTable() {
                 <th className="p-4 sm:p-5 text-emerald-400 bg-emerald-950/30 border-x border-emerald-500/20 w-1/3">
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-emerald-400" />
-                    <span>FPT Study Hub (v10.1.2)</span>
+                    <span>FPT Study Hub (v10.1.3)</span>
                   </div>
                   <span className="text-[11px] text-emerald-400/80 font-normal">Hệ thống tối ưu chuyên biệt</span>
                 </th>
