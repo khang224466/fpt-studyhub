@@ -84,8 +84,18 @@ export function verifyLicense(licenseKey: string): {
     record = registerTrialLicense(licenseKey);
   }
 
-  // Auto-register paid order keys or user provided Gemini/Groq keys
-  if (!record && (licenseKey.startsWith('KEY-') || licenseKey.startsWith('PR-') || licenseKey.startsWith('DEMO-') || licenseKey.startsWith('AIza') || licenseKey.startsWith('gsk_') || licenseKey.startsWith('sk-'))) {
+  // Auto-register paid order keys, custom admin keys, or user provided Gemini/Groq keys
+  if (!record && (
+    licenseKey.startsWith('KEY-') || 
+    licenseKey.startsWith('PR-') || 
+    licenseKey.startsWith('DEMO-') || 
+    licenseKey.startsWith('VIP-') || 
+    licenseKey.startsWith('FPT-') || 
+    licenseKey.startsWith('ENX-') || 
+    licenseKey.startsWith('AIza') || 
+    licenseKey.startsWith('gsk_') || 
+    licenseKey.startsWith('sk-')
+  )) {
     const now = Date.now();
     record = {
       licenseKey,
