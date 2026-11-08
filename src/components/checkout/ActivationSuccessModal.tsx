@@ -73,7 +73,7 @@ export function ActivationSuccessModal({
             </div>
             <div>
               <div className="font-bold text-white text-sm">
-                Đã mở khóa: {service.name} (v10.1.3)
+                Đã mở khóa: {service.name} (v10.1.5)
               </div>
               <div className="text-xs text-emerald-300">
                 Thời hạn: {order.durationLabel} • Trạng thái: Đã cấp quyền
@@ -109,12 +109,14 @@ export function ActivationSuccessModal({
               href={bookmarkCode}
               draggable="true"
               onDragStart={(e) => {
-                e.dataTransfer.setData('text/uri-list', bookmarkCode);
-                e.dataTransfer.setData('URL', bookmarkCode);
-                e.dataTransfer.setData('text/plain', bookmarkCode);
+                try {
+                  e.dataTransfer.clearData();
+                  e.dataTransfer.setData('text/uri-list', bookmarkCode);
+                  e.dataTransfer.setData('URL', bookmarkCode);
+                  e.dataTransfer.setData('text/plain', bookmarkCode);
+                } catch (_) {}
               }}
               onClick={(e) => {
-                e.preventDefault();
                 copyBookmark();
               }}
               className="inline-flex items-center justify-center gap-3 w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-base sm:text-lg shadow-xl shadow-emerald-950/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-grab active:cursor-grabbing border-2 border-emerald-300/50 select-none animate-pulse"
@@ -126,13 +128,16 @@ export function ActivationSuccessModal({
 
           <div className="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800 text-xs text-slate-300 text-left space-y-2">
             <div className="font-bold text-white text-[11px] uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-              <span>👉 3 Bước Dễ Như Ăn Kẹo:</span>
+              <span>👉 3 Bước Dễ Dàng:</span>
             </div>
             <ol className="list-decimal list-inside space-y-1.5 text-slate-300 text-xs">
-              <li>Nhấn phím <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-emerald-400 font-mono text-[11px]">Ctrl + Shift + B</kbd> nếu thanh Bookmark của trình duyệt đang bị ẩn.</li>
+              <li>Nhấn phím <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-emerald-400 font-mono text-[11px]">Ctrl + Shift + B</kbd> để hiển thị thanh Bookmark trình duyệt.</li>
               <li>Dùng chuột <strong>GIỮ VÀ KÉO NÚT MÀU XANH Ở TRÊN</strong> thả lên thanh Bookmark.</li>
-              <li>Mở trang bài tập: <strong className="text-emerald-400 underline">https://fsc-edunext.fpt.edu.vn/home</strong> 👉 <strong>Bấm vào Bookmark vừa kéo</strong> là AI tự hiện lên và tự động làm bài!</li>
+              <li>Mở trang bài tập EduNext: <strong className="text-emerald-400 underline">https://fsc-edunext.fpt.edu.vn/home</strong> 👉 <strong>Bấm vào Bookmark vừa kéo</strong> là AI tự hiện lên và làm bài!</li>
             </ol>
+            <div className="pt-1 text-[11px] text-slate-400 italic">
+              💡 Mẹo cho ai không muốn kéo: Bấm nút <strong>&quot;Sao Chép Mã&quot;</strong> bên dưới, sau đó bấm <strong>Ctrl + D</strong> tạo Bookmark mới và dán mã vào ô URL.
+            </div>
           </div>
 
           <div className="flex items-center justify-center gap-2 pt-1">
@@ -143,7 +148,7 @@ export function ActivationSuccessModal({
               className="text-xs font-semibold gap-1.5"
             >
               {copiedBookmarkCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedBookmarkCode ? '✓ Đã sao chép mã Bookmarklet!' : '📋 Hoặc Bấm Để Sao Chép Mã (nếu muốn dán thủ công)'}</span>
+              <span>{copiedBookmarkCode ? '✓ Đã sao chép mã Bookmarklet!' : '📋 Bấm Vào Đây Để Sao Chép Mã (Dán Bookmark hoặc F12 Console)'}</span>
             </Button>
           </div>
         </div>

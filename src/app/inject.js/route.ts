@@ -7,13 +7,13 @@ export async function GET(req: NextRequest) {
 
   const scriptContent = `
 /**
- * FPT EduNext AI Assistant Pro v10.1.3 (Cloud AI Proxy & Encrypted Trial Guard)
+ * FPT EduNext AI Assistant Pro v10.1.5 (Cloud AI Proxy & Encrypted Trial Guard)
  * Auto Solver, Intent Auto-Select, Hard Submit Lock & Anti-429 Guard
  */
 (function() {
   'use strict';
 
-  const CURRENT_VERSION = '10.1.3';
+  const CURRENT_VERSION = '10.1.5';
   const LICENSE_KEY = ${JSON.stringify(licenseKey)};
   const API_SOLVE_ENDPOINT = ${JSON.stringify(origin + '/api/v1/ai/solve')};
   const API_CLAIM_ENDPOINT = ${JSON.stringify(origin + '/api/v1/auth/session-claim')};
@@ -300,6 +300,9 @@ export async function GET(req: NextRequest) {
   }
 
   function findSubmitButton() {
+    const wSend = document.querySelector('button.w-send-btn:not(.w-send-btn--close), .w-send-btn:not(.w-send-btn--close), button[class*="w-send-btn"]');
+    if (wSend && !wSend.closest('#edunext-pro-hud') && !wSend.disabled && wSend.offsetParent !== null) return wSend;
+
     const clickables = Array.from(document.querySelectorAll('button, [role="button"], div, span, a')).filter(el => {
       if (el.closest('#edunext-pro-hud')) return false;
       if (el.disabled || el.offsetParent === null) return false;
