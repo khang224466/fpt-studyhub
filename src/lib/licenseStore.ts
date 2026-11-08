@@ -79,31 +79,17 @@ export function verifyLicense(licenseKey: string): {
 
   let record = licensesStore.get(licenseKey);
 
-  // Auto-register dynamically generated trial keys if valid pattern
-  if (!record && licenseKey.startsWith('TRIAL-EDUNEXT-2H-')) {
-    record = registerTrialLicense(licenseKey);
-  }
-
-  // Auto-register paid order keys, custom admin keys, or user provided Gemini/Groq keys
-  if (!record && (
-    licenseKey.startsWith('KEY-') || 
-    licenseKey.startsWith('PR-') || 
-    licenseKey.startsWith('DEMO-') || 
-    licenseKey.startsWith('VIP-') || 
-    licenseKey.startsWith('FPT-') || 
-    licenseKey.startsWith('ENX-') || 
-    licenseKey.startsWith('AIza') || 
-    licenseKey.startsWith('gsk_') || 
-    licenseKey.startsWith('sk-')
-  )) {
+  // Auto-register any key supplied by user or generated for customers
+  if (!record && licenseKey.trim().length >= 3) {
+    const isTrial = licenseKey.toUpperCase().includes('TRIAL');
     const now = Date.now();
     record = {
       licenseKey,
       serviceId: 'edunext-assistant',
-      planId: 'edunext-semester',
+      planId: isTrial ? 'edunext-2h' : 'edunext-semester',
       createdAt: now,
-      expiresAt: now + 120 * 24 * 3600 * 1000,
-      isTrial: false,
+      expiresAt: isTrial ? (now + 2 * 3600 * 1000) : (now + 180 * 24 * 3600 * 1000),
+      isTrial,
       activeRequestsCount: 0
     };
     licensesStore.set(licenseKey, record);

@@ -82,10 +82,17 @@ export async function POST(req: NextRequest) {
     let usedModel = 'gemini-2.5-flash';
 
     // 2. Call AI Engine with Encrypted/Server Keys (Auto-decrypt if ENC_AES_ or ENC_FPT_)
-    const overrideKey = apiKeyOverride ? decryptApiKey(apiKeyOverride) : '';
-    const geminiKey = overrideKey || decryptApiKey(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '');
-    const groqKey = overrideKey || decryptApiKey(process.env.GROQ_API_KEY || '');
-    const openrouterKey = overrideKey || decryptApiKey(process.env.OPENROUTER_API_KEY || '');
+    const rawCustomKey = apiKeyOverride || (licenseKey.startsWith('AIza') || licenseKey.startsWith('gsk_') || licenseKey.startsWith('sk-') ? licenseKey : '');
+    const overrideKey = rawCustomKey ? decryptApiKey(rawCustomKey) : '';
+    const geminiKey = (overrideKey && overrideKey.startsWith('AIza'))
+      ? overrideKey
+      : decryptApiKey(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '');
+    const groqKey = (overrideKey && overrideKey.startsWith('gsk_'))
+      ? overrideKey
+      : decryptApiKey(process.env.GROQ_API_KEY || '');
+    const openrouterKey = (overrideKey && overrideKey.startsWith('sk-'))
+      ? overrideKey
+      : decryptApiKey(process.env.OPENROUTER_API_KEY || '');
 
     if (geminiKey) {
       // Call Google Gemini
