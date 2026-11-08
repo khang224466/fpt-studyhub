@@ -16,7 +16,7 @@ export function Footer() {
               <span className="font-bold text-white text-base">FPT Study Hub</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Hệ sinh thái công cụ hỗ trợ sinh viên FPT giải bài tập EduNext (v10.1.6), ôn luyện Khảo Thí Online và chuẩn hóa môi trường Safe Exam Browser (SEB).
+              Hệ sinh thái công cụ hỗ trợ sinh viên FPT giải bài tập EduNext (v10.1.7), ôn luyện Khảo Thí Online và chuẩn hóa môi trường Safe Exam Browser (SEB).
             </p>
           </div>
 
@@ -24,7 +24,7 @@ export function Footer() {
           <div>
             <div className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">Hệ Thống Trọng Tâm</div>
             <ul className="space-y-2 text-xs">
-              <li><a href="#services" className="hover:text-white transition-colors">FPT EduNext Assistant Pro (v10.1.6)</a></li>
+              <li><a href="#services" className="hover:text-white transition-colors">FPT EduNext Assistant Pro (v10.1.7)</a></li>
               <li><a href="#services" className="hover:text-white transition-colors">FPT Khảo Thí Online — Đề Thi Thử</a></li>
               <li><a href="#services" className="hover:text-white transition-colors">Safe Exam Browser (SEB) Toolkit</a></li>
             </ul>
@@ -62,7 +62,7 @@ export function Footer() {
             © 2026 FPT Study Hub. Thiết kế độc quyền cho cộng đồng sinh viên FPT University & FSchool.
           </div>
           <div className="flex items-center gap-6">
-            <span className="text-slate-400">Phiên bản: <strong className="text-emerald-400 font-mono">v10.1.6 PRO</strong></span>
+            <span className="text-slate-400">Phiên bản: <strong className="text-emerald-400 font-mono">v10.1.7 PRO</strong></span>
             <span>Khảo Thí & SEB: <strong className="text-amber-400">Sắp Ra Mắt</strong></span>
           </div>
         </div>
