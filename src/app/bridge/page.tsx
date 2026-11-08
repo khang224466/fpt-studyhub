@@ -38,7 +38,8 @@ export default function AiBridgePage() {
       if (data.type === 'ENX_SOLVE_REQ') {
         const { requestId, payload } = data;
         setStatus('solving');
-        addLog(`Nhận câu hỏi từ EduNext: "${(payload.question || '').slice(0, 35)}..."`);
+        const hasImg = payload.images && payload.images.length > 0;
+        addLog(`Nhận yêu cầu: ${hasImg ? '📸 Ảnh Vision + ' : ''}"${(payload.question || '').slice(0, 35)}..."`);
 
         try {
           const res = await fetch('/api/v1/ai/solve', {
@@ -107,7 +108,7 @@ export default function AiBridgePage() {
               <div className="font-extrabold text-white text-sm flex items-center gap-1.5">
                 <span>Cầu Nối AI EduNext (CSP Bridge)</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono border border-emerald-500/40">
-                  v10.1.8
+                  v10.2.0
                 </span>
               </div>
               <div className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">

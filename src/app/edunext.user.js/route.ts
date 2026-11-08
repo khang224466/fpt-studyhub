@@ -6,10 +6,10 @@ export async function GET(req: NextRequest) {
   const origin = req.nextUrl.origin;
 
   const userScriptContent = `// ==UserScript==
-// @name         FPT EduNext Study Assistant v10.1.9 (Cloud AI Proxy & Encrypted Trial Guard)
+// @name         FPT EduNext Study Assistant v10.2.0 (Cloud AI Proxy & Encrypted Trial Guard)
 // @namespace    http://tampermonkey.net/
-// @version      10.1.9
-// @description  Study Assistant v10.1.9: Cloud AI Proxy mã hóa toàn bộ API Key, chống 429 Rate Limit bằng 25s backoff, tự động xử lý Làm Rõ Ý Định, khóa nộp 1 lần duy nhất | FPT Study Hub
+// @version      10.2.0
+// @description  Study Assistant v10.2.0: Cloud AI Proxy mã hóa toàn bộ API Key, chống 429 Rate Limit bằng 25s backoff, tự động xử lý Làm Rõ Ý Định, khóa nộp 1 lần duy nhất | FPT Study Hub
 // @author       FPT Study Hub & FD Team
 // @match        *://fsc-edunext.fpt.edu.vn/*
 // @match        *://*.fpt.edu.vn/*
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     status: 200,
     headers: {
       'Content-Type': 'application/javascript; charset=utf-8',
-      'Content-Disposition': 'inline; filename="FPT_EduNext_Assistant_v10.1.9.user.js"',
+      'Content-Disposition': 'inline; filename="FPT_EduNext_Assistant_v10.2.0.user.js"',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Access-Control-Allow-Origin': '*'
     }
