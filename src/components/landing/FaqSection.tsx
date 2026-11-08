@@ -10,12 +10,12 @@ export function FaqSection() {
 
   const faqs = [
     {
-      q: 'EduNext Assistant v10.1.7 bảo vệ API Key và xử lý lỗi 429 như thế nào?',
-      a: 'Bản nâng cấp v10.1.7 tích hợp Cloud AI Proxy mã hóa toàn bộ API Key trên máy chủ bảo mật 100%, sinh viên dùng thử gói 2 giờ hoàn toàn không cần tự đăng ký key Groq hay Gemini. Đồng thời hệ thống duy trì bộ đánh chặn kép Dual Interceptor hoãn 25s chống bão 429, khóa nút nộp đơn nhất khi aria-pressed="true", và tự động chọn hộp thoại Làm Rõ Ý Định.'
+      q: 'EduNext Assistant v10.1.8 bảo vệ API Key và xử lý lỗi 429 như thế nào?',
+      a: 'Bản nâng cấp v10.1.8 tích hợp Cloud AI Proxy mã hóa toàn bộ API Key trên máy chủ bảo mật 100%, sinh viên dùng thử gói 2 giờ hoàn toàn không cần tự đăng ký key Groq hay Gemini. Đồng thời hệ thống duy trì bộ đánh chặn kép Dual Interceptor hoãn 25s chống bão 429, khóa nút nộp đơn nhất khi aria-pressed="true", và tự động chọn hộp thoại Làm Rõ Ý Định.'
     },
     {
       q: 'Tại sao trước đây bot AI EduNext cứ bắt tôi giải lại cùng một câu hỏi?',
-      a: 'Vì một số câu hỏi EduNext yêu cầu học sinh điền theo mẫu nghiêm ngặt, ví dụ: "Trả lời: [đáp án của bạn]". Các phiên bản cũ tự ý xóa chữ "Trả lời:", khiến hệ thống không nhận diện được cú pháp và bắt làm lại. Bản v10.1.7 đã khắc phục hoàn toàn bằng cách tự động khớp mẫu chuẩn.'
+      a: 'Vì một số câu hỏi EduNext yêu cầu học sinh điền theo mẫu nghiêm ngặt, ví dụ: "Trả lời: [đáp án của bạn]". Các phiên bản cũ tự ý xóa chữ "Trả lời:", khiến hệ thống không nhận diện được cú pháp và bắt làm lại. Bản v10.1.8 đã khắc phục hoàn toàn bằng cách tự động khớp mẫu chuẩn.'
     },
     {
       q: 'Cổng Khảo Thí Online hỗ trợ những môn học nào?',
@@ -42,7 +42,7 @@ export function FaqSection() {
             Câu Hỏi Thường Gặp Của Sinh Viên FPT
           </h2>
           <p className="mt-3 text-slate-400 text-sm sm:text-base">
-            Mọi điều bạn cần biết về EduNext Assistant v10.1.7, Khảo Thí Online và SEB Toolkit.
+            Mọi điều bạn cần biết về EduNext Assistant v10.1.8, Khảo Thí Online và SEB Toolkit.
           </p>
         </div>
 
