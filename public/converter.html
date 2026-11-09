@@ -58,25 +58,29 @@
       font-size: 13px;
       margin-bottom: 16px;
       outline: none;
-      transition: border 0.2s;
+      transition: border-color 0.2s;
     }
     input[type="text"]:focus {
       border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
     }
-    button.btn {
+    .btn {
       width: 100%;
-      background: linear-gradient(135deg, #38bdf8, #0284c7);
-      border: none;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      border: 1px solid #38bdf8;
       color: #fff;
       font-weight: 800;
-      font-size: 13px;
-      padding: 12px;
+      font-size: 14px;
+      padding: 13px;
       border-radius: 10px;
       cursor: pointer;
-      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
-      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
     }
-    button.btn:hover {
+    .btn:hover {
       filter: brightness(1.1);
     }
     .result-box {
@@ -123,10 +127,10 @@
 
   <div class="card">
     <h1>🔑 Máy Chuyển Đổi Gemini Key</h1>
-    <p class="sub">Nhập Google AI Studio Key của bạn. Hệ thống sẽ mã hóa thành mã độc quyền <code>ENC_AI_...</code>. Người dùng dán mã này vào tool để giải bài mà hoàn toàn không thể xem trộm được API Key Google của bạn!</p>
+    <p class="sub">Nhập Google AI Studio Key của bạn (hỗ trợ cả chuẩn mới <code>AQ....</code> và chuẩn cũ <code>AIzaSy...</code>). Hệ thống sẽ mã hóa thành mã độc quyền <code>ENC_AI_...</code>. Người dùng dán mã này vào tool để giải bài mà hoàn toàn không thể xem trộm được API Key Google của bạn!</p>
 
-    <label>Dán Google AI Studio Key (bắt đầu bằng AIzaSy...):</label>
-    <input type="text" id="raw-key" placeholder="AIzaSy...">
+    <label>Dán Google AI Studio Key (AQ... hoặc AIzaSy...):</label>
+    <input type="text" id="raw-key" placeholder="Dán key Google AI Studio (AQ... hoặc AIza...)">
 
     <button class="btn" onclick="convertKey()">⚡ CHUYỂN ĐỔI SANG KEY MÃ HÓA NGAY</button>
 
@@ -155,8 +159,8 @@
 
     function convertKey() {
       const inp = document.getElementById('raw-key').value.trim();
-      if (!inp || !inp.startsWith('AIza')) {
-        alert('Vui lòng dán đúng định dạng Google Gemini API Key (bắt đầu bằng AIza...)');
+      if (!inp || inp.length < 20) {
+        alert('Vui lòng dán Google Gemini API Key hợp lệ (bắt đầu bằng AQ... hoặc AIza...)');
         return;
       }
       const enc = encrypt(inp);
