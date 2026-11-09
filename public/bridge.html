@@ -146,8 +146,8 @@
       <div class="title-box">
         <div class="icon">⚡</div>
         <div>
-          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.7</span></h1>
-          <div class="sub">Vượt CSP Cloudflare 100% • Tự Động Tìm Model & Backup Cloud</div>
+          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.8</span></h1>
+          <div class="sub">Vượt CSP Cloudflare 100% • Tối Ưu Vision Flash & Khóa Đồng Bộ</div>
         </div>
       </div>
     </div>
@@ -181,7 +181,7 @@
       logsEl.scrollTop = logsEl.scrollHeight;
     }
 
-    log('success', '✓ Khởi tạo AI Bridge v10.2.7 thành công!');
+    log('success', '✓ Khởi tạo AI Bridge v10.2.8 thành công!');
 
     if (window.opener) {
       try {
@@ -190,50 +190,67 @@
       } catch(e) {}
     }
 
-    // Cache list of validated models for key
+    // Cache list of validated vision models for key
     let cachedModelList = null;
 
     async function discoverModels(cleanKey) {
       if (cachedModelList && cachedModelList.length > 0) return cachedModelList;
       try {
-        log('info', 'Đang truy vấn danh sách Model từ Google AI Studio...');
+        log('info', 'Đang đồng bộ model Google Gemini Studio khả dụng...');
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`);
         if (res.ok) {
           const data = await res.json();
           if (data.models && Array.isArray(data.models)) {
-            const supported = data.models
+            // LỌC BỎ CÁC MODEL KHÔNG PHẢI VISION (như tts, audio, embedding, aqa)
+            const visionCandidates = data.models
               .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
-              .map(m => m.name.replace(/^models\//, ''));
-            if (supported.length > 0) {
-              // Sort to prioritize flash models
-              supported.sort((a, b) => {
-                const aFlash = a.includes('flash');
-                const bFlash = b.includes('flash');
-                if (aFlash && !bFlash) return -1;
-                if (!aFlash && bFlash) return 1;
+              .map(m => m.name.replace(/^models\//, ''))
+              .filter(name => !name.includes('tts') && !name.includes('embed') && !name.includes('aqa') && !name.includes('audio') && !name.includes('realtime'));
+
+            if (visionCandidates.length > 0) {
+              // Ưu tiên các model Vision chuẩn, ổn định nhất của Google lên đầu:
+              const priority = [
+                'gemini-1.5-flash',
+                'gemini-1.5-flash-latest',
+                'gemini-2.0-flash',
+                'gemini-2.0-flash-exp',
+                'gemini-flash-latest',
+                'gemini-2.0-flash-lite',
+                'gemini-1.5-pro',
+                'gemini-pro'
+              ];
+
+              visionCandidates.sort((a, b) => {
+                const idxA = priority.indexOf(a);
+                const idxB = priority.indexOf(b);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
                 return 0;
               });
-              log('success', `✓ Google cấp quyền ${supported.length} model: ${supported.slice(0, 3).join(', ')}...`);
-              cachedModelList = supported;
-              return supported;
+
+              log('success', `✓ Đã chọn ${visionCandidates.length} model Vision khả dụng: ${visionCandidates.slice(0, 3).join(', ')}...`);
+              cachedModelList = visionCandidates;
+              return visionCandidates;
             }
           }
-        } else {
-          const errTxt = await res.text();
-          log('warn', `Google ListModels HTTP ${res.status}: ${(errTxt.slice(0, 100) || 'Lỗi')}`);
         }
       } catch(e) {
         log('warn', 'Không thể ListModels: ' + (e.message || e));
       }
+
       return [
         'gemini-1.5-flash',
-        'gemini-2.0-flash',
         'gemini-1.5-flash-latest',
-        'gemini-1.5-pro',
+        'gemini-2.0-flash',
+        'gemini-flash-latest',
         'gemini-2.0-flash-lite',
-        'gemini-2.0-flash-lite-preview-02-05'
+        'gemini-1.5-pro'
       ];
     }
+
+    // KHÓA ĐỒNG BỘ: Chặn gửi liên tục làm nghẽn mạng & 429 rate-limit
+    let isBridgeSolving = false;
 
     window.addEventListener('message', async (e) => {
       const data = e.data;
@@ -248,32 +265,35 @@
 
       if (data.type === 'ENX_SOLVE_REQ') {
         const { requestId, rawKey, promptText, imageBase64 } = data;
-        statusEl.innerHTML = '<span class="dot" style="background:#38bdf8"></span> Đang gọi Google Gemini giải bài...';
+
+        if (isBridgeSolving) {
+          log('info', 'Đang xử lý câu hỏi trước đó, tạm hoãn yêu cầu lặp...');
+          return;
+        }
+
+        isBridgeSolving = true;
+        statusEl.innerHTML = '<span class="dot" style="background:#38bdf8"></span> Đang giải bài tập từ ảnh...';
         log('info', `Nhận yêu cầu: ${imageBase64 ? '📸 Ảnh Vision + ' : ''}"${(promptText || '').slice(0, 35)}..."`);
 
-        const cleanKey = (rawKey || '').trim();
-        const candidateModels = await discoverModels(cleanKey);
+        try {
+          const cleanKey = (rawKey || '').trim();
+          const candidateModels = await discoverModels(cleanKey);
 
-        const parts = [];
-        if (imageBase64) {
-          const b64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-          parts.push({ inlineData: { mimeType: 'image/jpeg', data: b64 } });
-        }
-        parts.push({ text: promptText || 'Giải bài tập trên ảnh' });
+          const parts = [];
+          if (imageBase64) {
+            const b64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+            parts.push({ inlineData: { mimeType: 'image/jpeg', data: b64 } });
+          }
+          parts.push({ text: promptText || 'Giải bài tập trên ảnh' });
 
-        let answer = null;
-        let lastErr = null;
+          let answer = null;
+          let lastErr = null;
 
-        // 1. Thử gọi trực tiếp Google Gemini qua danh sách model
-        for (let i = 0; i < candidateModels.length; i++) {
-          const model = candidateModels[i];
-          const endpoints = [
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`,
-            `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${cleanKey}`
-          ];
+          // Thử lần lượt các model Vision tối ưu
+          for (let i = 0; i < candidateModels.length; i++) {
+            const model = candidateModels[i];
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
 
-          let modelSuccess = false;
-          for (const url of endpoints) {
             try {
               log('info', `Gửi API tới Google Studio (${model})...`);
               const res = await fetch(url, {
@@ -299,12 +319,11 @@
                   clean = clean.replace(/^\*\*Trả lời:\*\*/i, 'Trả lời:').trim();
                   answer = clean;
                   log('success', `✓ Gemini (${model}) phản hồi: "${answer.slice(0, 30)}..."`);
-                  modelSuccess = true;
                   break;
                 }
               } else {
                 const errTxt = await res.text();
-                log('warn', `Model ${model} HTTP ${res.status}: ${(errTxt.slice(0, 80) || 'Lỗi')}`);
+                log('warn', `Model ${model} HTTP ${res.status}: ${(errTxt.slice(0, 70) || 'Lỗi')}`);
                 lastErr = `HTTP ${res.status}`;
               }
             } catch(err) {
@@ -313,62 +332,57 @@
             }
           }
 
-          if (modelSuccess) break;
-        }
+          // Dự phòng Vercel Cloud Engine
+          if (!answer) {
+            log('warn', '⚡ Đang gọi Cloud Engine dự phòng...');
+            try {
+              const cloudRes = await fetch('/api/v1/ai/solve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  question: promptText,
+                  images: imageBase64 ? [imageBase64] : [],
+                  apiKeyOverride: cleanKey
+                })
+              });
 
-        // 2. NẾU GOOGLE DIRECT LỖI (404/401/...) -> TỰ ĐỘNG CHUYỂN QUA CLOUD SOLVER DỰ PHÒNG
-        if (!answer) {
-          log('warn', '⚡ Đang kích hoạt Cloud AI Engine dự phòng trên Vercel...');
-          try {
-            const cloudRes = await fetch('/api/v1/ai/solve', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                question: promptText,
-                images: imageBase64 ? [imageBase64] : [],
-                apiKeyOverride: cleanKey
-              })
-            });
-
-            if (cloudRes.ok) {
-              const cloudData = await cloudRes.json();
-              if (cloudData.success && cloudData.answer) {
-                answer = cloudData.answer;
-                log('success', `✓ Cloud Engine dự phòng phản hồi: "${answer.slice(0, 30)}..."`);
+              if (cloudRes.ok) {
+                const cloudData = await cloudRes.json();
+                if (cloudData.success && cloudData.answer) {
+                  answer = cloudData.answer;
+                  log('success', `✓ Cloud Engine dự phòng phản hồi: "${answer.slice(0, 30)}..."`);
+                }
               }
-            } else {
-              log('warn', `Cloud Engine HTTP ${cloudRes.status}`);
+            } catch(err) {}
+          }
+
+          if (answer) {
+            statusEl.innerHTML = '<span class="dot" style="background:#10b981"></span> ✓ Đã giải xong, đang gửi về EduNext';
+            if (e.source) {
+              e.source.postMessage({
+                type: 'ENX_SOLVE_RES',
+                requestId,
+                success: true,
+                answer
+              }, '*');
             }
-          } catch(err) {
-            log('warn', 'Lỗi Cloud Engine: ' + (err.message || err));
+          } else {
+            statusEl.innerHTML = '<span class="dot" style="background:#ef4444"></span> ✗ Lỗi giải bài';
+            if (e.source) {
+              e.source.postMessage({
+                type: 'ENX_SOLVE_RES',
+                requestId,
+                success: false,
+                error: lastErr || 'Google Gemini không phản hồi'
+              }, '*');
+            }
           }
+        } finally {
+          isBridgeSolving = false;
+          setTimeout(() => {
+            statusEl.innerHTML = '<span class="dot"></span> Đang sẵn sàng nhận bài tiếp theo...';
+          }, 1500);
         }
-
-        if (answer) {
-          statusEl.innerHTML = '<span class="dot" style="background:#10b981"></span> ✓ Đã giải xong, đang gửi về EduNext';
-          if (e.source) {
-            e.source.postMessage({
-              type: 'ENX_SOLVE_RES',
-              requestId,
-              success: true,
-              answer
-            }, '*');
-          }
-        } else {
-          statusEl.innerHTML = '<span class="dot" style="background:#ef4444"></span> ✗ Lỗi giải bài';
-          if (e.source) {
-            e.source.postMessage({
-              type: 'ENX_SOLVE_RES',
-              requestId,
-              success: false,
-              error: lastErr || 'Google Gemini không phản hồi'
-            }, '*');
-          }
-        }
-
-        setTimeout(() => {
-          statusEl.innerHTML = '<span class="dot"></span> Đang sẵn sàng nhận bài tiếp theo...';
-        }, 2000);
       }
     });
 
