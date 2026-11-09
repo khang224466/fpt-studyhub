@@ -250,16 +250,25 @@ export async function POST(req: NextRequest) {
         else if (/quy\s*tắc\s*hình\s*bình\s*hành/i.test(cleanQuestion)) answer = 'F = √(F1² + F2² + 2F1F2cosα)';
       }
 
-      // 5. Câu hỏi sẵn sàng THỰC SỰ (Tuyệt đối không nhầm với bài tập có chứa chữ sẵn sàng)
+      // 5. Câu hỏi Vật lí: Chuyển động thẳng biến đổi đều (Nhanh dần đều / Chậm dần đều)
+      if (!answer && /chuyển\s*động\s*thẳng\s*(?:nhanh|chậm)\s*dần\s*đều/i.test(cleanQuestion)) {
+        answer = 'Chuyển động thẳng nhanh dần đều có độ lớn vận tốc tăng đều theo thời gian. Chuyển động thẳng chậm dần đều có độ lớn vận tốc giảm đều theo thời gian.';
+      }
+
+      // 6. Câu hỏi sẵn sàng THỰC SỰ (Tuyệt đối không nhầm với bài tập có chứa chữ sẵn sàng)
       if (!answer && !hasAcademicExercise) {
         if (/bạn\s*đã\s*sẵn\s*sàng|sẵn\s*sàng\s*chuyển\s*sang|are\s*you\s*ready/i.test(cleanQuestion)) {
           answer = 'Sẵn sàng';
         }
       }
 
-      // Fallback an toàn
+      // Fallback an toàn - TUYỆT ĐỐI KHÔNG GỬI "Đã tiếp nhận" KHI CÓ BÀI TẬP
       if (!answer) {
-        answer = needsTemplate ? 'Trả lời: Đã tiếp nhận' : 'Tiếp tục';
+        if (hasAcademicExercise) {
+          answer = '';
+        } else {
+          answer = needsTemplate ? 'Sẵn sàng' : 'Tiếp tục';
+        }
       }
     }
 
