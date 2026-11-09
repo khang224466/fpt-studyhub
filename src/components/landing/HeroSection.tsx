@@ -67,7 +67,7 @@ export function HeroSection() {
           {/* Value Props Row */}
           <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm">
-              <div className="text-emerald-400 font-bold text-lg">EduNext v10.2.0</div>
+              <div className="text-emerald-400 font-bold text-lg">EduNext v10.2.1</div>
               <div className="text-xs text-slate-400 mt-0.5 font-medium">Khớp mẫu "Trả lời:", chống 429</div>
             </div>
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm">
@@ -120,7 +120,7 @@ export function HeroSection() {
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-semibold shadow-md shadow-emerald-950/60 hover:brightness-110 active:scale-95 transition-all cursor-pointer shrink-0 border border-emerald-400/30 animate-pulse"
                 >
                   <Bookmark className="w-3.5 h-3.5 fill-current" />
-                  <span>⚡ Kích Hoạt EduNext Assistant v10.2.0</span>
+                  <span>⚡ Kích Hoạt EduNext Assistant v10.2.1</span>
                 </button>
 
                 <div className="px-2.5 py-1 rounded bg-slate-800/60 text-slate-400 text-xs shrink-0 flex items-center gap-1">
@@ -159,7 +159,7 @@ export function HeroSection() {
                     <div className="text-xs text-slate-400">
                       {simStep === 'ready' ? (
                         <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5 inline" /> Đã kết nối v10.2.0 (Vision 5s, Dual 429 Interceptor, Template Matcher)
+                          <CheckCircle2 className="w-3.5 h-3.5 inline" /> Đã kết nối v10.2.1 (Vision 5s, Dual 429 Interceptor, Template Matcher)
                         </span>
                       ) : (
                         <span>Chưa kích hoạt trợ lý học tập</span>
@@ -182,7 +182,7 @@ export function HeroSection() {
                 {simStep === 'idle' && (
                   <div className="text-center py-6">
                     <p className="text-slate-400 text-sm mb-3">
-                      👉 Hãy bấm vào nút <span className="text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/80">⚡ Kích Hoạt EduNext Assistant v10.2.0</span> trên thanh dấu trang ở trên!
+                      👉 Hãy bấm vào nút <span className="text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/80">⚡ Kích Hoạt EduNext Assistant v10.2.1</span> trên thanh dấu trang ở trên!
                     </p>
                     <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 text-left font-mono">
                       // Đề bài: "Đối với đồng vị carbon-14, số hiệu nguyên tử Z=6 và số khối A=14..."<br />
@@ -196,7 +196,7 @@ export function HeroSection() {
                   <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="p-4 rounded-xl bg-slate-900/90 border border-emerald-500/40 text-xs text-slate-200 space-y-2">
                       <div className="font-semibold text-emerald-400 flex items-center gap-1.5">
-                        <Zap className="w-4 h-4" /> EduNext Assistant v10.2.0 đã xử lý thành công:
+                        <Zap className="w-4 h-4" /> EduNext Assistant v10.2.1 đã xử lý thành công:
                       </div>
                       <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 font-mono text-emerald-300">
                         &gt; Tự động điền đáp án chuẩn mẫu: <strong>Trả lời: 8</strong><br />
@@ -214,7 +214,7 @@ export function HeroSection() {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 tracking-wider">
                       <Zap className="w-3.5 h-3.5 fill-current" />
-                      <span>EDUNEXT HUD v10.2.0</span>
+                      <span>EDUNEXT HUD v10.2.1</span>
                     </div>
                     {simStep === 'clicked' && <span className="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />}
                     {simStep === 'injected' && <span className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />}
@@ -224,7 +224,7 @@ export function HeroSection() {
                   {simStep === 'clicked' && (
                     <div>
                       <div className="text-xs font-semibold text-white">Đang kiểm tra License FPT...</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">Xác thực mã sinh viên và nạp bản quyền v10.2.0</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">Xác thực mã sinh viên và nạp bản quyền v10.2.1</div>
                     </div>
                   )}
 

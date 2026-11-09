@@ -3,7 +3,7 @@ import { verifyLicense } from '@/lib/licenseStore';
 import { decryptApiKey } from '@/lib/cryptoKey';
 
 const SYSTEM_PROMPT = `
-Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.0) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
+Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.1) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
 
 [QUY TẮC BẮT BUỘC]:
 1. ĐỊNH DẠNG TRẢ LỜI MẪU (RẤT QUAN TRỌNG):

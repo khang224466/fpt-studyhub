@@ -7,13 +7,13 @@ export async function GET(req: NextRequest) {
 
   const scriptContent = `
 /**
- * FPT EduNext AI Assistant Pro v10.2.0 (Cloud AI Proxy & Encrypted Trial Guard)
+ * FPT EduNext AI Assistant Pro v10.2.1 (Cloud AI Proxy & Encrypted Trial Guard)
  * Auto Solver, Intent Auto-Select, Hard Submit Lock & Anti-429 Guard
  */
 (function() {
   'use strict';
 
-  const CURRENT_VERSION = '10.2.0';
+  const CURRENT_VERSION = '10.2.1';
   const LICENSE_KEY = ${JSON.stringify(licenseKey)};
   const API_SOLVE_ENDPOINT = ${JSON.stringify(origin + '/api/v1/ai/solve')};
   const API_CLAIM_ENDPOINT = ${JSON.stringify(origin + '/api/v1/auth/session-claim')};
