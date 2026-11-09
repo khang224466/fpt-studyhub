@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
 
     let answer = '';
     let usedProvider = 'fpt-cloud-engine';
-    let usedModel = 'gemini-2.5-flash';
+    let usedModel = 'gemini-1.5-flash';
 
     // 2. Call AI Engine with Encrypted/Server Keys (Auto-decrypt if ENC_AES_ or ENC_FPT_)
     const rawCustomKey = apiKeyOverride || (licenseKey.startsWith('AIza') || licenseKey.startsWith('gsk_') || licenseKey.startsWith('sk-') ? licenseKey : '');
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       // Call Google Gemini
       try {
         usedProvider = 'google-gemini';
-        usedModel = 'gemini-2.5-flash';
+        usedModel = 'gemini-1.5-flash';
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${usedModel}:generateContent?key=${geminiKey}`;
 
         const parts: any[] = [{ text: cleanQuestion }];
