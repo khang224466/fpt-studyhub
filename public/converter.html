@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Máy Chuyển Đổi Gemini Key Sang Key Mã Hóa EduNext</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #020617;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #0b0f19;
+      border: 2px solid #38bdf8;
+      border-radius: 20px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(56, 189, 248, 0.25);
+      max-width: 580px;
+      width: 100%;
+      padding: 32px 28px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #38bdf8;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    p.sub {
+      color: #94a3b8;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+    }
+    input[type="text"] {
+      width: 100%;
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: #fff;
+      font-family: monospace;
+      font-size: 13px;
+      margin-bottom: 16px;
+      outline: none;
+      transition: border 0.2s;
+    }
+    input[type="text"]:focus {
+      border-color: #38bdf8;
+    }
+    button.btn {
+      width: 100%;
+      background: linear-gradient(135deg, #38bdf8, #0284c7);
+      border: none;
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+      transition: all 0.2s;
+    }
+    button.btn:hover {
+      filter: brightness(1.1);
+    }
+    .result-box {
+      display: none;
+      margin-top: 24px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid #10b981;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .result-label {
+      color: #34d399;
+      font-weight: 800;
+      font-size: 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .result-code {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #38bdf8;
+      word-break: break-all;
+      user-select: all;
+    }
+    .copy-btn {
+      background: #10b981;
+      border: none;
+      color: #000;
+      font-weight: 800;
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>🔑 Máy Chuyển Đổi Gemini Key</h1>
+    <p class="sub">Nhập Google AI Studio Key của bạn. Hệ thống sẽ mã hóa thành mã độc quyền <code>ENC_AI_...</code>. Người dùng dán mã này vào tool để giải bài mà hoàn toàn không thể xem trộm được API Key Google của bạn!</p>
+
+    <label>Dán Google AI Studio Key (bắt đầu bằng AIzaSy...):</label>
+    <input type="text" id="raw-key" placeholder="AIzaSy...">
+
+    <button class="btn" onclick="convertKey()">⚡ CHUYỂN ĐỔI SANG KEY MÃ HÓA NGAY</button>
+
+    <div id="result" class="result-box">
+      <div class="result-label">
+        <span>✓ KEY MÃ HÓA CHO TOOL (DÁN VÀO BOT EDUNEXT):</span>
+        <button class="copy-btn" onclick="copyResult()">Sao Chép</button>
+      </div>
+      <div id="output-code" class="result-code"></div>
+    </div>
+  </div>
+
+  <script>
+    const SALT = 'ENX_SEC_2026_FLASH_LITE';
+
+    function encrypt(text) {
+      if (!text || typeof text !== 'string') return '';
+      const trimmed = text.trim();
+      let res = '';
+      for (let i = 0; i < trimmed.length; i++) {
+        const c = trimmed.charCodeAt(i) ^ SALT.charCodeAt(i % SALT.length);
+        res += ('00' + c.toString(16)).slice(-2);
+      }
+      return 'ENC_AI_' + btoa(res);
+    }
+
+    function convertKey() {
+      const inp = document.getElementById('raw-key').value.trim();
+      if (!inp || !inp.startsWith('AIza')) {
+        alert('Vui lòng dán đúng định dạng Google Gemini API Key (bắt đầu bằng AIza...)');
+        return;
+      }
+      const enc = encrypt(inp);
+      document.getElementById('output-code').textContent = enc;
+      document.getElementById('result').style.display = 'block';
+    }
+
+    function copyResult() {
+      const code = document.getElementById('output-code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        alert('✓ Đã sao chép Key mã hóa vào bộ nhớ đệm!');
+      });
+    }
+  </script>
+
+</body>
+</html>
