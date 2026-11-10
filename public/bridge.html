@@ -192,6 +192,7 @@
 
     // Cache list of validated vision models for key
     let cachedModelList = null;
+    let preferredModel = 'gemini-flash-lite-latest';
 
     async function discoverModels(cleanKey) {
       if (cachedModelList && cachedModelList.length > 0) return cachedModelList;
@@ -201,23 +202,31 @@
         if (res.ok) {
           const data = await res.json();
           if (data.models && Array.isArray(data.models)) {
-            // LỌC BỎ CÁC MODEL KHÔNG PHẢI VISION (như tts, audio, embedding, aqa)
+            // LỌC BỎ CÁC MODEL KHÔNG PHÙ HỢP (tts, audio, embedding, aqa, gemma, 2.5)
             const visionCandidates = data.models
               .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
               .map(m => m.name.replace(/^models\//, ''))
-              .filter(name => !name.includes('tts') && !name.includes('embed') && !name.includes('aqa') && !name.includes('audio') && !name.includes('realtime'));
+              .filter(name => 
+                !name.includes('tts') && 
+                !name.includes('embed') && 
+                !name.includes('aqa') && 
+                !name.includes('audio') && 
+                !name.includes('realtime') &&
+                !name.includes('gemma') &&
+                !name.includes('2.5')
+              );
 
             if (visionCandidates.length > 0) {
-              // Ưu tiên các model Vision chuẩn, ổn định nhất của Google lên đầu:
+              // Ưu tiên các model Flash-Lite và Flash siêu nhanh, đã kiểm chứng:
               const priority = [
+                'gemini-flash-lite-latest',
+                'gemini-2.0-flash-lite',
+                'gemini-2.0-flash-lite-preview-02-05',
                 'gemini-1.5-flash',
                 'gemini-1.5-flash-latest',
                 'gemini-2.0-flash',
-                'gemini-2.0-flash-exp',
                 'gemini-flash-latest',
-                'gemini-2.0-flash-lite',
-                'gemini-1.5-pro',
-                'gemini-pro'
+                'gemini-1.5-pro'
               ];
 
               visionCandidates.sort((a, b) => {
@@ -240,12 +249,12 @@
       }
 
       return [
+        'gemini-flash-lite-latest',
+        'gemini-2.0-flash-lite',
         'gemini-1.5-flash',
         'gemini-1.5-flash-latest',
         'gemini-2.0-flash',
-        'gemini-flash-latest',
-        'gemini-2.0-flash-lite',
-        'gemini-1.5-pro'
+        'gemini-flash-latest'
       ];
     }
 
@@ -289,16 +298,22 @@
           let answer = null;
           let lastErr = null;
 
-          // Thử lần lượt các model Vision tối ưu
-          for (let i = 0; i < candidateModels.length; i++) {
-            const model = candidateModels[i];
+          // Thử model ưu tiên (preferredModel) trước, rồi đến danh sách còn lại
+          const orderedModels = [preferredModel].concat(candidateModels.filter(m => m !== preferredModel));
+
+          for (let i = 0; i < orderedModels.length; i++) {
+            const model = orderedModels[i];
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+
+            const controller = new AbortController();
+            const timeoutTimer = setTimeout(() => controller.abort(), 7500);
 
             try {
               log('info', `Gửi API tới Google Studio (${model})...`);
               const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal,
                 body: JSON.stringify({
                   systemInstruction: {
                     parts: [{
@@ -309,6 +324,7 @@
                   generationConfig: { temperature: 0.1, maxOutputTokens: 800 }
                 })
               });
+              clearTimeout(timeoutTimer);
 
               if (res.ok) {
                 const resJson = await res.json();
@@ -318,7 +334,8 @@
                   let clean = text.replace(/```(?:markdown|json|text)?/gi, '').replace(/```/g, '').trim();
                   clean = clean.replace(/^\*\*Trả lời:\*\*/i, 'Trả lời:').trim();
                   answer = clean;
-                  log('success', `✓ Gemini (${model}) phản hồi: "${answer.slice(0, 30)}..."`);
+                  preferredModel = model;
+                  log('success', `✓ Gemini (${model}) phản hồi: "${answer.slice(0, 30)}..." (Đã lưu ưu tiên)`);
                   break;
                 }
               } else {
@@ -327,7 +344,12 @@
                 lastErr = `HTTP ${res.status}`;
               }
             } catch(err) {
-              log('warn', `Lỗi kết nối ${model}: ${err.message || err}`);
+              clearTimeout(timeoutTimer);
+              if (err.name === 'AbortError') {
+                log('warn', `Model ${model} quá hạn (timeout 7.5s) -> Bỏ qua`);
+              } else {
+                log('warn', `Lỗi kết nối ${model}: ${err.message || err}`);
+              }
               lastErr = err.message || err;
             }
           }
