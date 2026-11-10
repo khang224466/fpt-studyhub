@@ -221,7 +221,7 @@ export default function ActivatePage() {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-700 transition-colors"
                 >
                   <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Cài Tampermonkey (v10.2.4)</span>
+                  <span>Cài Tampermonkey (v10.2.14)</span>
                 </a>
               </div>
             </div>
@@ -235,7 +235,7 @@ export default function ActivatePage() {
               <ol className="list-decimal list-inside space-y-1 text-slate-400">
                 <li>Truy cập vào trang học tập: <strong>https://{searchResult.service.targetDomain}</strong></li>
                 <li>Nhấn vào nút Bookmarklet trên thanh dấu trang (hoặc bật Userscript)</li>
-                <li>Bảng điều khiển HUD của trợ lý <strong>v10.2.4</strong> sẽ xuất hiện, tự động giải bài và nộp theo mẫu!</li>
+                <li>Bảng điều khiển HUD của trợ lý <strong>v10.2.14</strong> sẽ xuất hiện, tự động giải bài và nộp theo mẫu!</li>
               </ol>
             </div>
           </div>

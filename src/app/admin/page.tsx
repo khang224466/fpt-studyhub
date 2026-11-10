@@ -60,7 +60,7 @@ export default function AdminPage() {
   };
 
   const accountPools = [
-    { service: 'EduNext VIP Assistant Pool (v10.0.9)', accounts: 6, capacity: '240/300 slots', health: 'healthy', latency: '12ms' },
+    { service: 'EduNext VIP Assistant Pool (v10.2.14)', accounts: 6, capacity: '240/300 slots', health: 'healthy', latency: '12ms' },
     { service: 'Khảo Thí Online Exam Bank Pool', accounts: 4, capacity: '150/200 slots', health: 'healthy', latency: '18ms' },
     { service: 'Safe Exam Browser Config Cloud Node', accounts: 3, capacity: '90/100 slots', health: 'healthy', latency: '9ms' }
   ];
@@ -85,7 +85,7 @@ export default function AdminPage() {
               <Badge variant="indigo" size="sm">Bản v2.4 (EduNext/Khảo Thí/SEB)</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Quản trị License sinh viên FPT, giám sát tải server EduNext Assistant v10.0.9, Khảo Thí và SEB Toolkit.
+              Quản trị License sinh viên FPT, giám sát tải server EduNext Assistant v10.2.14, Khảo Thí và SEB Toolkit.
             </p>
           </div>
 
