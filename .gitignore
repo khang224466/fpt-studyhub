@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# local auxiliary tools
+/assistant_tools/
+/extension/
+/research_and_tests/
