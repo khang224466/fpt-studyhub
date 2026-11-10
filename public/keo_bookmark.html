@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cầm Bookmark Kéo Lên Bấm Vô Là Chạy — EduNext AI Pro v10.2.15</title>
+  <link rel="icon" href="https://fpt-studyhub.vercel.app/favicon.ico">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    body {
+      background: radial-gradient(circle at top, #064e3b 0%, #022c22 35%, #020617 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    .container {
+      max-width: 680px;
+      width: 100%;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: 24px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(16, 185, 129, 0.2);
+      backdrop-filter: blur(20px);
+      padding: 36px 28px;
+      text-align: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 9999px;
+      color: #34d399;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.3;
+      margin-bottom: 12px;
+    }
+    h1 span {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p.desc {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .arrow-guide {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #34d399;
+      font-weight: 800;
+      font-size: 13px;
+      margin-bottom: 12px;
+      animation: bounce 1.5s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .btn-wrapper {
+      padding: 12px;
+      background: rgba(2, 6, 23, 0.6);
+      border: 2px dashed rgba(16, 185, 129, 0.5);
+      border-radius: 20px;
+      margin-bottom: 28px;
+    }
+    .draggable-bookmark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      padding: 18px 28px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+      color: #ffffff;
+      font-size: 17px;
+      font-weight: 900;
+      text-decoration: none;
+      border-radius: 14px;
+      box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.35);
+      cursor: grab;
+      user-select: none;
+      transition: all 0.2s ease;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    .draggable-bookmark:active {
+      cursor: grabbing;
+      transform: scale(0.98);
+    }
+    .draggable-bookmark:hover {
+      box-shadow: 0 15px 35px -5px rgba(16, 185, 129, 0.7), 0 0 30px rgba(16, 185, 129, 0.5);
+      transform: translateY(-2px);
+    }
+    .steps-card {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+    .steps-card h3 {
+      font-size: 13px;
+      color: #38bdf8;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+    .step-item:last-child {
+      margin-bottom: 0;
+    }
+    .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid #10b981;
+      color: #34d399;
+      font-weight: 800;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    kbd {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: #38bdf8;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .footer-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .btn-secondary:hover {
+      border-color: #64748b;
+      color: #f1f5f9;
+      background: #0f172a;
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #10b981;
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 13px;
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+      display: none;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="badge">⚡ EduNext AI Assistant Pro v10.2.15</div>
+    <h1>Cầm Kéo Lên <span>Thanh Dấu Trang</span> Là Xong!</h1>
+    <p class="desc">Không cần cài đặt script hay tiện ích. Bạn chỉ cần giữ chuột vào nút màu xanh bên dưới và kéo thẳng lên thanh Bookmark của trình duyệt.</p>
+
+    <div class="arrow-guide">
+      <span>⬆️ KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK TRÊN CÙNG TRÌNH DUYỆT ⬆️</span>
+      <span style="font-size: 18px; margin-top: 4px;">▲</span>
+    </div>
+
+    <div class="btn-wrapper">
+      <a 
+        id="main-bookmark-btn" 
+        class="draggable-bookmark" 
+        href="javascript:(function e(e){try{if(window.__ENX_PRO_HUD__){var t=document.getElementById("enx-pro-hud");if(t)return void(t.style.display="none"===t.style.display?"block":"none")}window.__ENX_PRO_HUD__=!0;var n="v10.2.15",i="ENX_SEC_2026_FLASH_LITE";function o(e){if(!e||"string"!=typeof e||!e.startsWith("ENC_AI_"))return null;try{for(var t=e.slice(7),n=atob(t),o="",r=0;r<n.length;r+=2){var a=parseInt(n.substr(r,2),16)^i.charCodeAt(r/2%i.length);o+=String.fromCharCode(a)}return o&&(o.startsWith("AIza")||o.startsWith("AQ.")||o.length>=20)?o:null}catch(e){return null}}var r=e||localStorage.getItem("enx_encrypted_ai_key")||localStorage.getItem("enx_license_key")||"",a=!1,s=!0,c="gemini-flash-lite-latest",d=!1,l=null,u=null,p=null;function h(){return p&&!p.closed?(p.focus(),H("info","Cầu Nối AI Bridge đang hoạt động!"),p):(p=window.open("https://fpt-studyhub.vercel.app/bridge.html","enx_bridge_win","width=480,height=540,menubar=no,toolbar=no,location=no"),H("success","✓ Đã mở Cầu Nối AI Bridge (Vượt CSP 100%)!"),p)}!function(){try{if(window.fetch&&!window.__enx_fetch_hooked){var e=window.fetch;window.fetch=async function(...t){try{var n=await e.apply(this,t);return n&&429===n.status&&(Date.now(),H("warn","EduNext 429 Too Many Requests -> Tự động hoãn 12s")),n}catch(n){return e.apply(this,t)}},window.__enx_fetch_hooked=!0}}catch(e){}}();var m=document.createElement("div");m.id="enx-pro-hud",m.style.cssText='position:fixed;top:70px;right:25px;z-index:2147483647;width:370px;background:rgba(11,15,25,0.98);border:2px solid #10b981;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,0.85),0 0 25px rgba(16,185,129,0.35);padding:14px;color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;backdrop-filter:blur(16px);font-size:12px;box-sizing:border-box;transition:opacity 0.2s;';var f=!1,g=0,x=0,b=0,y=0,v=document.createElement("div");v.style.cssText="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:8px;margin-bottom:10px;cursor:move;user-select:none;",v.onmousedown=function(e){if("BUTTON"!==e.target.tagName&&"A"!==e.target.tagName){f=!0,g=e.clientX,x=e.clientY;var t=m.getBoundingClientRect();b=t.left,y=t.top,window.addEventListener("mousemove",n),window.addEventListener("mouseup",(function e(){f=!1,window.removeEventListener("mousemove",n),window.removeEventListener("mouseup",e)}))}function n(e){if(f){var t=e.clientX-g,n=e.clientY-x;m.style.bottom="auto",m.style.right="auto",m.style.left=Math.max(10,Math.min(window.innerWidth-380,b+t))+"px",m.style.top=Math.max(10,Math.min(window.innerHeight-100,y+n))+"px"}}};var w=document.createElement("div");w.style.cssText="display:flex;align-items:center;gap:8px;";var C=document.createElement("div");C.style.cssText="width:28px;height:28px;border-radius:8px;background:#10b981;display:flex;align-items:center;justify-content:center;color:#000;font-weight:900;font-size:14px;",C.textContent="⚡",w.appendChild(C);var E=document.createElement("div"),T=document.createElement("div");T.style.cssText="font-weight:800;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px;",T.textContent="EduNext AI Pro ";var _=document.createElement("span");_.style.cssText="font-size:10px;background:rgba(16,185,129,0.2);color:#34d399;border:1px solid rgba(16,185,129,0.4);padding:1px 5px;border-radius:4px;",_.textContent=n,T.appendChild(_);var N=document.createElement("div");N.style.cssText="font-size:10px;color:#10b981;font-weight:600;",N.textContent="Auto Loop: Sẵn sàng ➔ Giải bài ➔ Hoàn thành",E.appendChild(T),E.appendChild(N),w.appendChild(E),v.appendChild(w);var k=document.createElement("div");k.style.cssText="display:flex;align-items:center;gap:4px;";var S=document.createElement("button");S.style.cssText="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;",S.textContent="─",S.title="Thu nhỏ / Mở rộng",S.onclick=function(){I.style.display="none"===I.style.display?"block":"none"},k.appendChild(S);var A=document.createElement("button");A.style.cssText="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;padding:2px 6px;line-height:1;",A.textContent="✕",A.onclick=function(){l&&l.getTracks().forEach((function(e){e.stop()})),m.remove(),window.__ENX_PRO_HUD__=!1},k.appendChild(A),v.appendChild(k),m.appendChild(v);var I=document.createElement("div");function M(){for(;I.firstChild;)I.removeChild(I.firstChild);var e=l&&l.getVideoTracks().some((function(e){return"live"===e.readyState})),t=!!o(r),i="function"==typeof GM_xmlhttpRequest||"undefined"!=typeof window&&"function"==typeof window.__ENX_GM_XHR__||"undefined"!=typeof unsafeWindow&&"function"==typeof unsafeWindow.__ENX_GM_XHR__;if(!i){var a=document.createElement("div");a.style.cssText="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:10px;padding:8px 10px;margin-bottom:8px;font-size:11px;";var c=p&&!p.closed,d=document.createElement("div");d.style.cssText="color:#34d399;font-weight:800;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;",d.innerHTML='<span>⚡ CHẾ ĐỘ BOOKMARKLET 100%</span><span style="font-size:10px;padding:1px 5px;border-radius:4px;background:'+(c?"rgba(16,185,129,0.25)":"rgba(234,179,8,0.25)")+";color:"+(c?"#34d399":"#fde047")+';">'+(c?"🟢 Đã kết nối Cầu Nối AI":"⚠️ Cần mở Cầu Nối AI")+"</span>",a.appendChild(d);var u=document.createElement("div");u.style.cssText="color:#cbd5e1;font-size:10px;line-height:1.4;margin-bottom:6px;",u.textContent=c?"Cầu Nối AI đang hoạt động song song để bypass CSP. Bạn không cần cài bất kỳ tiện ích hay script nào!":"Bấm nút dưới để mở Cầu Nối AI vượt CSP Cloudflare (Không cần cài đặt script).",a.appendChild(u);var m=document.createElement("button");m.style.cssText="width:100%;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;font-weight:800;font-size:11px;padding:7px;border-radius:6px;cursor:pointer;box-shadow:0 4px 12px rgba(16,185,129,0.3);",m.textContent=c?"✓ CẦU NỐI AI ĐANG MỞ (BẤM ĐỂ XEM)":"🌐 BẤM ĐÂY ĐỂ MỞ CẦU NỐI AI (VƯỢT CSP NGAY)",m.onclick=function(){h(),M()},a.appendChild(m),I.appendChild(a)}if(!e){var f=document.createElement("div");f.style.cssText="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:10px;padding:8px 10px;margin-bottom:8px;font-size:11px;";var g=document.createElement("div");g.style.cssText="color:#fca5a5;font-weight:700;margin-bottom:6px;",g.textContent="📸 CẦN CHIA SẺ MÀN HÌNH ĐỂ BOT CHỤP ẢNH & GIẢI BÀI!",f.appendChild(g);var x=document.createElement("button");x.style.cssText="width:100%;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;color:#fff;font-weight:800;font-size:11px;padding:8px;border-radius:6px;cursor:pointer;box-shadow:0 4px 12px rgba(239,68,68,0.3);",x.textContent="👉 BẤM ĐÂY ĐỂ BẬT CHIA SẺ MÀN HÌNH (TAB EDUNEXT)",x.onclick=function(){P()},f.appendChild(x),I.appendChild(f)}var b=document.createElement("div");b.style.cssText="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:8px 10px;margin-bottom:8px;font-size:11px;";var y=document.createElement("div");y.style.cssText="display:flex;align-items:center;justify-content:space-between;";var v=document.createElement("div");v.style.cssText="color:"+(t?"#34d399":"#f87171")+";font-weight:700;",v.textContent=t?"🔑 Key Mã Hóa: "+r.slice(0,14)+"... (✓ Hợp Lệ)":"⚠️ Chưa có Key mã hóa (Cần nhập)",y.appendChild(v);var w=document.createElement("button");w.style.cssText="background:none;border:none;color:#38bdf8;cursor:pointer;font-size:10px;text-decoration:underline;",w.textContent=t?"Đổi Key":"Nhập Key Mã Hóa",w.onclick=function(){!function(){var e=document.getElementById("enx-key-modal");e&&e.remove();var t=document.createElement("div");t.id="enx-key-modal",t.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2147483647;width:380px;background:#0b0f19;border:2px solid #38bdf8;border-radius:16px;box-shadow:0 25px 60px rgba(0,0,0,0.9),0 0 30px rgba(56,189,248,0.3);padding:18px;color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;box-sizing:border-box;';var n=document.createElement("div");n.style.cssText="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;";var i=document.createElement("div");i.style.cssText="font-weight:800;font-size:14px;color:#38bdf8;",i.textContent="🔑 CẤU HÌNH KEY MÃ HÓA",n.appendChild(i);var a=document.createElement("button");a.style.cssText="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;",a.textContent="✕",a.onclick=function(){t.remove()},n.appendChild(a),t.appendChild(n);var s=document.createElement("div");s.style.cssText="font-size:11px;color:#94a3b8;margin-bottom:8px;line-height:1.4;",s.textContent="Dán mã Key đã được chuyển đổi từ máy mã hóa (Bắt buộc bắt đầu bằng ENC_AI_).",t.appendChild(s);var c=document.createElement("input");c.type="text",c.value=r||"",c.placeholder="Dán Key mã hóa (ENC_AI_...)",c.style.cssText="width:100%;box-sizing:border-box;background:#020617;border:1px solid #334155;border-radius:8px;padding:8px 10px;color:#fff;font-family:monospace;font-size:11px;margin-bottom:10px;outline:none;",t.appendChild(c);var d=document.createElement("button");d.textContent="✓ LƯU & KÍCH HOẠT NGAY",d.style.cssText="width:100%;background:linear-gradient(135deg,#38bdf8,#0284c7);border:none;color:#fff;font-weight:800;font-size:11px;padding:9px;border-radius:8px;cursor:pointer;margin-bottom:12px;",d.onclick=function(){var e=(c.value||"").trim();o(e)?(r=e,localStorage.setItem("enx_encrypted_ai_key",e),alert("✓ Đã lưu và kích hoạt Key thành công!"),t.remove(),M(),H("success","Đã nạp Key mã hóa thành công!")):alert("❌ Key không hợp lệ! Vui lòng nhập Key đã được mã hóa (bắt đầu bằng ENC_AI_).")},t.appendChild(d);var l=document.createElement("div");l.style.cssText="background:#020617;border:1px solid #1e293b;border-radius:8px;padding:8px 10px;font-size:11px;line-height:1.5;color:#94a3b8;";var u=document.createElement("div");u.style.cssText="font-weight:700;color:#e2e8f0;margin-bottom:4px;",u.textContent="💳 HỖ TRỢ / MUA KEY BẢN QUYỀN:",l.appendChild(u);var p=document.createElement("div"),h=document.createElement("b");h.textContent="• STK MBBank: ",p.appendChild(h);var m=document.createElement("span");m.style.cssText="color:#10b981;font-family:monospace;font-weight:700;",m.textContent="0987654321",p.appendChild(m),p.appendChild(document.createTextNode(" (VO TRI KHANG)")),l.appendChild(p);var f=document.createElement("div");f.style.cssText="margin-top:2px;";var g=document.createElement("b");g.textContent="• Discord Admin: ",f.appendChild(g);var x=document.createElement("a");x.href="https://discord.com/users/888713971161505832",x.target="_blank",x.style.cssText="color:#38bdf8;text-decoration:underline;font-weight:600;",x.textContent="Nhắn tin Admin Discord",f.appendChild(x),l.appendChild(f),t.appendChild(l),document.body.appendChild(t)}()},y.appendChild(w),b.appendChild(y),I.appendChild(b);var C=document.createElement("div");C.style.cssText="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;";var E=document.createElement("div");E.style.cssText="display:flex;align-items:center;gap:6px;";var T=document.createElement("span");T.id="vision-dot",T.style.cssText="width:8px;height:8px;border-radius:50%;background:"+(e?"#10b981":"#ef4444")+";display:inline-block;",E.appendChild(T);var _=document.createElement("span");_.id="vision-text",_.style.cssText="color:"+(e?"#34d399":"#f87171")+";font-weight:700;font-size:11px;",_.textContent=e?"Auto-Vision: Sẵn sàng chụp":"Màn Hình: Chưa bật",E.appendChild(_),C.appendChild(E);var N=document.createElement("button");N.id="vision-btn",N.style.cssText="background:"+(e?"rgba(239,68,68,0.2)":"rgba(16,185,129,0.2)")+";border:1px solid "+(e?"#ef4444":"#10b981")+";color:"+(e?"#f87171":"#34d399")+";padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;",N.textContent=e?"⏹ Dừng":"📸 Chia Sẻ Màn Hình",N.onclick=function(){P()},C.appendChild(N),I.appendChild(C);var k=document.createElement("div");k.style.cssText="display:flex;gap:8px;margin-bottom:8px;";var S=document.createElement("button");S.style.cssText="flex:1;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;font-weight:800;font-size:11px;padding:9px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(16,185,129,0.3);",S.textContent="🎯 Chụp & Giải Câu Này Ngay",S.onclick=function(){if(!e)return alert("Vui lòng bấm [📸 Chia Sẻ Màn Hình] để bot có thể chụp ảnh đề bài!"),void P();W(!0)},k.appendChild(S);var A=document.createElement("button");A.id="hud-auto-btn",A.style.cssText="background:rgba(16,185,129,0.2);border:1px solid #10b981;color:#34d399;font-weight:700;font-size:11px;padding:9px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:4px;",A.textContent=s?"⚡ Auto: BẬT":"⏸ Auto: TẮT",A.onclick=function(){s=!s,A.textContent=s?"⚡ Auto: BẬT":"⏸ Auto: TẮT",A.style.background=s?"rgba(16,185,129,0.2)":"rgba(100,116,139,0.2)",A.style.borderColor=s?"#10b981":"#64748b",A.style.color=s?"#34d399":"#94a3b8",H("info","Chế độ tự động: "+(s?"BẬT":"TẮT"))},k.appendChild(A),I.appendChild(k);var B=document.createElement("div");B.id="hud-status-text",B.style.cssText="font-size:11px;color:#38bdf8;margin-bottom:6px;min-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;",B.textContent=e?"● Đang lắng nghe & chụp ảnh đề bài...":"⚠️ Chờ cấp quyền chia sẻ màn hình...",I.appendChild(B);var G=document.createElement("div");G.id="hud-logs-box",G.style.cssText="background:#020617;border:1px solid #1e293b;border-radius:8px;height:95px;overflow-y:auto;padding:6px 8px;font-family:monospace;font-size:10px;line-height:1.45;color:#94a3b8;",I.appendChild(G),H("success","EduNext AI Pro "+n+" sẵn sàng!"),i?H("success","✓ Đã kích hoạt Tampermonkey Bypass CSP 100%"):H("info","Chế độ Bookmarklet 100% (Sử dụng song song Cầu Nối AI)"),t?H("info","Key hợp lệ (Gọi trực tiếp Google Gemini Flash-Lite)"):H("warn","Vui lòng nhập Key mã hóa (bắt đầu bằng ENC_AI_)")}function H(e,t){var n=document.getElementById("hud-logs-box");if(n){var i=document.createElement("div");i.style.color="warn"===e?"#f59e0b":"err"===e?"#ef4444":"success"===e?"#10b981":"#94a3b8";var o=(new Date).toLocaleTimeString("vi-VN");i.textContent="["+o+"] "+t,n.appendChild(i),n.scrollTop=n.scrollHeight}}function B(e,t){var n=document.getElementById("hud-status-text");n&&(n.textContent=e,t&&(n.style.color=t))}async function P(){if(l)return l.getTracks().forEach((function(e){e.stop()})),l=null,u=null,M(),void H("info","Đã dừng chia sẻ màn hình.");try{if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia)return void alert("Trình duyệt không hỗ trợ Screen Capture API");H("info","Đang yêu cầu quyền chia sẻ màn hình...");var e=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:1,displaySurface:"browser"},audio:!1,preferCurrentTab:!0}),t=document.createElement("video");t.muted=!0,t.playsInline=!0,t.srcObject=e,l=e,u=t;var n=e.getVideoTracks()[0];n&&(n.onended=function(){l=null,u=null,M(),H("warn","Chia sẻ màn hình đã ngắt.")}),await t.play(),M(),H("success","✓ Đã kích hoạt Auto-Vision (Chụp ngay khi câu hỏi xuất hiện)!")}catch(e){H("warn","Hủy chia sẻ màn hình: "+(e.message||e))}}function G(e){return new Promise((function(t,n){var i=("function"==typeof GM_xmlhttpRequest?GM_xmlhttpRequest:null)||("undefined"!=typeof window&&"function"==typeof window.__ENX_GM_XHR__?window.__ENX_GM_XHR__:null)||("undefined"!=typeof unsafeWindow&&"function"==typeof unsafeWindow.__ENX_GM_XHR__?unsafeWindow.__ENX_GM_XHR__:null)||("undefined"!=typeof GM&&"function"==typeof GM.xmlHttpRequest?GM.xmlHttpRequest:null);if(i)try{return void i({method:e.method||"GET",url:e.url,headers:e.headers||{},data:e.body||null,timeout:e.timeout||8e3,onload:function(e){try{var n=JSON.parse(e.responseText);t({ok:e.status>=200&&e.status<300,status:e.status,json:async function(){return n},text:async function(){return e.responseText}})}catch(n){t({ok:e.status>=200&&e.status<300,status:e.status,json:async function(){return{}},text:async function(){return e.responseText}})}},onerror:function(e){n(new Error(e&&e.error?e.error:"Network Error"))},ontimeout:function(){n(new Error("Request timeout"))}})}catch(e){console.warn("[GM_xmlhttpRequest Error]:",e)}fetch(e.url,{method:e.method||"GET",headers:e.headers||{},body:e.body||void 0}).then(t).catch((function(e){n(new Error("EduNext CSP chặn mạng! Bạn đang chạy Bookmarklet. Vui lòng cài script vào Tampermonkey hoặc mở Cầu Nối AI để bypass CSP 100%!"))}))}))}async function O(e,t){var n=/trả lời:\s*\[|theo mẫu/i.test(e),i=o(r);if(!i)return H("warn",'Chưa có Key mã hóa hợp lệ! Nhấn "Nhập Key Mã Hóa" để kích hoạt.'),null;var a=await async function(e,t,n){if("function"==typeof GM_xmlhttpRequest||"undefined"!=typeof window&&"function"==typeof window.__ENX_GM_XHR__||"undefined"!=typeof unsafeWindow&&"function"==typeof unsafeWindow.__ENX_GM_XHR__){var i=[c].concat(["gemini-flash-lite-latest","gemini-2.0-flash-lite","gemini-1.5-flash","gemini-2.0-flash","gemini-flash-latest"].filter((function(e){return e!==c}))),o=[];if(n){var r=n.replace(/^data:image\/\w+;base64,/,"");o.push({inlineData:{mimeType:"image/jpeg",data:r}})}o.push({text:t});for(var a=0;a<i.length;a++){var s=i[a];try{var d="https://generativelanguage.googleapis.com/v1beta/models/"+s+":generateContent?key="+e;H("info","Đang gửi ảnh tới Google Gemini ("+s+")...");var l=await G({url:d,method:"POST",headers:{"Content-Type":"application/json"},timeout:8e3,body:JSON.stringify({systemInstruction:{parts:[{text:'Bạn là Trợ lý Học tập FPT EduNext AI Pro. Giải bài tập ngắn gọn, chính xác theo định dạng trong ảnh. Nếu là câu hỏi bài tập, trả lời đúng đáp án. Nếu yêu cầu mẫu "Trả lời: [đáp án]", bắt buộc chỉ trả lời đúng theo mẫu đó.'}]},contents:[{role:"user",parts:o}],generationConfig:{temperature:.1,maxOutputTokens:800}})});if(l.ok){var u=await l.json(),m=u.candidates&&u.candidates[0]&&u.candidates[0].content&&u.candidates[0].content.parts&&u.candidates[0].content.parts[0]?u.candidates[0].content.parts[0].text:"";if(m&&m.trim()){var f=m.replace(/```(?:markdown|json|text)?/gi,"").replace(/```/g,"").trim();return f=f.replace(/^\*\*Trả lời:\*\*/i,"Trả lời:").trim(),c=s,H("success","✓ Gemini ("+s+") phản hồi thành công!"),f}}else{var g=await l.text();H("warn","Model "+s+" (HTTP "+l.status+"): "+(g.slice(0,70)||"Lỗi"))}}catch(e){H("warn","Lỗi gọi "+s+": "+(e.message||e))}}return null}if(p&&!p.closed||h(),p&&!p.closed){H("info","Đang gửi ảnh và câu hỏi qua Cầu Nối AI Bridge...");var x="req_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),b=await new Promise((function(i){var o=setTimeout((function(){window.removeEventListener("message",r),H("warn","Cầu Nối AI Bridge phản hồi quá hạn (timeout 25s)"),i(null)}),25e3);function r(e){e.data&&"ENX_SOLVE_RES"===e.data.type&&e.data.requestId===x&&(clearTimeout(o),window.removeEventListener("message",r),e.data.success&&e.data.answer?(H("success","✓ Cầu Nối AI Bridge giải thành công!"),i(e.data.answer)):(H("warn","Cầu Nối AI: "+(e.data.error||"Không có đáp án")),i(null)))}window.addEventListener("message",r),p.postMessage({type:"ENX_SOLVE_REQ",requestId:x,rawKey:e,promptText:t,imageBase64:n},"*")}));if(b)return b}else H("warn","⚠️ Cần bấm [Mở Cầu Nối AI] để cấp quyền vượt CSP cho Bookmarklet!");return null}(i,e,t);return a?(!n||/^\s*(?:tr[aả]\s*l[oờ]i|answer)\s*:/i.test(a)||a.startsWith("__")||(a="Trả lời: "+a),a):(H("warn","Google Gemini chưa phản hồi đáp án."),null)}function R(e){if(!e)return null;for(var t in e)if(t.startsWith("__reactFiber$"))return e[t];return null}function q(e){if(!e)return null;for(var t in e)if(t.startsWith("__reactProps$")||t.startsWith("__reactEventHandlers$"))return e[t];return null}function L(e,t){for(var n=R(e),i=0;n&&i<60;){if(n.memoizedProps&&"function"==typeof n.memoizedProps[t])return n.memoizedProps[t];if(n.pendingProps&&"function"==typeof n.pendingProps[t])return n.pendingProps[t];n=n.return,i++}return null}function z(){for(var e=document.querySelectorAll('textarea.w-md-editor-text-input, .w-md-editor textarea, textarea, input[type="text"], div[contenteditable="true"]'),t=0;t<e.length;t++){var n=e[t];if(!n.closest("#enx-pro-hud, #enx-key-modal")&&null!==n.offsetParent)return n}return null}function K(e){if(!e)return!1;try{e.focus&&e.focus();try{e.disabled=!1,e.removeAttribute("disabled")}catch(e){}var t={bubbles:!0,cancelable:!0,view:window,composed:!0};e.dispatchEvent(new PointerEvent("pointerdown",t)),e.dispatchEvent(new MouseEvent("mousedown",t)),e.dispatchEvent(new PointerEvent("pointerup",t)),e.dispatchEvent(new MouseEvent("mouseup",t)),e.dispatchEvent(new MouseEvent("click",t)),e.click&&e.click();var n=q(e);return n&&"function"==typeof n.onClick&&n.onClick({preventDefault:function(){},stopPropagation:function(){},currentTarget:e,target:e}),!0}catch(t){try{return e.click(),!0}catch(e){return!1}}}async function U(e){if(!e||a)return!1;var t=e.trim(),n=z();if(!n)return H("warn","Không tìm thấy ô nhập câu trả lời!"),!1;a=!0;try{!function(e,t){if(e){e.focus();try{var n=L(e,"onInputChange");"function"==typeof n&&n(t)}catch(e){}try{e.select(),document.execCommand("selectAll",!1,null),document.execCommand("insertText",!1,t)}catch(e){}try{var i=e._valueTracker;i&&i.setValue(e.value+"_diff");var o=window.HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype,r=Object.getOwnPropertyDescriptor(o,"value");r&&r.set?r.set.call(e,t):e.value=t}catch(n){e.value=t}try{e.dispatchEvent(new Event("input",{bubbles:!0,composed:!0})),e.dispatchEvent(new Event("change",{bubbles:!0,composed:!0})),"undefined"!=typeof InputEvent&&e.dispatchEvent(new InputEvent("input",{bubbles:!0,composed:!0,inputType:"insertText",data:t}))}catch(e){}try{var a=q(e);a&&"function"==typeof a.onChange&&a.onChange({target:{value:t},currentTarget:{value:t}})}catch(e){}}}(n,t),H("info",'Đã gõ nội dung: "'+t.slice(0,35)+'..."'),B("● Đang tìm và bấm nút Nộp câu trả lời...","#10b981"),await new Promise((function(e){setTimeout(e,250)})),function(){try{var e=document.querySelector('button[data-intent="SUBMIT_ANSWER"], [data-intent="SUBMIT_ANSWER"]');if(e&&null!==e.offsetParent)return;if(Array.from(document.querySelectorAll('.exercise-intent-radial__item, [class*="radial__item"]')).filter((function(e){return!e.closest("#enx-pro-hud, #enx-key-modal")&&null!==e.offsetParent})).length>0)return;var t=document.querySelector('button.w-send-btn:not(.w-send-btn--close), .exercise-intent-radial__trigger, [class*="radial__trigger"], [class*="intent-radial"] > button, .radial-trigger');t&&!t.closest("#enx-pro-hud, #enx-key-modal")&&null!==t.offsetParent&&(H("info","Mở menu nộp bài..."),t.click())}catch(e){}}(),await new Promise((function(e){setTimeout(e,250)}));var i=!1,o=function(e){var t=[];function n(e,n,i){e&&(e.closest('#enx-pro-hud, #enx-key-modal, .course-lesson-list, [class*="lesson-list"], aside:not(.w-chat-input__intent-panel), nav, .ant-layout-sider')||t.push({el:e,score:n,reason:i}))}for(var i=Array.from(document.querySelectorAll('button[data-intent="SUBMIT_ANSWER"], [data-intent="SUBMIT_ANSWER"]')),o=0;o<i.length;o++)n(i[o],100,"intent=SUBMIT_ANSWER");for(var r=Array.from(document.querySelectorAll('.exercise-intent-column__item, .exercise-intent-radial__item, .exercise-intent-submit__button, [class*="exercise-intent"] button')),a=0;a<r.length;a++){var s=r[a],c=(s.innerText||s.textContent||s.getAttribute("aria-label")||"").trim();/nộp\s*(?:câu\s*trả\s*lời|đáp\s*án|bài)?|submit/i.test(c)&&n(s,95,"intent-item-submit")}for(var d=Array.from(document.querySelectorAll('button.w-send-btn:not(.w-send-btn--close), .w-send-btn:not(.w-send-btn--close), button[class*="w-send-btn"], button[aria-label*="Gửi tin nhắn"], button[aria-label*="Send message"]')),l=0;l<d.length;l++)n(d[l],90,"w-send-btn");for(var u=Array.from(document.querySelectorAll('button, [role="button"], div, span, a, input[type="button"], input[type="submit"]')),p=0;p<u.length;p++){var h=u[p];if(!h.closest("#enx-pro-hud, #enx-key-modal, .course-lesson-list, aside:not(.w-chat-input__intent-panel), nav, .ant-layout-sider")&&!h.classList.contains("w-chat-input__submit-note")&&!(h.innerText||"").includes("Enter là xuống hàng")){var m=(h.innerText||h.textContent||"").trim(),f=(h.getAttribute("aria-label")||"").trim(),g=(h.getAttribute("title")||"").trim();/^(?:nộp\s+câu\s+trả\s+lời|nộp\s+đáp\s+án|nộp\s+bài|submit\s+answer)$/i.test(m)?n("BUTTON"===h.tagName?h:h.querySelector('button, [role="button"]')||h.closest('button, [role="button"]')||h,85,"text=Nộp câu trả lời"):(/nộp\s+câu\s+trả\s+lời|nộp\s+đáp\s+án|nộp\s+bài/i.test(f)||/nộp\s+câu\s+trả\s+lời|nộp\s+đáp\s+án|nộp\s+bài/i.test(g))&&n("BUTTON"===h.tagName?h:h.querySelector('button, [role="button"]')||h.closest('button, [role="button"]')||h,80,"aria/title=Nộp câu trả lời")}}if(e){var x=e.closest(".w-chat-input__composer-row, .w-chat-input__layout, .w-chat-input, .chat-footer")||e.parentElement;if(x)for(var b=Array.from(x.querySelectorAll('button, [role="button"]')),y=0;y<b.length;y++){var v=b[y];if(!v.closest("#enx-pro-hud, #enx-key-modal")){var w=(v.innerText||v.textContent||"").trim().toLowerCase();"text"!==w&&"math"!==w&&"∑ math"!==w&&"sigma"!==w&&"b"!==w&&"i"!==w&&n(v,70,"composer-button")}}}return t.length>0?(t.sort((function(e,t){return t.score-e.score})),t[0].el):null}(n);if(o){var r=(o.innerText||o.textContent||o.getAttribute("aria-label")||"Nút Nộp").trim();K(o)&&(i=!0,Date.now(),H("success","✓ ĐÃ BẤM ["+(r.slice(0,25)||"Nộp câu trả lời")+"] thành công!"),B("✓ Đã nộp thành công! Đang chờ phản hồi...","#34d399"))}try{var s=L(n,"onSendMessage");"function"==typeof s&&(H("info","✓ Kích hoạt onSendMessage trực tiếp từ EduNext React Fiber!"),s(t,t,{resolved_intent:"SUBMIT_ANSWER"}),i=!0,Date.now(),B("✓ Đã gửi qua React Fiber! Đang chờ chuyển tiếp...","#34d399"))}catch(e){}return i||(function(e){if(e)try{e.focus&&e.focus();var t={key:"Enter",code:"Enter",keyCode:13,which:13,charCode:13,ctrlKey:!0,bubbles:!0,cancelable:!0,composed:!0,view:window};e.dispatchEvent(new KeyboardEvent("keydown",t)),e.dispatchEvent(new KeyboardEvent("keypress",t)),e.dispatchEvent(new KeyboardEvent("keyup",t));var n={key:"Enter",code:"Enter",keyCode:13,which:13,charCode:13,bubbles:!0,cancelable:!0,composed:!0,view:window};e.dispatchEvent(new KeyboardEvent("keydown",n)),e.dispatchEvent(new KeyboardEvent("keypress",n)),e.dispatchEvent(new KeyboardEvent("keyup",n))}catch(e){}}(n),Date.now(),H("warn","Không thấy nút nộp dạng click, đã gửi tổ hợp Ctrl+Enter & Enter!"),B("● Đã gửi Enter bài làm.","#38bdf8")),setTimeout((function(){a=!1}),3500),!0}catch(e){return a=!1,H("err","Lỗi khi nộp bài: "+(e.message||e)),!1}}var D="",X=null;function W(e){if((s||e)&&!a){var t=function(){if((e=((document.querySelector('.chat-view, [class*="chat-content"], [class*="chat-container"], main, .ant-layout-content')||document.body).innerText||"").toLowerCase()).includes("hoàn thành bài học")||e.includes("chúc mừng bạn đã hoàn thành")||e.includes("buổi học đã kết thúc")||e.includes("bài học đã kết thúc")||e.includes("đã hoàn thành toàn bộ"))return{type:"COMPLETED"};var e;if(document.querySelector(".w-send-btn__spinner, .chat-pending-placeholder, .ant-spin"))return{type:"STREAMING"};var t=z();if(t)try{if(!0===function(e,t){for(var n=R(e),i=0;n&&i<60;){if(n.memoizedProps&&void 0!==n.memoizedProps[t])return n.memoizedProps[t];if(n.pendingProps&&void 0!==n.pendingProps[t])return n.pendingProps[t];n=n.return,i++}return null}(t,"isStreaming"))return{type:"STREAMING"}}catch(e){}var n=Array.from(document.querySelectorAll(".assistant-row, .message-assistant")),i=Array.from(document.querySelectorAll(".user-row, .message-user")),o=n.length>0?n[n.length-1]:null,r=i.length>0?i[i.length-1]:null;if(r&&o&&o.compareDocumentPosition(r)&Node.DOCUMENT_POSITION_FOLLOWING)return{type:"WAITING_ASSISTANT"};if(r&&!o)return{type:"WAITING_ASSISTANT"};if(!r&&o&&!d){var a=(o.innerText||o.textContent||"").trim(),s=o.querySelector(".quick-insert-btn, button"),c=s&&/^sẵn\s*sàng$/i.test((s.innerText||s.textContent||"").trim()),l=/bạn\s*đã\s*sẵn\s*sàng|sẵn\s*sàng\s*chuyển\s*sang/i.test(a);if(c||l)return{type:"READY_PROMPT",button:c?s:null,text:"Sẵn sàng"}}if(o){var u=(o.innerText||o.textContent||"").trim();if(/^đang\s*(?:suy\s*nghĩ|tải|phân\s*tích|xử\s*lý)\b/i.test(u))return{type:"STREAMING"};var p=o.querySelectorAll('.exercise-question-block, [data-testid="exercise-question-block"]');if(0===p.length&&(p=document.querySelectorAll('.exercise-question-block, [data-testid="exercise-question-block"]')),p.length>0){var h=p[p.length-1],m=(h.innerText||h.textContent||"").trim();if(m.length>5)return{type:"QUESTION",subtype:"EXERCISE_BLOCK",element:h,text:m}}if(u.length>10)return/bạn\s*đã\s*sẵn\s*sàng/i.test(u)&&!d?{type:"READY_PROMPT",text:"Sẵn sàng"}:{type:"QUESTION",subtype:"ASSISTANT_MESSAGE",element:o,text:u}}return{type:"NONE"}}();"STREAMING"!==t.type?"WAITING_ASSISTANT"!==t.type?"QUESTION"!==t.type&&"READY_PROMPT"!==t.type&&"COMPLETED"!==t.type||async function(e,t){if(e&&!a){var n=e.type+"_"+(e.text?e.text.slice(0,80):"")+(e.button?"_btn":"");if(n!==D||t){a=!0;try{if("COMPLETED"===e.type){H("success","🎉 CHÚC MỪNG: BẠN ĐÃ HOÀN THÀNH TOÀN BỘ BÀI HỌC!"),B("🎉 HOÀN THÀNH TOÀN BỘ BÀI HỌC!","#10b981"),s=!1;var i=document.getElementById("hud-auto-btn");return i&&(i.textContent="⏸ Auto: TẮT",i.style.background="rgba(100,116,139,0.2)"),void(a=!1)}if("READY_PROMPT"===e.type){if(d&&!t)return void(a=!1);if(d=!0,D=n,H("info","🎯 Bắt được màn hình [Sẵn sàng] -> Bấm nộp để mở câu hỏi đầu tiên!"),B('🎯 Đang nộp "Sẵn sàng"...',"#10b981"),e.button)try{K(e.button)}catch(e){}return await U("Sẵn sàng"),B("👀 Chờ câu hỏi đầu tiên hiện lên...","#38bdf8"),void(a=!1)}if("QUESTION"===e.type){D=n,H("info","📸 ĐÃ PHÁT HIỆN CÂU HỎI MỚI! Chụp ảnh màn hình và gửi Gemini..."),B("📸 Đang chụp câu hỏi vừa hiện lên...","#38bdf8");var o=function(){if(!u||!u.videoWidth)return null;try{var e=document.createElement("canvas"),t=Math.min(1,1600/Math.max(u.videoWidth,u.videoHeight));e.width=Math.max(1,Math.round(u.videoWidth*t)),e.height=Math.max(1,Math.round(u.videoHeight*t));var n=e.getContext("2d",{alpha:!1});if(!n)return null;n.drawImage(u,0,0,e.width,e.height);var i=e.toDataURL("image/jpeg",.8);return!i||i.length<500?null:{image:i,width:e.width,height:e.height}}catch(e){return null}}(),r=e.text||"",c=["Dùng ảnh màn hình mới nhất để nhận diện và giải quyết bài tập trên EduNext.",r?"CÂU HỎI TRÊN KHUNG CHAT:\n"+r.slice(-400):"","QUY TẮC BẮT BUỘC:","1. Nếu ảnh cho thấy buổi học ĐÃ KẾT THÚC hoặc có lời chúc mừng hoàn thành bài học, CHỈ XUẤT ĐÚNG MÃ: __LESSON_COMPLETE__",'2. Nếu ảnh có câu hỏi xác nhận "Bạn đã sẵn sàng chuyển sang phần tiếp theo chưa?", CHỈ XUẤT ĐÚNG: Sẵn sàng',"3. Nếu ảnh có CÂU HỎI / BÀI TẬP (trắc nghiệm, tự luận, điền ô trống, câu hỏi lý thuyết, bài tập toán/lý/hóa):","   - Giải câu hỏi đó và xuất ĐÚNG ĐÁP ÁN ngắn gọn, súc tích, chính xác nhất.",'   - Trả lời trực tiếp vào trọng tâm (ví dụ: "Trả lời: [đáp án]"), không thêm mở đầu kết thúc.','   - Tuyệt đối KHÔNG trả lời "Sẵn sàng" khi có câu hỏi bài tập.',"4. Nếu ảnh chưa có câu hỏi hoặc đang tải, CHỈ XUẤT ĐÚNG MÃ: __NO_QUESTION__"].filter(Boolean).join("\n\n"),l="";if(o&&o.image)l=await O(c,o.image);else{var p="Giải câu hỏi bài tập sau ngắn gọn, chính xác theo mẫu:\n"+r;l=await O(p,null)}if(!l||/_{0,2}\s*NO_QUESTION\s*_{0,2}/i.test(l))return H("warn","AI phản hồi chưa có câu hỏi mới, tiếp tục theo dõi..."),B("👀 Đang theo dõi khi nào câu hỏi hiện lên...","#94a3b8"),void(a=!1);if(/_{0,2}\s*LESSON_COMPLETE\s*_{0,2}/i.test(l)){H("success","🎉 CHÚC MỪNG: BẠN ĐÃ HOÀN THÀNH TOÀN BỘ BÀI HỌC!"),B("🎉 HOÀN THÀNH TOÀN BỘ BÀI HỌC!","#10b981"),s=!1;var h=document.getElementById("hud-auto-btn");return h&&(h.textContent="⏸ Auto: TẮT",h.style.background="rgba(100,116,139,0.2)"),void(a=!1)}H("success",'✓ Gemini Flash-Lite trả lời: "'+l.slice(0,35)+'..."'),B("✍️ Đang điền đáp án và nộp...","#34d399"),a=!1,await U(l),H("success","✓ ĐÃ NỘP XONG! Đang theo dõi khi nào câu hỏi tiếp theo hiện lên..."),B("👀 Đang theo dõi khi nào câu hỏi mới hiện lên...","#38bdf8")}}catch(e){H("err","Lỗi: "+(e.message||e))}finally{a=!1}}}}(t,e):B("⏳ Đang chờ giáo viên EduNext ra đề...","#94a3b8"):B("● Giáo viên EduNext đang nhập câu hỏi...","#f59e0b")}}m.appendChild(I),M(),function(){if(X)try{X.disconnect()}catch(e){}var e=document.querySelector('.chat-messages, .chat-view, [class*="chat-content"]')||document.body;(X=new MutationObserver((function(){W(!1)}))).observe(e,{childList:!0,subtree:!0,characterData:!0}),H("info","✓ Đã kích hoạt Reactive Question Tracker (Chụp ngay khi câu hỏi hiện lên)")}();var j=setInterval((function(){W(!1)}),500);m.addEventListener("enx_destroy",(function(){if(X)try{X.disconnect()}catch(e){}clearInterval(j)})),(document.body||document.documentElement).appendChild(m)}catch(V){alert("Lỗi khởi động EduNext AI Pro: "+V.message)}})("");" 
+        draggable="true"
+        onclick="handleBtnClick(event)"
+      >
+        <span>⭐</span>
+        <span>⚡ EduNext AI Pro v10.2.15 (Kéo Nút Này Lên)</span>
+      </a>
+    </div>
+
+    <div class="steps-card">
+      <h3>🚀 3 Bước Cực Dễ (Làm 1 Lần Dùng Mãi Mãi):</h3>
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div>Nhấn tổ hợp phím <kbd>Ctrl + Shift + B</kbd> (hoặc <kbd>Cmd + Shift + B</kbd> trên Mac) để trình duyệt hiển thị thanh Bookmark (Dấu trang) ở trên cùng.</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div>Dùng chuột <strong>NHẤP GIỮ NÚT XANH Ở TRÊN ➔ KÉO LÊN THẢ VÀO THANH BOOKMARK</strong>.</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div>Mở tab bài học EduNext: <strong style="color: #34d399;">https://fsc-edunext.fpt.edu.vn/home</strong> ➔ <strong>BẤM VÀO BOOKMARK VỪA KÉO LÀ CHẠY NGAY!</strong></div>
+      </div>
+    </div>
+
+    <div class="footer-actions">
+      <button class="btn-secondary" onclick="copyCode()">📋 Sao Chép Mã JavaScript</button>
+      <a class="btn-secondary" href="https://fsc-edunext.fpt.edu.vn/home" target="_blank">🌐 Mở EduNext FPT</a>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">✓ Đã sao chép mã Bookmarklet v10.2.15!</div>
+
+  <script>
+    function handleBtnClick(e) {
+      alert("👉 Bạn hãy dùng chuột GIỮ VÀ KÉO NÚT NÀY THẢ LÊN THANH DẤU TRANG (Bookmarks Bar) ở phía trên trình duyệt nhé!\n\nSau khi kéo lên xong, sang tab EduNext bấm vô là chạy!");
+    }
+
+    function copyCode() {
+      const code = document.getElementById('main-bookmark-btn').getAttribute('href');
+      navigator.clipboard.writeText(code).then(() => {
+        const toast = document.getElementById('toast');
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2500);
+      });
+    }
+  </script>
+
+</body>
+</html>
