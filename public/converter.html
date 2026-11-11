@@ -2,11 +2,13 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Máy Chuyển Đổi Gemini Key Sang Key Mã Hóa EduNext</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Máy Chuyển Đổi & Quản Lý Thời Hạn Key EduNext AI Pro</title>
+  <link rel="icon" href="/favicon.ico">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #020617;
+      background: radial-gradient(circle at top, #0f172a 0%, #020617 100%);
       color: #f1f5f9;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       min-height: 100vh;
@@ -14,25 +16,25 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 24px 16px;
     }
     .card {
-      background: #0b0f19;
-      border: 2px solid #38bdf8;
+      background: rgba(15, 23, 42, 0.95);
+      border: 2px solid #10b981;
       border-radius: 20px;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(56, 189, 248, 0.25);
-      max-width: 580px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(16, 185, 129, 0.25);
+      max-width: 620px;
       width: 100%;
       padding: 32px 28px;
     }
     h1 {
       font-size: 22px;
       font-weight: 800;
-      color: #38bdf8;
+      color: #34d399;
       margin-bottom: 6px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
     p.sub {
       color: #94a3b8;
@@ -40,12 +42,13 @@
       line-height: 1.5;
       margin-bottom: 24px;
     }
-    label {
-      display: block;
+    .section-title {
       font-size: 12px;
       font-weight: 700;
       color: #e2e8f0;
-      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
     }
     input[type="text"] {
       width: 100%;
@@ -61,90 +64,231 @@
       transition: border-color 0.2s;
     }
     input[type="text"]:focus {
-      border-color: #38bdf8;
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+      border-color: #10b981;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
     }
-    .btn {
+    .grid-duration {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    @media (min-width: 500px) {
+      .grid-duration {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    .plan-btn {
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 10px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .plan-btn:hover {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.05);
+    }
+    .plan-btn.active {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: #10b981;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+    }
+    .plan-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .plan-desc {
+      font-size: 10px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    .btn-convert {
       width: 100%;
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      border: 1px solid #38bdf8;
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      border: none;
       color: #fff;
       font-weight: 800;
       font-size: 14px;
-      padding: 13px;
-      border-radius: 10px;
+      padding: 14px;
+      border-radius: 12px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       transition: all 0.2s ease;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
     }
-    .btn:hover {
+    .btn-convert:hover {
       filter: brightness(1.1);
+      transform: translateY(-1px);
     }
     .result-box {
       display: none;
       margin-top: 24px;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid #10b981;
-      border-radius: 12px;
-      padding: 16px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 2px solid #10b981;
+      border-radius: 14px;
+      padding: 18px;
+      animation: fadeIn 0.3s ease;
     }
-    .result-label {
-      color: #34d399;
-      font-weight: 800;
-      font-size: 12px;
-      margin-bottom: 8px;
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .result-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .result-badge {
+      background: #10b981;
+      color: #020617;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
     }
     .result-code {
       background: #020617;
       border: 1px solid #1e293b;
       border-radius: 8px;
-      padding: 10px;
+      padding: 12px;
       font-family: monospace;
       font-size: 12px;
       color: #38bdf8;
       word-break: break-all;
       user-select: all;
+      margin-bottom: 12px;
+    }
+    .result-meta {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      font-size: 11px;
+      color: #cbd5e1;
+      background: rgba(2, 6, 23, 0.6);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 12px;
     }
     .copy-btn {
+      width: 100%;
       background: #10b981;
       border: none;
-      color: #000;
+      color: #020617;
       font-weight: 800;
-      font-size: 10px;
-      padding: 4px 10px;
-      border-radius: 6px;
+      font-size: 12px;
+      padding: 10px;
+      border-radius: 8px;
       cursor: pointer;
+      transition: background 0.2s;
+    }
+    .copy-btn:hover {
+      background: #34d399;
+    }
+    .verify-box {
+      margin-top: 24px;
+      border-top: 1px solid #1e293b;
+      padding-top: 18px;
+    }
+    .verify-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .verify-btn:hover {
+      background: #334155;
     }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h1>🔑 Máy Chuyển Đổi Gemini Key</h1>
-    <p class="sub">Nhập Google AI Studio Key của bạn (hỗ trợ cả chuẩn mới <code>AQ....</code> và chuẩn cũ <code>AIzaSy...</code>). Hệ thống sẽ mã hóa thành mã độc quyền <code>ENC_AI_...</code>. Người dùng dán mã này vào tool để giải bài mà hoàn toàn không thể xem trộm được API Key Google của bạn!</p>
+    <h1>🔑 Máy Chuyển Đổi Key Có Thời Hạn</h1>
+    <p class="sub">
+      Mã hóa Google Gemini Key (chuẩn <code>AQ...</code> hoặc <code>AIzaSy...</code>) kèm thời hạn tự hủy (1 Tuần, 1 Tháng, 4 Tháng). Khi hết hạn, bot EduNext tự động khóa và ngừng hoạt động!
+    </p>
 
-    <label>Dán Google AI Studio Key (AQ... hoặc AIzaSy...):</label>
-    <input type="text" id="raw-key" placeholder="Dán key Google AI Studio (AQ... hoặc AIza...)">
+    <div class="section-title">1. Dán Google Gemini API Key (Key Gốc):</div>
+    <input type="text" id="raw-key" placeholder="AIzaSy... hoặc AQ..." value="">
 
-    <button class="btn" onclick="convertKey()">⚡ CHUYỂN ĐỔI SANG KEY MÃ HÓA NGAY</button>
+    <div class="section-title">2. Chọn Thời Hạn Tự Động Hết Hạn:</div>
+    <div class="grid-duration">
+      <div class="plan-btn active" onclick="selectPlan(7, '1 Tuần (7 Ngày)', 3, this)">
+        <div class="plan-title">1 Tuần</div>
+        <div class="plan-desc">7 Ngày (3 môn)</div>
+      </div>
+      <div class="plan-btn" onclick="selectPlan(30, '1 Tháng (30 Ngày)', 5, this)">
+        <div class="plan-title">1 Tháng</div>
+        <div class="plan-desc">30 Ngày (5 môn)</div>
+      </div>
+      <div class="plan-btn" onclick="selectPlan(120, '1 Kỳ Học (4 Tháng)', 6, this)">
+        <div class="plan-title">4 Tháng</div>
+        <div class="plan-desc">120 Ngày (1 Kỳ)</div>
+      </div>
+      <div class="plan-btn" onclick="selectPlan(0, 'Vĩnh Viễn', 99, this)">
+        <div class="plan-title">Vĩnh Viễn</div>
+        <div class="plan-desc">Không giới hạn</div>
+      </div>
+    </div>
 
+    <button class="btn-convert" onclick="convertKey()">
+      ⚡ TẠO KEY MÃ HÓA CÓ THỜI HẠN (ENC_AI_...)
+    </button>
+
+    <!-- Result Area -->
     <div id="result" class="result-box">
-      <div class="result-label">
-        <span>✓ KEY MÃ HÓA CHO TOOL (DÁN VÀO BOT EDUNEXT):</span>
-        <button class="copy-btn" onclick="copyResult()">Sao Chép</button>
+      <div class="result-header">
+        <span id="res-badge" class="result-badge">GÓI 1 TUẦN</span>
+        <span id="res-status" style="font-size: 11px; color: #34d399; font-weight: 700;">✓ Tạo mã thành công</span>
       </div>
       <div id="output-code" class="result-code"></div>
+
+      <div class="result-meta">
+        <div>⏳ Hạn dùng đến: <b id="res-exp" style="color: #38bdf8;">--</b></div>
+        <div>📚 Giới hạn: <b id="res-rule" style="color: #34d399;">1 bài/môn/tuần</b></div>
+        <div>🔑 Trạng thái: <b style="color: #10b981;">Hiệu lực kích hoạt</b></div>
+        <div>💬 Hỗ trợ: <b style="color: #a78bfa;">Admin Discord</b></div>
+      </div>
+
+      <button class="copy-btn" onclick="copyResult()">📋 Sao Chép Key Gửi Khách Hàng</button>
+    </div>
+
+    <!-- Quick Decoder / Verifier -->
+    <div class="verify-box">
+      <div class="section-title">Kiểm Tra Hạn Dùng Của Mã Bất Kỳ:</div>
+      <input type="text" id="test-key" placeholder="Dán mã ENC_AI_... vào đây để kiểm tra hạn" style="margin-bottom: 6px;">
+      <button class="verify-btn" onclick="verifyAnyKey()">🔍 Kiểm Tra Thời Hạn Key</button>
+      <div id="verify-output" style="display: none; margin-top: 8px; font-size: 12px; padding: 10px; border-radius: 8px;"></div>
     </div>
   </div>
 
   <script>
     const SALT = 'ENX_SEC_2026_FLASH_LITE';
+    let selectedDays = 7;
+    let selectedLabel = '1 Tuần (7 Ngày)';
+    let selectedMaxCourses = 3;
+
+    function selectPlan(days, label, maxCourses, el) {
+      selectedDays = days;
+      selectedLabel = label;
+      selectedMaxCourses = maxCourses;
+      document.querySelectorAll('.plan-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+    }
 
     function encrypt(text) {
       if (!text || typeof text !== 'string') return '';
@@ -157,22 +301,102 @@
       return 'ENC_AI_' + btoa(res);
     }
 
+    function decrypt(enc) {
+      if (!enc || !enc.startsWith('ENC_AI_')) return null;
+      try {
+        const hex = atob(enc.slice(7));
+        let raw = '';
+        for (let i = 0; i < hex.length; i += 2) {
+          const c = parseInt(hex.substr(i, 2), 16) ^ SALT.charCodeAt((i / 2) % SALT.length);
+          raw += String.fromCharCode(c);
+        }
+        return raw;
+      } catch(e) {
+        return null;
+      }
+    }
+
     function convertKey() {
-      const inp = document.getElementById('raw-key').value.trim();
-      if (!inp || inp.length < 20) {
-        alert('Vui lòng dán Google Gemini API Key hợp lệ (bắt đầu bằng AQ... hoặc AIza...)');
+      const raw = document.getElementById('raw-key').value.trim();
+      if (!raw || raw.length < 15) {
+        alert('Vui lòng dán API Key hợp lệ (AIzaSy... hoặc AQ...)');
         return;
       }
-      const enc = encrypt(inp);
-      document.getElementById('output-code').textContent = enc;
+
+      let payload = raw;
+      let expText = 'Không thời hạn (Vĩnh viễn)';
+
+      if (selectedDays > 0) {
+        const expiresAt = Date.now() + selectedDays * 24 * 3600 * 1000;
+        payload = 'EXP|' + expiresAt + '|' + selectedLabel + '|' + raw;
+        const d = new Date(expiresAt);
+        expText = d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN');
+      }
+
+      const encKey = encrypt(payload);
+
+      document.getElementById('output-code').textContent = encKey;
+      document.getElementById('res-badge').textContent = 'GÓI ' + selectedLabel.toUpperCase();
+      document.getElementById('res-exp').textContent = expText;
+      document.getElementById('res-rule').textContent = selectedMaxCourses + ' môn • 1 bài/tuần';
       document.getElementById('result').style.display = 'block';
     }
 
     function copyResult() {
       const code = document.getElementById('output-code').textContent;
       navigator.clipboard.writeText(code).then(() => {
-        alert('✓ Đã sao chép Key mã hóa vào bộ nhớ đệm!');
+        alert('✓ Đã sao chép Key mã hóa vào bộ nhớ đệm!\nGửi mã này cho khách hàng dán vào tool.');
       });
+    }
+
+    function verifyAnyKey() {
+      const inp = document.getElementById('test-key').value.trim();
+      const out = document.getElementById('verify-output');
+      if (!inp) {
+        alert('Vui lòng nhập mã ENC_AI_...');
+        return;
+      }
+
+      const raw = decrypt(inp);
+      if (!raw) {
+        out.style.display = 'block';
+        out.style.background = 'rgba(239, 68, 68, 0.15)';
+        out.style.border = '1px solid #ef4444';
+        out.style.color = '#fca5a5';
+        out.innerHTML = '❌ Mã không đúng định dạng hoặc bị sai mã hóa!';
+        return;
+      }
+
+      if (raw.startsWith('EXP|')) {
+        const parts = raw.split('|');
+        const exp = parseInt(parts[1], 10);
+        const plan = parts[2] || 'VIP';
+        const apiKey = parts.slice(3).join('|');
+        const now = Date.now();
+        const d = new Date(exp);
+        const expStr = d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN');
+
+        if (now > exp) {
+          out.style.display = 'block';
+          out.style.background = 'rgba(239, 68, 68, 0.15)';
+          out.style.border = '1px solid #ef4444';
+          out.style.color = '#fca5a5';
+          out.innerHTML = '❌ <b>KEY ĐÃ HẾT HẠN!</b><br>• Gói: ' + plan + '<br>• Hết hạn lúc: ' + expStr;
+        } else {
+          const remDays = Math.ceil((exp - now) / 86400000);
+          out.style.display = 'block';
+          out.style.background = 'rgba(16, 185, 129, 0.15)';
+          out.style.border = '1px solid #10b981';
+          out.style.color = '#34d399';
+          out.innerHTML = '✓ <b>KEY ĐANG HIỆU LỰC!</b><br>• Gói: ' + plan + '<br>• Còn lại: ' + remDays + ' ngày (Hạn đến: ' + expStr + ')<br>• Key Gemini: ' + apiKey.slice(0, 8) + '...' + apiKey.slice(-4);
+        }
+      } else {
+        out.style.display = 'block';
+        out.style.background = 'rgba(56, 189, 248, 0.15)';
+        out.style.border = '1px solid #38bdf8';
+        out.style.color = '#38bdf8';
+        out.innerHTML = '✓ <b>KEY VĨNH VIỄN (Không có ngày hết hạn)</b><br>• Key Gemini: ' + raw.slice(0, 8) + '...' + raw.slice(-4);
+      }
     }
   </script>
 
