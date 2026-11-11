@@ -67,7 +67,7 @@ export function HeroSection() {
           {/* Value Props Row */}
           <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm">
-              <div className="text-emerald-400 font-bold text-lg">EduNext v10.2.22</div>
+              <div className="text-emerald-400 font-bold text-lg">EduNext v10.2.23</div>
               <div className="text-xs text-slate-400 mt-0.5 font-medium">Khớp mẫu "Trả lời:", chống 429</div>
             </div>
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm">

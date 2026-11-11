@@ -2,61 +2,66 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SERVICES_CATALOG, BANK_CONFIG } from '@/data/servicesCatalog';
 import { generateVietQRUrl } from '@/lib/utils';
 import { OrderItem } from '@/types/rental';
-import { licensesStore } from '@/lib/licenseStore';
 import { generateExpiringLicenseKey } from '@/lib/cryptoKey';
 
-// In-memory persistent orders store across requests
+const CLOUD_STORE_ID = 'ff808181a09d98f701a1c947378e0537';
+const CLOUD_STORE_URL = `https://api.restful-api.dev/objects/${CLOUD_STORE_ID}`;
+
+// In-memory fallback
 const globalForOrders = globalThis as unknown as {
   ordersStore?: Map<string, OrderItem>;
 };
-
 if (!globalForOrders.ordersStore) {
   globalForOrders.ordersStore = new Map<string, OrderItem>();
-  
-  // Seed initial sample orders for Admin console
-  const sample1Key = generateExpiringLicenseKey(7, '1 Tuần').licenseKey;
-  const sample2Key = generateExpiringLicenseKey(30, '1 Tháng').licenseKey;
+}
+const localOrdersStore = globalForOrders.ordersStore;
 
-  globalForOrders.ordersStore.set('ORD-8821', {
-    orderId: 'ORD-8821',
-    serviceId: 'edunext-assistant',
-    serviceName: 'FPT EduNext AI Assistant Pro',
-    planId: 'edunext-1w',
-    durationLabel: '1 Tuần',
-    amount: 30000,
-    transferCode: 'PR8821',
-    status: 'approved',
-    createdAt: Date.now() - 3600000 * 2,
-    paidAt: Date.now() - 3600000 * 2,
-    licenseKey: sample1Key
-  });
-
-  globalForOrders.ordersStore.set('ORD-9104', {
-    orderId: 'ORD-9104',
-    serviceId: 'edunext-assistant',
-    serviceName: 'FPT EduNext AI Assistant Pro',
-    planId: 'edunext-1m',
-    durationLabel: '1 Tháng',
-    amount: 69000,
-    transferCode: 'PR9104',
-    status: 'waiting_approval',
-    createdAt: Date.now() - 900000
-  });
-
-  globalForOrders.ordersStore.set('ORD-4219', {
-    orderId: 'ORD-4219',
-    serviceId: 'edunext-assistant',
-    serviceName: 'FPT EduNext AI Assistant Pro',
-    planId: 'edunext-semester',
-    durationLabel: '1 Kỳ Học (4 Tháng)',
-    amount: 220000,
-    transferCode: 'PR4219',
-    status: 'waiting_approval',
-    createdAt: Date.now() - 300000
-  });
+async function fetchOrdersFromCloud(): Promise<OrderItem[]> {
+  try {
+    const res = await fetch(CLOUD_STORE_URL, {
+      method: 'GET',
+      headers: { 'Cache-Control': 'no-cache' },
+      cache: 'no-store'
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.data && Array.isArray(json.data.orders)) {
+        // Sync to local memory
+        localOrdersStore.clear();
+        for (const ord of json.data.orders) {
+          if (ord.orderId) localOrdersStore.set(ord.orderId, ord);
+        }
+        return json.data.orders;
+      }
+    }
+  } catch (err) {
+    console.error('[Orders Cloud Sync Fetch Error]:', err);
+  }
+  return Array.from(localOrdersStore.values());
 }
 
-const ordersStore = globalForOrders.ordersStore;
+async function saveOrdersToCloud(orders: OrderItem[]): Promise<boolean> {
+  // Always update local memory first
+  localOrdersStore.clear();
+  for (const ord of orders) {
+    if (ord.orderId) localOrdersStore.set(ord.orderId, ord);
+  }
+
+  try {
+    const res = await fetch(CLOUD_STORE_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'FPT_STUDYHUB_ORDERS_STORE_2026',
+        data: { orders }
+      })
+    });
+    return res.ok;
+  } catch (err) {
+    console.error('[Orders Cloud Sync Save Error]:', err);
+    return false;
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -77,14 +82,14 @@ export async function POST(req: NextRequest) {
     const orderId = `ORD-${Date.now().toString().slice(-4)}${orderRandom}`;
     const transferCode = `PR${orderRandom}`;
 
-    // Select QR image based on price/plan
+    // Select accurate QR image
     let qrStaticImage = BANK_CONFIG.qrStaticImage;
     if (plan.price === 30000 || plan.id.includes('1w')) {
       qrStaticImage = BANK_CONFIG.qr30k || '/qr_30k.jpg';
     } else if (plan.price === 69000 || plan.id.includes('1m')) {
       qrStaticImage = BANK_CONFIG.qr69k || '/qr_69k.jpg';
     } else if (plan.price === 220000 || plan.id.includes('semester')) {
-      qrStaticImage = BANK_CONFIG.qr69k || '/qr_69k.jpg';
+      qrStaticImage = BANK_CONFIG.qr220k || '/qr_220k.png';
     }
 
     const newOrder: OrderItem = {
@@ -101,7 +106,10 @@ export async function POST(req: NextRequest) {
       createdAt: Date.now()
     };
 
-    ordersStore.set(orderId, newOrder);
+    const existingOrders = await fetchOrdersFromCloud();
+    // Prepend new order
+    const updatedOrders = [newOrder, ...existingOrders.filter(o => o.orderId !== orderId)];
+    await saveOrdersToCloud(updatedOrders);
 
     const dynamicQrUrl = generateVietQRUrl(
       BANK_CONFIG.bankId,
@@ -127,17 +135,19 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderId = searchParams.get('orderId');
 
+  const orders = await fetchOrdersFromCloud();
+
   // If no orderId is provided, return all orders for Admin console
   if (!orderId) {
-    const ordersList = Array.from(ordersStore.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const sorted = [...orders].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     return NextResponse.json({
       success: true,
-      orders: ordersList,
-      total: ordersList.length
+      orders: sorted,
+      total: sorted.length
     });
   }
 
-  const order = ordersStore.get(orderId);
+  const order = orders.find(o => o.orderId === orderId);
   if (!order) {
     return NextResponse.json({ success: false, message: 'Đơn hàng không tồn tại' }, { status: 404 });
   }
@@ -155,15 +165,20 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const { orderId, action } = body;
 
-    const order = ordersStore.get(orderId);
-    if (!order) {
+    const orders = await fetchOrdersFromCloud();
+    const orderIndex = orders.findIndex(o => o.orderId === orderId);
+
+    if (orderIndex === -1) {
       return NextResponse.json({ success: false, message: 'Đơn hàng không tồn tại' }, { status: 404 });
     }
 
-    // Action 1: User indicates they have transferred money -> status = 'waiting_approval'
+    const order = orders[orderIndex];
+
+    // Action 1: User indicates transfer done -> status = 'waiting_approval'
     if (action === 'confirm_transfer') {
       order.status = 'waiting_approval';
-      ordersStore.set(orderId, order);
+      orders[orderIndex] = order;
+      await saveOrdersToCloud(orders);
       return NextResponse.json({
         success: true,
         message: 'Đã ghi nhận yêu cầu, đang chờ Admin duyệt đơn!',
@@ -179,22 +194,13 @@ export async function PUT(req: NextRequest) {
       durationDays = 120;
     }
 
-    const { licenseKey, expiresAt } = generateExpiringLicenseKey(durationDays, order.durationLabel);
-
-    licensesStore.set(licenseKey, {
-      licenseKey,
-      serviceId: order.serviceId,
-      planId: order.planId,
-      createdAt: Date.now(),
-      expiresAt,
-      isTrial: false,
-      activeRequestsCount: 0
-    });
+    const { licenseKey } = generateExpiringLicenseKey(durationDays, order.durationLabel);
 
     order.status = 'approved';
     order.paidAt = Date.now();
     order.licenseKey = licenseKey;
-    ordersStore.set(orderId, order);
+    orders[orderIndex] = order;
+    await saveOrdersToCloud(orders);
 
     return NextResponse.json({
       success: true,

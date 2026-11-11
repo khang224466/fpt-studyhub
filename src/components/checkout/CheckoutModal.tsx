@@ -42,10 +42,15 @@ export function CheckoutModal({
   const [isWaitingAdmin, setIsWaitingAdmin] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(600); // 10 mins
 
-  // Determine QR image based on plan price
-  const qrImageSrc = plan?.price === 30000 
-    ? (BANK_CONFIG.qr30k || '/qr_30k.jpg') 
-    : (BANK_CONFIG.qr69k || '/qr_69k.jpg');
+  // Determine QR image based on exact plan price
+  let qrImageSrc = BANK_CONFIG.qr69k || '/qr_69k.jpg';
+  if (plan?.price === 30000 || plan?.id?.includes('1w')) {
+    qrImageSrc = BANK_CONFIG.qr30k || '/qr_30k.jpg';
+  } else if (plan?.price === 69000 || plan?.id?.includes('1m')) {
+    qrImageSrc = BANK_CONFIG.qr69k || '/qr_69k.jpg';
+  } else if (plan?.price === 220000 || plan?.id?.includes('semester')) {
+    qrImageSrc = BANK_CONFIG.qr220k || '/qr_220k.png';
+  }
 
   // Create order when modal opens
   useEffect(() => {

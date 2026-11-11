@@ -59,9 +59,14 @@ export default function AdminPage() {
     }
   };
 
+  const approvedOrders = orders.filter(o => o.status === 'approved' || o.status === 'paid');
+  const pendingOrders = orders.filter(o => o.status === 'waiting_approval' || o.status === 'pending');
+  const totalRevenue = approvedOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
+  const totalCustomers = approvedOrders.length;
+
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 5000);
+    const interval = setInterval(fetchOrders, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -141,7 +146,7 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="emerald" size="sm">v10.2.22 PRO</Badge>
+              <Badge variant="emerald" size="sm">v10.2.23 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
@@ -163,16 +168,20 @@ export default function AdminPage() {
               <span>Tổng Khách Hàng Đã Cấp</span>
               <Users className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="text-2xl font-black text-white mt-2">3,820</div>
-            <div className="text-[11px] text-emerald-400 mt-1">99.8% giải bài tự động thành công</div>
+            <div className="text-2xl font-black text-white mt-2">
+              {totalCustomers > 0 ? totalCustomers : 0}
+            </div>
+            <div className="text-[11px] text-emerald-400 mt-1">Đã cấp Key kích hoạt thành công</div>
           </div>
 
           <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
             <div className="flex items-center justify-between text-slate-400 text-xs">
-              <span>Doanh Thu Tích Lũy</span>
+              <span>Doanh Thu Thực Nhận</span>
               <DollarSign className="w-4 h-4 text-cyan-400" />
             </div>
-            <div className="text-2xl font-black text-white mt-2">42.850.000 ₫</div>
+            <div className="text-2xl font-black text-white mt-2">
+              {formatVND(totalRevenue)}
+            </div>
             <div className="text-[11px] text-cyan-400 mt-1">Chuyển khoản VIB {BANK_CONFIG.accountNo}</div>
           </div>
 
@@ -182,9 +191,11 @@ export default function AdminPage() {
               <Hourglass className="w-4 h-4 text-amber-400" />
             </div>
             <div className="text-2xl font-black text-amber-400 mt-2">
-              {orders.filter(o => o.status === 'waiting_approval' || o.status === 'pending').length}
+              {pendingOrders.length}
             </div>
-            <div className="text-[11px] text-amber-300 mt-1">Cần duyệt & cấp Key bản quyền</div>
+            <div className="text-[11px] text-amber-300 mt-1">
+              {pendingOrders.length > 0 ? 'Có đơn cần duyệt ngay!' : 'Tất cả đơn đã được xử lý'}
+            </div>
           </div>
 
           <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
@@ -210,7 +221,7 @@ export default function AdminPage() {
               </p>
             </div>
             <Badge variant="indigo" size="sm">
-              Tự động cập nhật mỗi 5 giây
+              Tự động đồng bộ Realtime (3s)
             </Badge>
           </div>
 
@@ -328,7 +339,7 @@ export default function AdminPage() {
                 <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
-                  <span>FPT EduNext AI Assistant Pro (v10.2.22)</span>
+                  <span>FPT EduNext AI Assistant Pro (v10.2.23)</span>
                 </div>
               </div>
 
