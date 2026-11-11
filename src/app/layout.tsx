@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'FPT Study Hub — Bộ 3 Công Cụ: EduNext • Khảo Thí Online • Safe Exam Browser (SEB)',
-  description: 'Hệ sinh thái công cụ dành riêng cho sinh viên FPT: Giải bài tập EduNext Assistant v10.2.31 (chống 429, khớp mẫu Trả lời), ôn luyện Khảo Thí Online, chuẩn hóa cấu hình Safe Exam Browser (SEB).',
+  description: 'Hệ sinh thái công cụ dành riêng cho sinh viên FPT: Giải bài tập EduNext Assistant v10.2.32 (chống 429, khớp mẫu Trả lời), ôn luyện Khảo Thí Online, chuẩn hóa cấu hình Safe Exam Browser (SEB).',
   icons: {
     icon: '/favicon.ico',
   },

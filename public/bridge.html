@@ -146,7 +146,7 @@
       <div class="title-box">
         <div class="icon">⚡</div>
         <div>
-          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.31</span></h1>
+          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.32</span></h1>
           <div class="sub">Vượt CSP Cloudflare 100% • Reactive Event Tracker (Tự Động Bắt Đề)</div>
         </div>
       </div>
@@ -181,7 +181,7 @@
       logsEl.scrollTop = logsEl.scrollHeight;
     }
 
-    log('success', '✓ Khởi tạo AI Bridge v10.2.31 thành công!');
+    log('success', '✓ Khởi tạo AI Bridge v10.2.32 thành công!');
 
     if (window.opener) {
       try {
@@ -197,7 +197,7 @@
       if (!keyStr || typeof keyStr !== 'string') return '';
       let cur = keyStr.trim();
       for (let depth = 0; depth < 5; depth++) {
-        if (cur.startsWith('AIzaSy') || cur.startsWith('AIza')) {
+        if (cur.startsWith('AIzaSy') || cur.startsWith('AIza') || cur.startsWith('AQ.') || (!cur.startsWith('ENC_') && cur.length >= 20)) {
           return cur;
         }
         if (!cur.startsWith('ENC_AI_')) {
@@ -221,7 +221,7 @@
           break;
         }
       }
-      if (cur.startsWith('AIzaSy') || cur.startsWith('AIza')) {
+      if (cur.startsWith('AIzaSy') || cur.startsWith('AIza') || cur.startsWith('AQ.') || (!cur.startsWith('ENC_') && cur.length >= 20)) {
         return cur;
       }
       return '';
@@ -234,7 +234,11 @@
       if (cachedModelList && cachedModelList.length > 0) return cachedModelList;
       try {
         log('info', 'Đang đồng bộ model Google Gemini Studio khả dụng...');
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`);
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`, {
+          headers: {
+            'x-goog-api-key': cleanKey
+          }
+        });
         if (res.ok) {
           const data = await res.json();
           if (data.models && Array.isArray(data.models)) {
@@ -348,7 +352,10 @@
                 log('info', `Gửi API tới Google Studio (${model})...`);
                 const res = await fetch(url, {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': trueGeminiKey
+                  },
                   signal: controller.signal,
                   body: JSON.stringify({
                     systemInstruction: {
@@ -378,9 +385,9 @@
                   const errTxt = await res.text();
                   log('warn', `Model ${model} HTTP ${res.status}: ${(errTxt.slice(0, 70) || 'Lỗi')}`);
                   lastErr = `HTTP ${res.status}`;
-                  if (res.status === 400 && (errTxt.includes('API key not valid') || errTxt.includes('API_KEY_INVALID'))) {
-                    log('err', `❌ LỖI API KEY: Google từ chối key ("${trueGeminiKey.slice(0, 8)}..."). Hãy vào https://aistudio.google.com/app/apikey lấy key mới!`);
-                    lastErr = 'API Key Google Gemini không hợp lệ';
+                  if ((res.status === 400 || res.status === 401) && (errTxt.includes('API key not valid') || errTxt.includes('API_KEY_INVALID') || errTxt.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED'))) {
+                    log('warn', `⚠️ Google từ chối key client (HTTP ${res.status}). Đang tự động chuyển sang Cloud AI Engine dự phòng...`);
+                    lastErr = 'API Key Google Gemini lỗi quyền';
                     break;
                   }
                 }

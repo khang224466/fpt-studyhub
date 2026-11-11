@@ -3,7 +3,7 @@ import { verifyLicense } from '@/lib/licenseStore';
 import { decryptApiKey } from '@/lib/cryptoKey';
 
 const SYSTEM_PROMPT = `
-Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.31) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
+Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.32) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
 
 [QUY TẮC BẮT BUỘC]:
 1. ĐỊNH DẠNG TRẢ LỜI MẪU (RẤT QUAN TRỌNG):
@@ -92,18 +92,21 @@ export async function POST(req: NextRequest) {
     let usedProvider = 'fpt-cloud-engine';
     let usedModel = 'gemini-1.5-flash';
 
-    // 2. Call AI Engine with Encrypted/Server Keys (Auto-decrypt if ENC_AES_ or ENC_FPT_)
+    // 2. Call AI Engine with Encrypted/Server Keys (Auto-decrypt if ENC_AES_ or ENC_FPT_ or ENC_AI_)
     const rawCustomKey = apiKeyOverride || licenseKey || '';
     const overrideKey = rawCustomKey ? decryptApiKey(rawCustomKey) : '';
-    const geminiKey = (overrideKey && overrideKey.startsWith('AIza'))
-      ? overrideKey
-      : decryptApiKey(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '');
+    const isGoogleKey = (k: string) => k.startsWith('AIza') || k.startsWith('AQ.') || (!k.startsWith('ENC_') && k.length >= 20);
+
+    const clientGeminiKey = (overrideKey && isGoogleKey(overrideKey)) ? overrideKey : '';
+    const serverGeminiKey = decryptApiKey(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '');
+    const geminiKeysToTry = [clientGeminiKey, serverGeminiKey].filter(Boolean);
+
     const groqKey = (overrideKey && overrideKey.startsWith('gsk_'))
       ? overrideKey
       : decryptApiKey(process.env.GROQ_API_KEY || '');
 
-    if (geminiKey) {
-      // Call Google Gemini (Multi-model fallback)
+    // Try Google Gemini
+    if (geminiKeysToTry.length > 0) {
       usedProvider = 'google-gemini';
       const candidateModels = ['gemini-flash-lite-latest', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.0-flash'];
       const parts: any[] = [{ text: cleanQuestion }];
@@ -117,34 +120,48 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      for (const m of candidateModels) {
-        try {
-          usedModel = m;
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${geminiKey}`;
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-              contents: [{ role: 'user', parts }],
-              generationConfig: {
-                temperature: 0.1,
-                maxOutputTokens: 800
-              }
-            }),
-            signal: AbortSignal.timeout(12000)
-          });
+      for (const currentKey of geminiKeysToTry) {
+        if (answer) break;
+        for (const m of candidateModels) {
+          try {
+            usedModel = m;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${currentKey}`;
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'x-goog-api-key': currentKey
+              },
+              body: JSON.stringify({
+                systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+                contents: [{ role: 'user', parts }],
+                generationConfig: {
+                  temperature: 0.1,
+                  maxOutputTokens: 800
+                }
+              }),
+              signal: AbortSignal.timeout(12000)
+            });
 
-          if (res.ok) {
-            const data = await res.json();
-            const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (candidateText && candidateText.trim()) {
-              answer = candidateText.trim();
-              break;
+            if (res.ok) {
+              const data = await res.json();
+              const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (candidateText && candidateText.trim()) {
+                answer = candidateText.trim();
+                break;
+              }
+            } else {
+              const errTxt = await res.text();
+              console.warn(`[AI Proxy] Gemini (${m}) HTTP ${res.status}:`, errTxt.slice(0, 80));
+              // If current key is unauthenticated/unsupported, break model loop and try next key
+              if ((res.status === 400 || res.status === 401) && 
+                  (errTxt.includes('API key not valid') || errTxt.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED'))) {
+                break;
+              }
             }
+          } catch (err: any) {
+            console.warn(`[AI Proxy] Gemini (${m}) call failed:`, err.message);
           }
-        } catch (err: any) {
-          console.warn(`[AI Proxy] Gemini (${m}) call failed:`, err.message);
         }
       }
     }
