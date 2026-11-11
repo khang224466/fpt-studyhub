@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { SERVICES_CATALOG, BANK_CONFIG } from '@/data/servicesCatalog';
 import { generateVietQRUrl } from '@/lib/utils';
@@ -27,7 +28,7 @@ async function fetchOrdersFromCloud(): Promise<OrderItem[]> {
     const res = await fetch(`${CLOUD_STORE_URL}?t=${Date.now()}`, {
       method: 'GET',
       headers: { 'Cache-Control': 'no-cache, no-store' },
-      cache: 'no-store'
+      cache: 'no-store', next: { revalidate: 0 }
     });
     if (res.ok) {
       const json = await res.json();

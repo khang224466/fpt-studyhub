@@ -306,7 +306,7 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="emerald" size="sm">v10.2.34 PRO</Badge>
+              <Badge variant="emerald" size="sm">v10.2.35 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
@@ -804,7 +804,7 @@ export default function AdminPage() {
                 <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
-                  <span>FPT EduNext AI Assistant Pro (v10.2.34)</span>
+                  <span>FPT EduNext AI Assistant Pro (v10.2.35)</span>
                 </div>
               </div>
 
@@ -830,10 +830,10 @@ export default function AdminPage() {
                   onChange={(e) => setCustomApiKey(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-emerald-500 font-mono"
                 />
-                {customApiKey.trim() && !customApiKey.trim().startsWith('AIza') && (
+                {customApiKey.trim() && !customApiKey.trim().startsWith('AIza') && !customApiKey.trim().startsWith('AQ.') && !customApiKey.trim().startsWith('ENC_AI_') && customApiKey.trim().length < 20 && (
                   <div className="p-2 rounded bg-amber-950/60 border border-amber-500/50 text-[11px] text-amber-300 flex items-center gap-1.5 mt-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>Key Google Gemini phải bắt đầu bằng "AIzaSy...". Lấy key chuẩn miễn phí tại aistudio.google.com.</span>
+                    <span>Key Google Gemini chuẩn thường bắt đầu bằng "AIzaSy..." hoặc "AQ....". Hỗ trợ cả mã "ENC_AI_...".</span>
                   </div>
                 )}
               </div>

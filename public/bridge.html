@@ -146,7 +146,7 @@
       <div class="title-box">
         <div class="icon">⚡</div>
         <div>
-          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.34</span></h1>
+          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.35</span></h1>
           <div class="sub">Vượt CSP Cloudflare 100% • Reactive Event Tracker (Tự Động Bắt Đề)</div>
         </div>
       </div>
@@ -181,7 +181,7 @@
       logsEl.scrollTop = logsEl.scrollHeight;
     }
 
-    log('success', '✓ Khởi tạo AI Bridge v10.2.34 thành công!');
+    log('success', '✓ Khởi tạo AI Bridge v10.2.35 thành công!');
 
     if (window.opener) {
       try {
@@ -242,7 +242,8 @@
         if (res.ok) {
           const data = await res.json();
           if (data.models && Array.isArray(data.models)) {
-            // LỌC BỎ CÁC MODEL KHÔNG PHÙ HỢP (tts, audio, embedding, aqa, gemma, 2.5)
+            // LỌC BỎ CÁC MODEL KHÔNG PHÙ HỢP (tts, audio, embedding, aqa, gemma, 2.5, pro, ultra)
+            // TUYỆT ĐỐI CẤM MODEL PRO ĐỂ TRÁNH LỖI QUOTA 429 (Pro chỉ có 2 RPM trên bản miễn phí)
             const visionCandidates = data.models
               .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
               .map(m => m.name.replace(/^models\//, ''))
@@ -253,11 +254,13 @@
                 !name.includes('audio') && 
                 !name.includes('realtime') &&
                 !name.includes('gemma') &&
-                !name.includes('2.5')
+                !name.includes('2.5') &&
+                !name.includes('pro') &&
+                !name.includes('ultra')
               );
 
             if (visionCandidates.length > 0) {
-              // Ưu tiên các model Flash-Lite và Flash siêu nhanh, đã kiểm chứng:
+              // Ưu tiên các model Flash-Lite và Flash siêu nhanh, đã kiểm chứng cao RPM:
               const priority = [
                 'gemini-flash-lite-latest',
                 'gemini-2.0-flash-lite',
@@ -266,7 +269,7 @@
                 'gemini-1.5-flash-latest',
                 'gemini-2.0-flash',
                 'gemini-flash-latest',
-                'gemini-1.5-pro'
+                'gemini-1.5-flash-8b'
               ];
 
               visionCandidates.sort((a, b) => {
@@ -278,7 +281,7 @@
                 return 0;
               });
 
-              log('success', `✓ Đã chọn ${visionCandidates.length} model Vision khả dụng: ${visionCandidates.slice(0, 3).join(', ')}...`);
+              log('success', `✓ Đã chọn ${visionCandidates.length} model Vision Flash cao RPM: ${visionCandidates.slice(0, 3).join(', ')}...`);
               cachedModelList = visionCandidates;
               return visionCandidates;
             }
@@ -298,8 +301,9 @@
       ];
     }
 
-    // KHÓA ĐỒNG BỘ: Chặn gửi liên tục làm nghẽn mạng & 429 rate-limit
+    // KHÓA ĐỒNG BỘ & ĐIỀU TIẾT NHỊP (CHỐNG SPAM LIÊN TỤC & 429 RATE LIMIT)
     let isBridgeSolving = false;
+    let lastBridgeReqTime = 0;
 
     window.addEventListener('message', async (e) => {
       const data = e.data;
@@ -319,6 +323,15 @@
           log('info', 'Đang xử lý câu hỏi trước đó, tạm hoãn yêu cầu lặp...');
           return;
         }
+
+        // ĐIỀU TIẾT NHỊP: Giữ khoảng cách tối thiểu 4 giây giữa các lần gọi để không bị Google 429
+        const now = Date.now();
+        if (now - lastBridgeReqTime < 4000) {
+          const waitMs = 4000 - (now - lastBridgeReqTime);
+          log('info', `Giữ nhịp an toàn (chờ ${(waitMs / 1000).toFixed(1)}s tránh lỗi 429)...`);
+          await new Promise(r => setTimeout(r, waitMs));
+        }
+        lastBridgeReqTime = Date.now();
 
         isBridgeSolving = true;
         statusEl.innerHTML = '<span class="dot" style="background:#38bdf8"></span> Đang giải bài tập từ ảnh...';
@@ -346,7 +359,7 @@
               const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${trueGeminiKey}`;
 
               const controller = new AbortController();
-              const timeoutTimer = setTimeout(() => controller.abort(), 7500);
+              const timeoutTimer = setTimeout(() => controller.abort(), 12000);
 
               try {
                 log('info', `Gửi API tới Google Studio (${model})...`);
@@ -385,6 +398,10 @@
                   const errTxt = await res.text();
                   log('warn', `Model ${model} HTTP ${res.status}: ${(errTxt.slice(0, 70) || 'Lỗi')}`);
                   lastErr = `HTTP ${res.status}`;
+                  if (res.status === 429) {
+                    log('warn', `⚠️ Google báo 429 Quota Exceeded (${model}) -> Tự động chuyển Cloud AI Engine dự phòng...`);
+                    break;
+                  }
                   if ((res.status === 400 || res.status === 401) && (errTxt.includes('API key not valid') || errTxt.includes('API_KEY_INVALID') || errTxt.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED'))) {
                     log('warn', `⚠️ Google từ chối key client (HTTP ${res.status}). Đang tự động chuyển sang Cloud AI Engine dự phòng...`);
                     lastErr = 'API Key Google Gemini lỗi quyền';
@@ -394,7 +411,7 @@
               } catch(err) {
                 clearTimeout(timeoutTimer);
                 if (err.name === 'AbortError') {
-                  log('warn', `Model ${model} quá hạn (timeout 7.5s) -> Bỏ qua`);
+                  log('warn', `Model ${model} quá hạn (timeout 12s) -> Thử model khác`);
                 } else {
                   log('warn', `Lỗi kết nối ${model}: ${err.message || err}`);
                 }
