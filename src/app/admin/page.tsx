@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Users, 
@@ -17,12 +17,16 @@ import {
   Clock,
   Sparkles,
   ShieldCheck,
-  MessageSquare
+  MessageSquare,
+  AlertCircle,
+  ExternalLink,
+  Hourglass
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { formatVND } from '@/lib/utils';
 import { SERVICES_CATALOG, BANK_CONFIG } from '@/data/servicesCatalog';
+import { OrderItem } from '@/types/rental';
 
 export default function AdminPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -35,12 +39,56 @@ export default function AdminPage() {
     days: number;
   } | null>(null);
 
-  const [generatedKeys, setGeneratedKeys] = useState([
-    { key: 'DEMO-EDUNEXT-2026', service: 'FPT EduNext AI Assistant Pro', plan: '1 Kỳ Học', expDate: '11/07/2026', status: 'active', users: 18 },
-    { key: 'VIP-EDUNEXT-1MONTH', service: 'FPT EduNext AI Assistant Pro', plan: '1 Tháng', expDate: '11/04/2026', status: 'active', users: 9 },
-    { key: 'VIP-EDUNEXT-1WEEK', service: 'FPT EduNext AI Assistant Pro', plan: '1 Tuần', expDate: '18/03/2026', status: 'active', users: 12 }
-  ]);
+  // Live Orders state from API
+  const [orders, setOrders] = useState<OrderItem[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [approvingOrderId, setApprovingOrderId] = useState<string | null>(null);
 
+  const fetchOrders = async () => {
+    setIsLoadingOrders(true);
+    try {
+      const res = await fetch('/api/v1/orders');
+      const data = await res.json();
+      if (data.success && data.orders) {
+        setOrders(data.orders);
+      }
+    } catch (e) {
+      console.error('Fetch orders error:', e);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Admin approves order and issues Key
+  const handleApproveOrder = async (orderId: string) => {
+    setApprovingOrderId(orderId);
+    try {
+      const res = await fetch('/api/v1/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          action: 'approve'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchOrders();
+      }
+    } catch (e) {
+      console.error('Approve order error:', e);
+    } finally {
+      setApprovingOrderId(null);
+    }
+  };
+
+  // Manual Key Generator
   const handleGenerateKey = (e: React.FormEvent) => {
     e.preventDefault();
     const days = parseInt(durationDays, 10);
@@ -68,18 +116,6 @@ export default function AdminPage() {
       expDate: expDateStr,
       days
     });
-
-    setGeneratedKeys(prev => [
-      {
-        key: encKey,
-        service: 'FPT EduNext AI Assistant Pro (v10.2.19)',
-        plan: planLabel,
-        expDate: expDateStr,
-        status: 'active',
-        users: 0
-      },
-      ...prev
-    ]);
   };
 
   const handleCopy = (text: string) => {
@@ -87,12 +123,6 @@ export default function AdminPage() {
     setCopiedKey(text);
     setTimeout(() => setCopiedKey(null), 2000);
   };
-
-  const accountPools = [
-    { service: 'EduNext VIP Assistant Pool (v10.2.19)', accounts: 8, capacity: '280/300 slots', health: 'healthy', latency: '12ms' },
-    { service: 'Khảo Thí Online Exam Bank Pool (Sắp ra mắt)', accounts: 4, capacity: 'Chờ kiểm thử', health: 'healthy', latency: '18ms' },
-    { service: 'Safe Exam Browser Config Cloud Node (Sắp ra mắt)', accounts: 3, capacity: 'Chờ kiểm thử', health: 'healthy', latency: '9ms' }
-  ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8">
@@ -109,19 +139,19 @@ export default function AdminPage() {
             </Link>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Admin Console — FPT Academic Hub
+                Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="indigo" size="sm">Bản v10.2.19 (EduNext Pro)</Badge>
+              <Badge variant="emerald" size="sm">v10.2.22 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Admin: <strong>{BANK_CONFIG.accountName}</strong> • MBBank: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
+              Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" className="gap-1.5">
-              <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Làm mới số liệu</span>
+            <Button size="sm" variant="outline" onClick={fetchOrders} className="gap-1.5 cursor-pointer">
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isLoadingOrders ? 'animate-spin' : ''}`} />
+              <span>Làm mới danh sách</span>
             </Button>
           </div>
         </div>
@@ -143,21 +173,23 @@ export default function AdminPage() {
               <DollarSign className="w-4 h-4 text-cyan-400" />
             </div>
             <div className="text-2xl font-black text-white mt-2">42.850.000 ₫</div>
-            <div className="text-[11px] text-cyan-400 mt-1">Chuyển khoản MBBank 151010042005</div>
+            <div className="text-[11px] text-cyan-400 mt-1">Chuyển khoản VIB {BANK_CONFIG.accountNo}</div>
           </div>
 
           <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
             <div className="flex items-center justify-between text-slate-400 text-xs">
-              <span>Key Đang Hiệu Lực</span>
-              <Key className="w-4 h-4 text-amber-400" />
+              <span>Đơn Chờ Admin Duyệt</span>
+              <Hourglass className="w-4 h-4 text-amber-400" />
             </div>
-            <div className="text-2xl font-black text-white mt-2">1,240</div>
-            <div className="text-[11px] text-amber-400 mt-1">Tự động hết hạn sau 1w / 1m / 1 kỳ</div>
+            <div className="text-2xl font-black text-amber-400 mt-2">
+              {orders.filter(o => o.status === 'waiting_approval' || o.status === 'pending').length}
+            </div>
+            <div className="text-[11px] text-amber-300 mt-1">Cần duyệt & cấp Key bản quyền</div>
           </div>
 
           <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
             <div className="flex items-center justify-between text-slate-400 text-xs">
-              <span>Server Latency FPT GW</span>
+              <span>Server Latency AI Bridge</span>
               <Server className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="text-2xl font-black text-emerald-400 mt-2">12ms</div>
@@ -165,13 +197,130 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Section 2: License Key Generator (With Expiration) */}
+        {/* Section 1: LIVE ORDERS APPROVAL TABLE */}
+        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <span>Danh Sách Yêu Cầu Đăng Ký Chờ Duyệt & Cấp Key</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Kiểm tra tài khoản VIB {BANK_CONFIG.accountNo} ({BANK_CONFIG.accountName}), sau đó bấm "Duyệt & Cấp Key" để hệ thống tự sinh mã bản quyền có hạn chuẩn.
+              </p>
+            </div>
+            <Badge variant="indigo" size="sm">
+              Tự động cập nhật mỗi 5 giây
+            </Badge>
+          </div>
+
+          {orders.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-xs">
+              Chưa có đơn hàng nào trong hệ thống.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-3">Mã Đơn</th>
+                    <th className="py-3 px-3">Mã CK</th>
+                    <th className="py-3 px-3">Gói Dịch Vụ</th>
+                    <th className="py-3 px-3">Số Tiền</th>
+                    <th className="py-3 px-3">Trạng Thái</th>
+                    <th className="py-3 px-3">Mã Key Bản Quyền</th>
+                    <th className="py-3 px-3 text-right">Thao Tác Admin</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-mono">
+                  {orders.map((ord) => {
+                    const isWaiting = ord.status === 'waiting_approval';
+                    const isApproved = ord.status === 'approved' || ord.status === 'paid';
+                    const isPending = ord.status === 'pending';
+
+                    return (
+                      <tr key={ord.orderId} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="py-3 px-3 text-white font-bold">{ord.orderId}</td>
+                        <td className="py-3 px-3 text-amber-300 font-bold">{ord.transferCode}</td>
+                        <td className="py-3 px-3 font-sans text-slate-300">
+                          {ord.durationLabel || '1 Tuần'}
+                        </td>
+                        <td className="py-3 px-3 text-emerald-400 font-bold">
+                          {formatVND(ord.amount)}
+                        </td>
+                        <td className="py-3 px-3 font-sans">
+                          {isWaiting && (
+                            <Badge variant="amber" size="sm">
+                              <Hourglass className="w-3 h-3 mr-1 inline" />
+                              Chờ Admin Duyệt
+                            </Badge>
+                          )}
+                          {isApproved && (
+                            <Badge variant="emerald" size="sm">
+                              <CheckCircle2 className="w-3 h-3 mr-1 inline" />
+                              Đã Duyệt & Cấp Key
+                            </Badge>
+                          )}
+                          {isPending && (
+                            <Badge variant="slate" size="sm">
+                              Chờ Chuyển Khoản
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-3 px-3">
+                          {ord.licenseKey ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-emerald-300 truncate max-w-[140px]">
+                                {ord.licenseKey}
+                              </span>
+                              <button
+                                onClick={() => handleCopy(ord.licenseKey || '')}
+                                className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                                title="Sao chép Key"
+                              >
+                                {copiedKey === ord.licenseKey ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-slate-600 text-[11px] italic font-sans">Chưa cấp</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-right font-sans">
+                          {isApproved ? (
+                            <span className="text-emerald-400 text-xs font-semibold">✓ Đã Hoàn Tất</span>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              disabled={approvingOrderId === ord.orderId}
+                              onClick={() => handleApproveOrder(ord.orderId)}
+                              className="text-xs shadow-md shadow-emerald-950 cursor-pointer"
+                            >
+                              {approvingOrderId === ord.orderId ? (
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1" />
+                              ) : (
+                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                              )}
+                              <span>Duyệt & Cấp Key</span>
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Section 2: LICENSE KEY GENERATOR (WITH EXPIRATION) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Generator Form */}
           <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Plus className="w-4 h-4 text-emerald-400" />
-              <span>Tạo Key Mã Hóa Có Thời Hạn (ENC_AI_...)</span>
+              <span>Tạo Key Thủ Công (ENC_AI_...)</span>
             </h3>
 
             <form onSubmit={handleGenerateKey} className="space-y-3 text-xs">
@@ -179,7 +328,7 @@ export default function AdminPage() {
                 <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
-                  <span>FPT EduNext AI Assistant Pro (v10.2.19)</span>
+                  <span>FPT EduNext AI Assistant Pro (v10.2.22)</span>
                 </div>
               </div>
 
@@ -200,107 +349,66 @@ export default function AdminPage() {
                 <label className="block text-slate-400 mb-1 font-medium">API Key Gemini nạp vào (Tùy chọn):</label>
                 <input
                   type="text"
+                  placeholder="Mặc định dùng key hệ thống hoặc nhập AIza..."
                   value={customApiKey}
                   onChange={(e) => setCustomApiKey(e.target.value)}
-                  placeholder="Để trống sẽ dùng Key mặc định của hệ thống"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white placeholder-slate-600 font-mono focus:outline-none focus:border-emerald-500 text-[11px]"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-emerald-500 font-mono"
                 />
               </div>
 
-              <Button type="submit" variant="primary" size="md" className="w-full mt-2 font-bold gap-2">
+              <Button type="submit" variant="primary" className="w-full justify-center gap-2 mt-2">
                 <Sparkles className="w-4 h-4" />
-                <span>Mã Hóa & Tạo Key Gửi Khách Ngay</span>
+                <span>Sinh Mã Key Bản Quyền Ngay</span>
               </Button>
             </form>
-
-            {/* Generated Output Card */}
-            {lastGenerated && (
-              <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-500/60 space-y-2 mt-4 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-emerald-300">✓ Đã Tạo Key Thành Công!</span>
-                  <Badge variant="emerald" size="sm">{lastGenerated.planLabel}</Badge>
-                </div>
-                <div className="text-[11px] text-slate-300">
-                  Hạn dùng đến: <strong className="text-white font-mono">{lastGenerated.expDate}</strong>
-                </div>
-                <div className="p-2 rounded bg-black/60 border border-slate-800 font-mono text-[10px] text-emerald-400 break-all select-all">
-                  {lastGenerated.key}
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleCopy(lastGenerated.key)}
-                  className="w-full text-xs font-semibold gap-1.5"
-                >
-                  {copiedKey === lastGenerated.key ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedKey === lastGenerated.key ? 'Đã sao chép Key!' : 'Sao chép Key gửi khách trên Discord'}</span>
-                </Button>
-              </div>
-            )}
           </div>
 
-          {/* Key List Table */}
+          {/* Key Output Details */}
           <div className="lg:col-span-2 p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Key className="w-4 h-4 text-emerald-400" />
-                  <span>Danh Sách Key Bản Quyền Đã Cấp</span>
-                </h3>
-                <span className="text-xs text-slate-400">Hiển thị {generatedKeys.length} keys</span>
-              </div>
+              <h3 className="text-base font-bold text-white mb-3 flex items-center gap-2">
+                <Key className="w-4 h-4 text-amber-400" />
+                <span>Kết Quả Mã Hóa Key Bản Quyền</span>
+              </h3>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="p-2.5 rounded-l-lg">Mã Key Bản Quyền</th>
-                      <th className="p-2.5">Gói & Thời Hạn</th>
-                      <th className="p-2.5">Ngày Hết Hạn</th>
-                      <th className="p-2.5">Trạng Thái</th>
-                      <th className="p-2.5 rounded-r-lg text-right">Thao Tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
-                    {generatedKeys.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-800/40">
-                        <td className="p-2.5 font-bold text-emerald-400 max-w-[200px] truncate">
-                          {item.key}
-                        </td>
-                        <td className="p-2.5 text-slate-300 font-sans">{item.plan}</td>
-                        <td className="p-2.5 text-slate-400">{item.expDate}</td>
-                        <td className="p-2.5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            Hiệu Lực
-                          </span>
-                        </td>
-                        <td className="p-2.5 text-right font-sans">
-                          <button
-                            onClick={() => handleCopy(item.key)}
-                            className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer inline-flex items-center gap-1"
-                          >
-                            {copiedKey === item.key ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                            <span>{copiedKey === item.key ? 'Đã chép' : 'Sao chép'}</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {lastGenerated ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-slate-950 border border-emerald-500/50 space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Gói bản quyền:</span>
+                      <span className="font-bold text-emerald-400">{lastGenerated.planLabel}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Thời điểm hết hạn:</span>
+                      <span className="font-bold text-amber-300 font-mono">{lastGenerated.expDate}</span>
+                    </div>
+                    <div className="pt-2 border-t border-slate-800">
+                      <span className="text-[11px] text-slate-400 block mb-1">Mã Key Mã Hóa (Cung cấp cho sinh viên):</span>
+                      <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 font-mono text-xs text-emerald-300 break-all select-all flex items-center justify-between gap-2">
+                        <span>{lastGenerated.key}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCopy(lastGenerated.key)}
+                          className="shrink-0"
+                        >
+                          {copiedKey === lastGenerated.key ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedKey === lastGenerated.key ? 'Đã sao chép' : 'Sao chép'}</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-slate-500 text-xs">
+                  Chọn thời hạn và bấm "Sinh Mã Key Bản Quyền Ngay" để tạo key.
+                </div>
+              )}
             </div>
 
-            <div className="pt-4 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
-              <span>Hỗ trợ kỹ thuật: DIEP DAI PHU</span>
-              <a
-                href={BANK_CONFIG.discordContactUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-semibold"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Discord Admin (888713971161505832)</span>
-              </a>
+            <div className="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+              <span>Định dạng mã: <strong className="font-mono text-emerald-400">ENC_AI_[Base64(XOR)]</strong></span>
+              <span className="text-slate-500">Tự động hủy khi quá hạn</span>
             </div>
           </div>
         </div>

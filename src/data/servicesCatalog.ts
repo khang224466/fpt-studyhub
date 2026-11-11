@@ -7,11 +7,11 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     slug: 'edunext-assistant',
     category: 'edunext',
     categoryLabel: 'EduNext LMS',
-    tagline: 'Trợ lý học tập thông minh v10.2.21: Tự động chạy liên tục (Auto Loop), giải bài siêu tốc, kiểm soát hạn dùng bản quyền, bảo mật 100%',
+    tagline: 'Trợ lý học tập thông minh v10.2.22: Tự động chạy liên tục (Auto Loop), giải bài siêu tốc, kiểm soát hạn dùng bản quyền, bảo mật 100%',
     iconName: 'GraduationCap',
     targetDomain: 'fsc-edunext.fpt.edu.vn',
     authMethod: 'extensionBridge',
-    badge: 'Đang Hoạt Động (v10.2.21)',
+    badge: 'Đang Hoạt Động (v10.2.22)',
     isComingSoon: false,
     features: [
       'Auto Loop 100%: Tự động giải liên tục từ câu đầu đến khi hoàn thành bài học',
@@ -20,7 +20,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
       'Cloud AI Proxy & Gemini 2.0 Flash-Lite: Trả lời siêu tốc trong 1.2s',
       'Đồng bộ React 18 Fiber 5 tầng, tự động kích hoạt onSendMessage & Enter',
       'Cơ chế chống 429 Too Many Requests thông minh với backoff tự động',
-      'Bookmarklet 1-Click Zero-Install độc lập v10.2.21 (Không cần Tampermonkey)'
+      'Bookmarklet 1-Click Zero-Install độc lập v10.2.22 (Không cần Tampermonkey)'
     ],
     plans: [
       { id: 'edunext-1w', duration: '1w', durationLabel: '1 Tuần', price: 30000, originalPrice: 50000 },
@@ -82,11 +82,13 @@ export const SERVICES_CATALOG: ServiceItem[] = [
 ];
 
 export const BANK_CONFIG = {
-  bankId: 'MB', // Ngân hàng Quân Đội (MBBank)
-  bankName: 'Ngân hàng Quân Đội (MBBank)',
-  accountNo: '151010042005',
+  bankId: 'VIB', // Ngân hàng TMCP Quốc Tế Việt Nam (VIB)
+  bankName: 'Ngân hàng Quốc Tế (VIB)',
+  accountNo: '858709070',
   accountName: 'DIEP DAI PHU',
   qrTemplate: 'compact2',
-  qrStaticImage: '/qr_payment.jpg',
+  qrStaticImage: '/qr_69k.jpg',
+  qr30k: '/qr_30k.jpg',
+  qr69k: '/qr_69k.jpg',
   discordContactUrl: 'https://discord.com/users/888713971161505832'
 };

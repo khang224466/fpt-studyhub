@@ -11,7 +11,8 @@ import {
   AlertCircle, 
   RefreshCw, 
   MessageSquare, 
-  ExternalLink 
+  ExternalLink,
+  Hourglass
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -36,15 +37,21 @@ export function CheckoutModal({
   onPaymentSuccess
 }: CheckoutModalProps) {
   const [order, setOrder] = useState<OrderItem | null>(null);
-  const [qrUrl, setQrUrl] = useState<string>('/qr_payment.jpg');
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [isWaitingAdmin, setIsWaitingAdmin] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(600); // 10 mins
+
+  // Determine QR image based on plan price
+  const qrImageSrc = plan?.price === 30000 
+    ? (BANK_CONFIG.qr30k || '/qr_30k.jpg') 
+    : (BANK_CONFIG.qr69k || '/qr_69k.jpg');
 
   // Create order when modal opens
   useEffect(() => {
     if (isOpen && service && plan) {
       setTimeLeft(600);
+      setIsWaitingAdmin(false);
       fetch('/api/v1/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -72,6 +79,31 @@ export function CheckoutModal({
     return () => clearInterval(timer);
   }, [isOpen, timeLeft]);
 
+  // Polling for Admin Approval when waiting
+  useEffect(() => {
+    if (!isOpen || !order || (!isWaitingAdmin && order.status !== 'waiting_approval')) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/v1/orders?orderId=${order.orderId}`);
+        const data = await res.json();
+        if (data.success && data.order && data.order.status === 'approved' && data.licenseKey) {
+          clearInterval(pollInterval);
+          confetti({
+            particleCount: 120,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+          onPaymentSuccess(data.order, data.licenseKey);
+        }
+      } catch (e) {
+        console.error('Polling order status error:', e);
+      }
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, [isOpen, order, isWaitingAdmin, onPaymentSuccess]);
+
   // Copy helper
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -79,7 +111,7 @@ export function CheckoutModal({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  // Verify payment action
+  // Submit transfer confirmation -> Wait for admin approval
   const handleConfirmPayment = async () => {
     if (!order) return;
     setIsVerifying(true);
@@ -88,19 +120,18 @@ export function CheckoutModal({
       const res = await fetch('/api/v1/orders', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: order.orderId })
+        body: JSON.stringify({ 
+          orderId: order.orderId,
+          action: 'confirm_transfer'
+        })
       });
       const data = await res.json();
       if (data.success) {
-        confetti({
-          particleCount: 120,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-        onPaymentSuccess(data.order, data.licenseKey);
+        setIsWaitingAdmin(true);
+        setOrder(prev => prev ? { ...prev, status: 'waiting_approval' } : null);
       }
     } catch (e) {
-      console.error('Verify payment error:', e);
+      console.error('Submit transfer confirmation error:', e);
     } finally {
       setIsVerifying(false);
     }
@@ -136,13 +167,13 @@ export function CheckoutModal({
           {/* QR Column */}
           <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white text-slate-900 border border-slate-800 shadow-xl">
             <img
-              src="/qr_payment.jpg"
-              alt="Mã QR Chuyển Khoản MBBank - DIEP DAI PHU"
+              src={qrImageSrc}
+              alt={`Mã QR Chuyển Khoản VIB - ${BANK_CONFIG.accountName}`}
               className="w-56 h-auto object-contain rounded-xl shadow-sm"
             />
             <div className="mt-2 text-center">
               <div className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                Quét Mã QR MBBank Napas 247
+                Quét Mã QR VIB Napas 247
               </div>
               <div className="text-[11px] text-slate-600 font-medium">
                 Mọi ứng dụng ngân hàng & ví điện tử đều quét được
@@ -218,52 +249,73 @@ export function CheckoutModal({
 
         {/* Discord Admin Contact Banner */}
         <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/40 text-xs text-indigo-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-md">
-              <MessageSquare className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="font-bold text-white">Liên hệ Discord Admin nhận Key & Hỗ trợ:</div>
-              <div className="text-[11px] text-indigo-300">
-                Sau khi chuyển khoản, nhắn tin trực tiếp để nhận License Key kích hoạt ngay.
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-indigo-400 shrink-0" />
+            <span>Liên hệ Admin qua Discord để duyệt đơn & cấp key tức thì:</span>
           </div>
           <a
             href={BANK_CONFIG.discordContactUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shrink-0 shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shrink-0 text-xs shadow-md shadow-indigo-950"
           >
-            <span>Nhắn Tin Discord</span>
+            <span>Nhắn Discord Admin</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
 
-        {/* Notice */}
-        <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-800/40 text-[11px] text-amber-300/90 flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>
-            Vui lòng điền <strong>chính xác nội dung chuyển khoản</strong> để Admin kích hoạt mã bản quyền nhanh nhất.
-          </span>
-        </div>
-
-        {/* Action Button */}
-        <div className="pt-2 flex items-center justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>
-            Hủy
-          </Button>
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={handleConfirmPayment}
-            isLoading={isVerifying}
-            className="gap-2"
-          >
-            <span>Tôi Đã Chuyển Khoản & Muốn Nhận Key</span>
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
+        {/* Status / Call To Action */}
+        {isWaitingAdmin ? (
+          <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 text-center space-y-2">
+            <div className="flex items-center justify-center gap-2 text-amber-300 font-bold text-sm">
+              <Hourglass className="w-4 h-4 animate-spin text-amber-400" />
+              <span>Đang Chờ Admin Duyệt Đơn & Cấp Key Bản Quyền...</span>
+            </div>
+            <p className="text-xs text-slate-300 max-w-md mx-auto">
+              Hệ thống đang tự động kiểm tra trạng thái mỗi 3 giây. Sau khi Admin bấm duyệt trên web quản trị, màn hình sẽ tự động chuyển sang trang nhận Key và Bookmarklet!
+            </p>
+            <div className="pt-2">
+              <a
+                href={BANK_CONFIG.discordContactUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-indigo-300 hover:text-white underline"
+              >
+                <span>Nhắn Discord Admin mã đơn [{order?.orderId}] để được duyệt ngay trong 30 giây</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="w-full sm:w-auto text-slate-400 hover:text-white border-slate-700"
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleConfirmPayment}
+              disabled={isVerifying}
+              className="w-full sm:flex-1 justify-center shadow-lg shadow-emerald-950/60"
+            >
+              {isVerifying ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin mr-1" />
+                  <span>Đang gửi thông tin...</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4 mr-1 text-emerald-300" />
+                  <span>Tôi Đã Chuyển Khoản — Báo Admin Duyệt Ngay</span>
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
     </Modal>
   );

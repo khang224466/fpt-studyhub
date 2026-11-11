@@ -42,7 +42,7 @@ export interface OrderItem {
   customerEmail?: string;
   customerPhone?: string;
   transferCode: string;
-  status: 'pending' | 'paid' | 'cancelled';
+  status: 'pending' | 'waiting_approval' | 'approved' | 'paid' | 'cancelled';
   createdAt: number;
   paidAt?: number;
   licenseKey?: string;
