@@ -306,7 +306,7 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="emerald" size="sm">v10.2.33 PRO</Badge>
+              <Badge variant="emerald" size="sm">v10.2.34 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
@@ -314,6 +314,25 @@ export default function AdminPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={async () => {
+                if (confirm('Bạn có chắc chắn muốn XÓA TRẮNG toàn bộ danh sách đơn hàng để bắt đầu lại từ đầu?')) {
+                  try {
+                    await fetch('/api/v1/orders', { method: 'DELETE' });
+                    await fetchOrders();
+                    alert('✓ Đã xóa sạch danh sách đơn hàng (trắng tinh)!');
+                  } catch(e: any) {
+                    alert('Lỗi: ' + e.message);
+                  }
+                }
+              }}
+              className="gap-1.5 cursor-pointer text-red-400 hover:text-red-300 border-red-500/30 hover:border-red-500/60"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Xóa Trắng Đơn Hàng</span>
+            </Button>
             <Button size="sm" variant="outline" onClick={fetchOrders} className="gap-1.5 cursor-pointer">
               <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isLoadingOrders ? 'animate-spin' : ''}`} />
               <span>Làm mới danh sách</span>
@@ -785,7 +804,7 @@ export default function AdminPage() {
                 <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
-                  <span>FPT EduNext AI Assistant Pro (v10.2.33)</span>
+                  <span>FPT EduNext AI Assistant Pro (v10.2.34)</span>
                 </div>
               </div>
 

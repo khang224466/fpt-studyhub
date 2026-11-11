@@ -90,8 +90,8 @@ export async function POST(req: NextRequest) {
     }
 
     const orderRandom = Math.floor(1000 + Math.random() * 9000);
-    const orderId = `ORD-${Date.now().toString().slice(-4)}${orderRandom}`;
-    const transferCode = `PR${orderRandom}`;
+    const orderId = clientOrderId || body.orderId || `ORD-${Date.now().toString().slice(-4)}${orderRandom}`;
+    const transferCode = clientTransferCode || body.transferCode || `PR${orderRandom}`;
 
     // Select accurate QR image
     let qrStaticImage = BANK_CONFIG.qrStaticImage;
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     };
 
     const existingOrders = await fetchOrdersFromCloud();
-    const updatedOrders = [newOrder, ...existingOrders.filter(o => o.orderId !== orderId)];
+    const updatedOrders = [newOrder, ...existingOrders.filter(o => o.orderId !== orderId && o.transferCode !== transferCode)];
     await saveOrdersToCloud(updatedOrders);
 
     const dynamicQrUrl = generateVietQRUrl(
@@ -285,5 +285,20 @@ export async function PUT(req: NextRequest) {
     }, { headers: NO_CACHE_HEADERS });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500, headers: NO_CACHE_HEADERS });
+  }
+}
+
+// Purge / Clear all orders (Xóa sạch luồng đơn hàng, reset trắng tinh)
+export async function DELETE(req: NextRequest) {
+  try {
+    localOrdersStore.clear();
+    await saveOrdersToCloud([]);
+    return NextResponse.json({
+      success: true,
+      message: 'Đã xóa sạch danh sách đơn hàng (trắng tinh)!',
+      orders: []
+    }, { headers: NO_CACHE_HEADERS });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, message: err.message }, { status: 500, headers: NO_CACHE_HEADERS });
   }
 }

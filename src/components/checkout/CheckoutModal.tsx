@@ -71,6 +71,24 @@ export function CheckoutModal({
   // Each checkout is mounted for one purchase; ignore responses after closing.
   useEffect(() => {
     if (isOpen && service && plan) {
+      const randomCode = Math.floor(1000 + Math.random() * 9000);
+      const activeTransferCode = `PR${randomCode}`;
+      const activeOrderId = `ORD-${Date.now().toString().slice(-4)}${randomCode}`;
+
+      const initialOrder: OrderItem = {
+        orderId: activeOrderId,
+        serviceId: service.id,
+        serviceName: service.name,
+        planId: plan.id,
+        durationLabel: plan.durationLabel,
+        amount: plan.price,
+        transferCode: activeTransferCode,
+        status: 'pending',
+        createdAt: Date.now()
+      };
+      setOrder(initialOrder);
+      setIsWaitingAdmin(false);
+
       const controller = new AbortController();
 
       fetch(`/api/v1/orders?t=${Date.now()}`, {
@@ -80,8 +98,8 @@ export function CheckoutModal({
         body: JSON.stringify({
           serviceId: service.id,
           planId: plan.id,
-          orderId: order?.orderId,
-          transferCode: order?.transferCode
+          orderId: activeOrderId,
+          transferCode: activeTransferCode
         })
       })
       .then(res => res.json())
