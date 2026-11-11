@@ -4,6 +4,12 @@ import { generateVietQRUrl } from '@/lib/utils';
 import { OrderItem } from '@/types/rental';
 import { generateExpiringLicenseKey } from '@/lib/cryptoKey';
 
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
+  'Pragma': 'no-cache',
+  'Expires': '0'
+};
+
 const CLOUD_STORE_ID = 'ff808181a09d98f701a1c947378e0537';
 const CLOUD_STORE_URL = `https://api.restful-api.dev/objects/${CLOUD_STORE_ID}`;
 
@@ -18,15 +24,14 @@ const localOrdersStore = globalForOrders.ordersStore;
 
 async function fetchOrdersFromCloud(): Promise<OrderItem[]> {
   try {
-    const res = await fetch(CLOUD_STORE_URL, {
+    const res = await fetch(`${CLOUD_STORE_URL}?t=${Date.now()}`, {
       method: 'GET',
-      headers: { 'Cache-Control': 'no-cache' },
+      headers: { 'Cache-Control': 'no-cache, no-store' },
       cache: 'no-store'
     });
     if (res.ok) {
       const json = await res.json();
       if (json && json.data && Array.isArray(json.data.orders)) {
-        // Sync to local memory
         localOrdersStore.clear();
         for (const ord of json.data.orders) {
           if (ord.orderId) localOrdersStore.set(ord.orderId, ord);
@@ -41,7 +46,6 @@ async function fetchOrdersFromCloud(): Promise<OrderItem[]> {
 }
 
 async function saveOrdersToCloud(orders: OrderItem[]): Promise<boolean> {
-  // Always update local memory first
   localOrdersStore.clear();
   for (const ord of orders) {
     if (ord.orderId) localOrdersStore.set(ord.orderId, ord);
@@ -70,12 +74,12 @@ export async function POST(req: NextRequest) {
 
     const service = SERVICES_CATALOG.find(s => s.id === serviceId);
     if (!service) {
-      return NextResponse.json({ success: false, message: 'Dịch vụ không tồn tại' }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'Dịch vụ không tồn tại' }, { status: 404, headers: NO_CACHE_HEADERS });
     }
 
     const plan = service.plans.find(p => p.id === planId) || service.plans[0];
     if (!plan) {
-      return NextResponse.json({ success: false, message: 'Gói dịch vụ không khả dụng' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'Gói dịch vụ không khả dụng' }, { status: 400, headers: NO_CACHE_HEADERS });
     }
 
     const orderRandom = Math.floor(1000 + Math.random() * 9000);
@@ -107,7 +111,6 @@ export async function POST(req: NextRequest) {
     };
 
     const existingOrders = await fetchOrdersFromCloud();
-    // Prepend new order
     const updatedOrders = [newOrder, ...existingOrders.filter(o => o.orderId !== orderId)];
     await saveOrdersToCloud(updatedOrders);
 
@@ -125,9 +128,9 @@ export async function POST(req: NextRequest) {
       bank: BANK_CONFIG,
       qrUrl: qrStaticImage || dynamicQrUrl,
       dynamicQrUrl
-    });
+    }, { headers: NO_CACHE_HEADERS });
   } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: error.message }, { status: 500, headers: NO_CACHE_HEADERS });
   }
 }
 
@@ -137,39 +140,38 @@ export async function GET(req: NextRequest) {
 
   const orders = await fetchOrdersFromCloud();
 
-  // If no orderId is provided, return all orders for Admin console
   if (!orderId) {
     const sorted = [...orders].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     return NextResponse.json({
       success: true,
       orders: sorted,
       total: sorted.length
-    });
+    }, { headers: NO_CACHE_HEADERS });
   }
 
   const order = orders.find(o => o.orderId === orderId);
   if (!order) {
-    return NextResponse.json({ success: false, message: 'Đơn hàng không tồn tại' }, { status: 404 });
+    return NextResponse.json({ success: false, message: 'Đơn hàng không tồn tại' }, { status: 404, headers: NO_CACHE_HEADERS });
   }
 
   return NextResponse.json({
     success: true,
     order,
     licenseKey: order.licenseKey || null
-  });
+  }, { headers: NO_CACHE_HEADERS });
 }
 
 // Payment confirmation / Admin Approval trigger
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { orderId, action } = body;
+    const { orderId, action, apiKey } = body;
 
     const orders = await fetchOrdersFromCloud();
     const orderIndex = orders.findIndex(o => o.orderId === orderId);
 
     if (orderIndex === -1) {
-      return NextResponse.json({ success: false, message: 'Đơn hàng không tồn tại' }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'Đơn hàng không tồn tại' }, { status: 404, headers: NO_CACHE_HEADERS });
     }
 
     const order = orders[orderIndex];
@@ -183,7 +185,7 @@ export async function PUT(req: NextRequest) {
         success: true,
         message: 'Đã ghi nhận yêu cầu, đang chờ Admin duyệt đơn!',
         order
-      });
+      }, { headers: NO_CACHE_HEADERS });
     }
 
     // Action 2: Admin approves order -> generate key and status = 'approved'
@@ -194,7 +196,7 @@ export async function PUT(req: NextRequest) {
       durationDays = 120;
     }
 
-    const { licenseKey } = generateExpiringLicenseKey(durationDays, order.durationLabel);
+    const { licenseKey } = generateExpiringLicenseKey(durationDays, order.durationLabel, apiKey);
 
     order.status = 'approved';
     order.paidAt = Date.now();
@@ -207,8 +209,8 @@ export async function PUT(req: NextRequest) {
       message: 'Admin đã duyệt và cấp Key thành công!',
       licenseKey,
       order
-    });
+    }, { headers: NO_CACHE_HEADERS });
   } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: error.message }, { status: 500, headers: NO_CACHE_HEADERS });
   }
 }

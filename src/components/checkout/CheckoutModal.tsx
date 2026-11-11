@@ -57,9 +57,9 @@ export function CheckoutModal({
     if (isOpen && service && plan) {
       setTimeLeft(600);
       setIsWaitingAdmin(false);
-      fetch('/api/v1/orders', {
+      fetch(`/api/v1/orders?t=${Date.now()}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
         body: JSON.stringify({
           serviceId: service.id,
           planId: plan.id
@@ -84,22 +84,29 @@ export function CheckoutModal({
     return () => clearInterval(timer);
   }, [isOpen, timeLeft]);
 
-  // Polling for Admin Approval when waiting
+  // Polling for Admin Approval
   useEffect(() => {
-    if (!isOpen || !order || (!isWaitingAdmin && order.status !== 'waiting_approval')) return;
+    if (!isOpen || !order) return;
 
     const pollInterval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/v1/orders?orderId=${order.orderId}`);
+        const res = await fetch(`/api/v1/orders?orderId=${order.orderId}&t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache, no-store' }
+        });
         const data = await res.json();
-        if (data.success && data.order && data.order.status === 'approved' && data.licenseKey) {
-          clearInterval(pollInterval);
-          confetti({
-            particleCount: 120,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
-          onPaymentSuccess(data.order, data.licenseKey);
+        if (data.success && data.order) {
+          if ((data.order.status === 'approved' || data.order.status === 'paid') && data.licenseKey) {
+            clearInterval(pollInterval);
+            confetti({
+              particleCount: 120,
+              spread: 70,
+              origin: { y: 0.6 }
+            });
+            onPaymentSuccess(data.order, data.licenseKey);
+          } else if (data.order.status === 'waiting_approval') {
+            setIsWaitingAdmin(true);
+          }
         }
       } catch (e) {
         console.error('Polling order status error:', e);
@@ -107,7 +114,7 @@ export function CheckoutModal({
     }, 3000);
 
     return () => clearInterval(pollInterval);
-  }, [isOpen, order, isWaitingAdmin, onPaymentSuccess]);
+  }, [isOpen, order, onPaymentSuccess]);
 
   // Copy helper
   const handleCopy = (text: string, field: string) => {
@@ -174,7 +181,12 @@ export function CheckoutModal({
             <img
               src={qrImageSrc}
               alt={`Mã QR Chuyển Khoản VIB - ${BANK_CONFIG.accountName}`}
-              className="w-56 h-auto object-contain rounded-xl shadow-sm"
+              className="w-48 h-auto object-contain rounded-xl shadow-sm"
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.onerror = null;
+                target.src = `https://img.vietqr.io/image/VIB-858709070-compact2.png?amount=${plan.price}&addInfo=Chuyen%20khoan%20Edunext%20AI&accountName=DIEP%20DAI%20PHU`;
+              }}
             />
             <div className="mt-2 text-center">
               <div className="text-xs font-black text-slate-800 uppercase tracking-wider">

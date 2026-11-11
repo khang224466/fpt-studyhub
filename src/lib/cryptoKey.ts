@@ -48,10 +48,11 @@ export function decryptClientKey(encKey: string, salt: string = ENX_CIPHER_SALT)
 export function generateExpiringLicenseKey(
   durationDays: number,
   planLabel: string,
-  apiKey: string = process.env.GEMINI_API_KEY || 'AIzaSyFPT_PRO_STUDYHUB_SECURE_TOKEN'
+  apiKey?: string
 ): { licenseKey: string; expiresAt: number; payload: string } {
+  const activeKey = (apiKey && apiKey.trim()) || process.env.GEMINI_API_KEY || '';
   const expiresAt = Date.now() + durationDays * 24 * 3600 * 1000;
-  const payload = `EXP|${expiresAt}|${planLabel}|${apiKey}`;
+  const payload = `EXP|${expiresAt}|${planLabel}|${activeKey}`;
   const licenseKey = encryptClientKey(payload);
   return { licenseKey, expiresAt, payload };
 }
