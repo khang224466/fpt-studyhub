@@ -65,7 +65,7 @@ export function ServiceCatalog({ onSelectPlan }: ServiceCatalogProps) {
             Kho Dịch Vụ Sinh Viên FPT
           </h2>
           <p className="mt-3 text-slate-400 text-base sm:text-lg">
-            Hiện tại hệ thống đang mở hoạt động chính thức cho <strong>FPT EduNext Assistant Pro (v10.2.19)</strong>. Các dịch vụ Khảo Thí và SEB đang trong giai đoạn phát triển và sẽ sớm ra mắt.
+            Hiện tại hệ thống đang mở hoạt động chính thức cho <strong>FPT EduNext Assistant Pro (v10.2.20)</strong>. Các dịch vụ Khảo Thí và SEB đang trong giai đoạn phát triển và sẽ sớm ra mắt.
           </p>
 
           {/* Filter Categories */}
@@ -121,7 +121,7 @@ export function ServiceCatalog({ onSelectPlan }: ServiceCatalogProps) {
                     ) : (
                       <Badge variant="emerald" size="sm">
                         <Sparkles className="w-3 h-3 inline mr-1" />
-                        Đang Hoạt Động (v10.2.19)
+                        Đang Hoạt Động (v10.2.20)
                       </Badge>
                     )}
                   </div>

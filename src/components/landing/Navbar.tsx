@@ -20,7 +20,7 @@ export function Navbar() {
               <span className="font-bold text-lg text-white tracking-tight">FPT Study Hub</span>
               <Badge variant="emerald" size="sm" className="hidden sm:inline-flex">FPT Only</Badge>
             </div>
-            <p className="text-[10px] text-slate-400 font-medium">EduNext (v10.2.19) • Khảo Thí • SEB</p>
+            <p className="text-[10px] text-slate-400 font-medium">EduNext (v10.2.20) • Khảo Thí • SEB</p>
           </div>
         </Link>
 
