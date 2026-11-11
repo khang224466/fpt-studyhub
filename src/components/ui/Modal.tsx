@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,17 +21,46 @@ export function Modal({
   children,
   maxWidth = 'md'
 }: ModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement;
+    const dialog = dialogRef.current;
+    const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
+    ) ?? []).filter(element => element.getClientRects().length > 0);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+      if (event.key === 'Tab') {
+        const elements = focusable();
+        const first = elements[0];
+        const last = elements[elements.length - 1];
+        if (!first) {
+          event.preventDefault();
+          dialog?.focus();
+        } else if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog)) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleKeyDown);
-    }
+    document.body.style.overflow = 'hidden';
+    (focusable()[0] ?? dialog)?.focus();
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeyDown);
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
     };
   }, [isOpen, onClose]);
 
@@ -54,6 +83,13 @@ export function Modal({
 
       {/* Modal Dialog */}
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : 'Thông báo'}
+        aria-describedby={description ? descriptionId : undefined}
+        tabIndex={-1}
         className={cn(
           'relative w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-10 transition-all transform animate-in zoom-in-95 duration-200 text-slate-100 max-h-[90vh] flex flex-col',
           maxWidthStyles[maxWidth]
@@ -63,10 +99,12 @@ export function Modal({
         {(title || description) && (
           <div className="flex items-start justify-between p-6 border-b border-slate-800">
             <div>
-              {title && <h3 className="text-xl font-bold text-white tracking-tight">{title}</h3>}
-              {description && <p className="text-sm text-slate-400 mt-1">{description}</p>}
+              {title && <h3 id={titleId} className="text-xl font-bold text-white tracking-tight">{title}</h3>}
+              {description && <p id={descriptionId} className="text-sm text-slate-400 mt-1">{description}</p>}
             </div>
             <button
+              type="button"
+              aria-label="Đóng hộp thoại"
               onClick={onClose}
               className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
             >

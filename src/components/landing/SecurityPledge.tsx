@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, RefreshCw, Headphones, Lock } from 'lucide-react';
+import { RefreshCw, Headphones, Lock } from 'lucide-react';
 
 export function SecurityPledge() {
   const pledges = [

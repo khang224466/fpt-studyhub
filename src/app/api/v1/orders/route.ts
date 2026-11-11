@@ -70,7 +70,14 @@ async function saveOrdersToCloud(orders: OrderItem[]): Promise<boolean> {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { serviceId, planId, customerEmail, customerPhone } = body;
+    const { 
+      serviceId, 
+      planId, 
+      customerEmail, 
+      customerPhone,
+      orderId: clientOrderId,
+      transferCode: clientTransferCode
+    } = body;
 
     const service = SERVICES_CATALOG.find(s => s.id === serviceId);
     if (!service) {
@@ -149,7 +156,7 @@ export async function GET(req: NextRequest) {
     }, { headers: NO_CACHE_HEADERS });
   }
 
-  const order = orders.find(o => o.orderId === orderId);
+  const order = orders.find(o => o.orderId === orderId || o.transferCode === orderId);
   if (!order) {
     return NextResponse.json({ success: false, message: 'Đơn hàng không tồn tại' }, { status: 404, headers: NO_CACHE_HEADERS });
   }

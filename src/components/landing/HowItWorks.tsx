@@ -41,7 +41,7 @@ export function HowItWorks() {
 
         {/* 3 Step Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          {steps.map((st, i) => (
+          {steps.map((st) => (
             <div
               key={st.step}
               className="relative rounded-2xl bg-slate-900/80 border border-slate-800 p-8 flex flex-col justify-between hover:border-slate-700 transition-all duration-200 group"

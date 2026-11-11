@@ -8,12 +8,7 @@ import {
   Sparkles, 
   CheckCircle2, 
   Zap, 
-  Maximize2, 
-  Volume2, 
-  VolumeX, 
-  GraduationCap, 
   ArrowRight,
-  ShieldCheck,
   Send,
   MessageSquare
 } from 'lucide-react';
@@ -26,7 +21,6 @@ export function DemoVideoTrailer() {
   const [playbackTime, setPlaybackTime] = useState(0); // 0 to 28 seconds
   const activeStep = Math.min(4, Math.floor(playbackTime / 7) + 1);
   const [speed, setSpeed] = useState<number>(1);
-  const [isMuted, setIsMuted] = useState(true);
 
   const totalDuration = 28; // 28s loop
 

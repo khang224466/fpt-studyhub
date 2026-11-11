@@ -30,13 +30,16 @@ export function ServicePurchase() {
     setIsSuccessOpen(true);
   }, []);
 
+  const closeCheckout = useCallback(() => setIsCheckoutOpen(false), []);
+  const closeSuccess = useCallback(() => setIsSuccessOpen(false), []);
+
   return (
     <>
       <ServiceCatalog onSelectPlan={handleSelectPlan} />
       {/* Checkout Payment Modal */}
       {isCheckoutOpen && <CheckoutModal
         isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
+        onClose={closeCheckout}
         service={selectedService}
         plan={selectedPlan}
         onPaymentSuccess={handlePaymentSuccess}
@@ -45,7 +48,7 @@ export function ServicePurchase() {
       {/* Success & Draggable Bookmarklet Modal */}
       {isSuccessOpen && <ActivationSuccessModal
         isOpen={isSuccessOpen}
-        onClose={() => setIsSuccessOpen(false)}
+        onClose={closeSuccess}
         order={activeOrder}
         service={selectedService}
         licenseKey={activeLicenseKey}

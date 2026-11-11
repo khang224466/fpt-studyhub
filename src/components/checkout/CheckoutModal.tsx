@@ -8,7 +8,6 @@ import {
   Clock, 
   ShieldCheck, 
   ArrowRight, 
-  AlertCircle, 
   RefreshCw, 
   MessageSquare, 
   ExternalLink,
@@ -16,7 +15,6 @@ import {
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { ServiceItem, PricingPlan, OrderItem } from '@/types/rental';
 import { formatVND } from '@/lib/utils';
 import { BANK_CONFIG } from '@/data/servicesCatalog';
@@ -36,7 +34,25 @@ export function CheckoutModal({
   plan,
   onPaymentSuccess
 }: CheckoutModalProps) {
-  const [order, setOrder] = useState<OrderItem | null>(null);
+  const [order, setOrder] = useState<OrderItem | null>(() => {
+    if (!service || !plan) return null;
+    const randomCode = Math.floor(1000 + Math.random() * 9000);
+    const initialTransferCode = `PR${randomCode}`;
+    const initialOrderId = `ORD-${Date.now().toString().slice(-4)}${randomCode}`;
+
+    const initialOrder: OrderItem = {
+      orderId: initialOrderId,
+      serviceId: service.id,
+      serviceName: service.name,
+      planId: plan.id,
+      durationLabel: plan.durationLabel,
+      amount: plan.price,
+      transferCode: initialTransferCode,
+      status: 'pending',
+      createdAt: Date.now()
+    };
+    return initialOrder;
+  });
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [isWaitingAdmin, setIsWaitingAdmin] = useState<boolean>(false);
@@ -52,87 +68,83 @@ export function CheckoutModal({
     qrImageSrc = BANK_CONFIG.qr220k || '/qr_220k.png';
   }
 
-  // Create order when modal opens (with immediate deterministic fallback)
+  // Each checkout is mounted for one purchase; ignore responses after closing.
   useEffect(() => {
     if (isOpen && service && plan) {
-      setTimeLeft(600);
-      setIsWaitingAdmin(false);
-
-      const randomCode = Math.floor(1000 + Math.random() * 9000);
-      const initialTransferCode = `PR${randomCode}`;
-      const initialOrderId = `ORD-${Date.now().toString().slice(-4)}${randomCode}`;
-
-      const initialOrder: OrderItem = {
-        orderId: initialOrderId,
-        serviceId: service.id,
-        serviceName: service.name,
-        planId: plan.id,
-        durationLabel: plan.durationLabel,
-        amount: plan.price,
-        transferCode: initialTransferCode,
-        status: 'pending',
-        createdAt: Date.now()
-      };
-      setOrder(initialOrder);
+      const controller = new AbortController();
 
       fetch(`/api/v1/orders?t=${Date.now()}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' },
         body: JSON.stringify({
           serviceId: service.id,
-          planId: plan.id
+          planId: plan.id,
+          orderId: order?.orderId,
+          transferCode: order?.transferCode
         })
       })
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.order) {
+        if (!controller.signal.aborted && data.success && data.order) {
           setOrder(data.order);
         }
       })
-      .catch(err => console.error('Order creation error:', err));
+      .catch(err => {
+        if (!controller.signal.aborted) console.error('Order creation error:', err);
+      });
+      return () => controller.abort();
     }
   }, [isOpen, service, plan]);
 
   // Countdown timer
   useEffect(() => {
-    if (!isOpen || timeLeft <= 0) return;
+    if (!isOpen) return;
     const timer = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
+      setTimeLeft(prev => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [isOpen, timeLeft]);
+  }, [isOpen]);
 
-  // Polling for Admin Approval
+  // Schedule the next request only after the current request has finished.
+  const orderId = order?.orderId;
   useEffect(() => {
-    if (!isOpen || !order) return;
+    if (!isOpen || !orderId) return;
 
-    const pollInterval = setInterval(async () => {
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    let completed = false;
+    const poll = async () => {
       try {
-        const res = await fetch(`/api/v1/orders?orderId=${order.orderId}&t=${Date.now()}`, {
+        if (document.visibilityState === 'hidden') return;
+        const res = await fetch(`/api/v1/orders?orderId=${encodeURIComponent(orderId)}`, {
           cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache, no-store' }
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])
         });
+        if (!res.ok) return;
         const data = await res.json();
+        if (controller.signal.aborted) return;
         if (data.success && data.order) {
           if ((data.order.status === 'approved' || data.order.status === 'paid') && data.licenseKey) {
-            clearInterval(pollInterval);
-            confetti({
-              particleCount: 120,
-              spread: 70,
-              origin: { y: 0.6 }
-            });
+            completed = true;
+            confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
             onPaymentSuccess(data.order, data.licenseKey);
           } else if (data.order.status === 'waiting_approval') {
             setIsWaitingAdmin(true);
           }
         }
-      } catch (e) {
-        console.error('Polling order status error:', e);
+      } catch (error) {
+        if (!controller.signal.aborted) console.error('Polling order status error:', error);
+      } finally {
+        if (!controller.signal.aborted && !completed) timer = setTimeout(poll, 2000);
       }
-    }, 2000);
-
-    return () => clearInterval(pollInterval);
-  }, [isOpen, order, onPaymentSuccess]);
+    };
+    timer = setTimeout(poll, 2000);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [isOpen, orderId, onPaymentSuccess]);
 
   // Copy helper
   const handleCopy = (text: string, field: string) => {
