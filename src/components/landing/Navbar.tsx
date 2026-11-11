@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { GraduationCap, Key, Sparkles } from 'lucide-react';
+import { GraduationCap, Key, Sparkles, Play } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 
@@ -20,13 +20,17 @@ export function Navbar() {
               <span className="font-bold text-lg text-white tracking-tight">FPT Study Hub</span>
               <Badge variant="emerald" size="sm" className="hidden sm:inline-flex">FPT Only</Badge>
             </div>
-            <p className="text-[10px] text-slate-400 font-medium">EduNext • Khảo Thí • SEB</p>
+            <p className="text-[10px] text-slate-400 font-medium">EduNext (v10.2.19) • Khảo Thí • SEB</p>
           </div>
         </Link>
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-300">
-          <a href="#services" className="hover:text-white transition-colors">Bộ 3 Công Cụ</a>
+          <a href="#trailer" className="hover:text-emerald-400 transition-colors flex items-center gap-1">
+            <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+            <span>Video Trailer</span>
+          </a>
+          <a href="#services" className="hover:text-white transition-colors">Bảng Gói Bản Quyền</a>
           <a href="#how-it-works" className="hover:text-white transition-colors">Cách Dùng 1-Click</a>
           <a href="#comparison" className="hover:text-white transition-colors">Hiệu Quả Vượt Trội</a>
           <a href="#faq" className="hover:text-white transition-colors">Hỏi Đáp</a>

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SERVICES_CATALOG, BANK_CONFIG } from '@/data/servicesCatalog';
 import { generateVietQRUrl } from '@/lib/utils';
 import { OrderItem } from '@/types/rental';
-import { registerTrialLicense, licensesStore } from '@/lib/licenseStore';
+import { licensesStore } from '@/lib/licenseStore';
+import { generateExpiringLicenseKey } from '@/lib/cryptoKey';
 
 // In-memory orders store
 const ordersStore = new Map<string, OrderItem>();
@@ -18,17 +19,20 @@ export async function POST(req: NextRequest) {
     }
 
     const plan = service.plans.find(p => p.id === planId) || service.plans[0];
+    if (!plan) {
+      return NextResponse.json({ success: false, message: 'Gói dịch vụ không khả dụng' }, { status: 400 });
+    }
 
     const orderRandom = Math.floor(1000 + Math.random() * 9000);
     const orderId = `ORD-${Date.now().toString().slice(-4)}${orderRandom}`;
     const transferCode = `PR${orderRandom}`;
 
-    const isFree = plan.price === 0;
-    const licenseKey = isFree ? `TRIAL-EDUNEXT-2H-${orderRandom}` : undefined;
+    // Determine duration
+    let durationDays = 7;
+    if (plan.duration === '1m') durationDays = 30;
+    if (plan.duration === 'semester') durationDays = 120;
 
-    if (isFree && licenseKey) {
-      registerTrialLicense(licenseKey);
-    }
+    const { licenseKey, expiresAt } = generateExpiringLicenseKey(durationDays, plan.durationLabel);
 
     const newOrder: OrderItem = {
       orderId,
@@ -40,23 +44,20 @@ export async function POST(req: NextRequest) {
       customerEmail,
       customerPhone,
       transferCode,
-      status: isFree ? 'paid' : 'pending',
+      status: 'pending',
       createdAt: Date.now(),
-      paidAt: isFree ? Date.now() : undefined,
       licenseKey
     };
 
     ordersStore.set(orderId, newOrder);
 
-    const qrUrl = isFree
-      ? ''
-      : generateVietQRUrl(
-          BANK_CONFIG.bankId,
-          BANK_CONFIG.accountNo,
-          plan.price,
-          transferCode,
-          BANK_CONFIG.accountName
-        );
+    const qrUrl = generateVietQRUrl(
+      BANK_CONFIG.bankId,
+      BANK_CONFIG.accountNo,
+      plan.price,
+      transferCode,
+      BANK_CONFIG.accountName
+    );
 
     return NextResponse.json({
       success: true,
@@ -80,6 +81,7 @@ export async function GET(req: NextRequest) {
   const order = ordersStore.get(orderId);
   if (!order) {
     const randomCode = orderId.replace(/\D/g, '').slice(-4) || '8888';
+    const { licenseKey } = generateExpiringLicenseKey(120, '1 Kỳ Học (4 Tháng)');
     return NextResponse.json({
       success: true,
       order: {
@@ -93,7 +95,7 @@ export async function GET(req: NextRequest) {
         status: 'paid',
         createdAt: Date.now() - 60000,
         paidAt: Date.now(),
-        licenseKey: `KEY-PR-${randomCode}-${Date.now().toString(36).toUpperCase()}`
+        licenseKey
       }
     });
   }
@@ -115,24 +117,21 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Đơn hàng không tồn tại' }, { status: 404 });
     }
 
-    const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
-    const licenseKey = order.amount === 0 
-      ? `TRIAL-EDUNEXT-2H-${randomSuffix}` 
-      : `KEY-${order.transferCode}-${randomSuffix}`;
+    let durationDays = 7;
+    if (order.planId === 'edunext-1m') durationDays = 30;
+    if (order.planId === 'edunext-semester') durationDays = 120;
 
-    if (order.amount === 0) {
-      registerTrialLicense(licenseKey);
-    } else {
-      licensesStore.set(licenseKey, {
-        licenseKey,
-        serviceId: order.serviceId,
-        planId: order.planId,
-        createdAt: Date.now(),
-        expiresAt: Date.now() + 120 * 24 * 3600 * 1000,
-        isTrial: false,
-        activeRequestsCount: 0
-      });
-    }
+    const { licenseKey, expiresAt } = generateExpiringLicenseKey(durationDays, order.durationLabel);
+
+    licensesStore.set(licenseKey, {
+      licenseKey,
+      serviceId: order.serviceId,
+      planId: order.planId,
+      createdAt: Date.now(),
+      expiresAt,
+      isTrial: false,
+      activeRequestsCount: 0
+    });
 
     order.status = 'paid';
     order.paidAt = Date.now();

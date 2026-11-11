@@ -7,13 +7,16 @@ import {
   Check, 
   Zap, 
   ShieldCheck, 
-  Sparkles
+  Sparkles,
+  MessageSquare,
+  ExternalLink
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { OrderItem, ServiceItem } from '@/types/rental';
 import { generateBookmarkletCode } from '@/lib/utils';
+import { BANK_CONFIG } from '@/data/servicesCatalog';
 
 interface ActivationSuccessModalProps {
   isOpen: boolean;
@@ -48,7 +51,7 @@ export function ActivationSuccessModal({
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
-  const bookmarkCode = generateBookmarkletCode(licenseKey, host || 'http://localhost:8443');
+  const bookmarkCode = generateBookmarkletCode(licenseKey, host || 'https://fpt-studyhub.vercel.app');
 
   const copyBookmark = () => {
     navigator.clipboard.writeText(bookmarkCode);
@@ -73,7 +76,7 @@ export function ActivationSuccessModal({
             </div>
             <div>
               <div className="font-bold text-white text-sm">
-                Đã mở khóa: {service.name} (v10.2.18)
+                Đã mở khóa: {service.name} (v10.2.19)
               </div>
               <div className="text-xs text-emerald-300">
                 Thời hạn: {order.durationLabel} • Trạng thái: Đã cấp quyền
@@ -116,13 +119,13 @@ export function ActivationSuccessModal({
                   e.dataTransfer.setData('text/plain', bookmarkCode);
                 } catch (_) {}
               }}
-              onClick={(e) => {
+              onClick={() => {
                 copyBookmark();
               }}
               className="inline-flex items-center justify-center gap-3 w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-base sm:text-lg shadow-xl shadow-emerald-950/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-grab active:cursor-grabbing border-2 border-emerald-300/50 select-none animate-pulse"
             >
               <Bookmark className="w-6 h-6 fill-current shrink-0" />
-              <span>⚡ KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK</span>
+              <span>⚡ KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.19)</span>
             </a>
           </div>
 
@@ -135,12 +138,9 @@ export function ActivationSuccessModal({
               <li>Dùng chuột <strong>GIỮ VÀ KÉO NÚT MÀU XANH Ở TRÊN</strong> thả lên thanh Bookmark.</li>
               <li>Mở trang bài tập EduNext: <strong className="text-emerald-400 underline">https://fsc-edunext.fpt.edu.vn/home</strong> 👉 <strong>Bấm vào Bookmark vừa kéo</strong> là AI tự hiện lên và làm bài!</li>
             </ol>
-            <div className="pt-1 text-[11px] text-slate-400 italic">
-              💡 Mẹo cho ai không muốn kéo: Bấm nút <strong>&quot;Sao Chép Mã&quot;</strong> bên dưới, sau đó bấm <strong>Ctrl + D</strong> tạo Bookmark mới và dán mã vào ô URL.
-            </div>
           </div>
 
-          <div className="flex items-center justify-center gap-2 pt-1">
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
             <Button
               size="sm"
               variant="outline"
@@ -148,9 +148,42 @@ export function ActivationSuccessModal({
               className="text-xs font-semibold gap-1.5"
             >
               {copiedBookmarkCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedBookmarkCode ? '✓ Đã sao chép mã Bookmarklet!' : '📋 Bấm Vào Đây Để Sao Chép Mã (Dán Bookmark hoặc F12 Console)'}</span>
+              <span>{copiedBookmarkCode ? '✓ Đã sao chép mã Bookmarklet!' : '📋 Sao Chép Mã Bookmarklet'}</span>
             </Button>
+            <a
+              href="/keo_bookmark.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold"
+            >
+              <span>Mở Trang Kéo Thả Riêng</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
           </div>
+        </div>
+
+        {/* Discord Admin Contact Banner */}
+        <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/40 text-xs text-indigo-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-md">
+              <MessageSquare className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="font-bold text-white">Cần Hỗ Trợ Kích Hoạt Hoặc Gia Hạn?</div>
+              <div className="text-[11px] text-indigo-300">
+                Liên hệ Discord Admin 24/7 để nhận hỗ trợ kỹ thuật hoặc gia hạn Key.
+              </div>
+            </div>
+          </div>
+          <a
+            href={BANK_CONFIG.discordContactUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shrink-0 shadow-sm"
+          >
+            <span>Nhắn Tin Discord</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
         </div>
 
         {/* Security / Encrypted Key Guarantee Banner */}

@@ -13,44 +13,73 @@ import {
   RefreshCw,
   ArrowLeft,
   CheckCircle2,
-  GraduationCap
+  GraduationCap,
+  Clock,
+  Sparkles,
+  ShieldCheck,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { formatVND } from '@/lib/utils';
-import { SERVICES_CATALOG } from '@/data/servicesCatalog';
+import { SERVICES_CATALOG, BANK_CONFIG } from '@/data/servicesCatalog';
 
 export default function AdminPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState('edunext-assistant');
-  const [durationHours, setDurationHours] = useState('2880');
-  const [customKeyName, setCustomKeyName] = useState('');
+  const [durationDays, setDurationDays] = useState('7');
+  const [customApiKey, setCustomApiKey] = useState('');
+  const [lastGenerated, setLastGenerated] = useState<{
+    key: string;
+    planLabel: string;
+    expDate: string;
+    days: number;
+  } | null>(null);
 
   const [generatedKeys, setGeneratedKeys] = useState([
-    { key: 'DEMO-EDUNEXT-2026', service: 'FPT EduNext AI Assistant Pro', hours: 2880, status: 'active', users: 18 },
-    { key: 'DEMO-KHAOTHI-2026', service: 'FPT Khảo Thí Online — Đề Thi Thử', hours: 2880, status: 'active', users: 9 },
-    { key: 'DEMO-SEB-2026', service: 'Safe Exam Browser (SEB) Toolkit', hours: 720, status: 'active', users: 12 }
+    { key: 'DEMO-EDUNEXT-2026', service: 'FPT EduNext AI Assistant Pro', plan: '1 Kỳ Học', expDate: '11/07/2026', status: 'active', users: 18 },
+    { key: 'VIP-EDUNEXT-1MONTH', service: 'FPT EduNext AI Assistant Pro', plan: '1 Tháng', expDate: '11/04/2026', status: 'active', users: 9 },
+    { key: 'VIP-EDUNEXT-1WEEK', service: 'FPT EduNext AI Assistant Pro', plan: '1 Tuần', expDate: '18/03/2026', status: 'active', users: 12 }
   ]);
 
   const handleGenerateKey = (e: React.FormEvent) => {
     e.preventDefault();
-    const serviceObj = SERVICES_CATALOG.find(s => s.id === selectedService);
-    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const newKey = customKeyName.trim()
-      ? customKeyName.trim().toUpperCase()
-      : `KEY-${selectedService.slice(0, 4).toUpperCase()}-${randomSuffix}`;
+    const days = parseInt(durationDays, 10);
+    let planLabel = '1 Tuần';
+    if (days === 30) planLabel = '1 Tháng';
+    if (days === 120) planLabel = '1 Kỳ Học (4 Tháng)';
+
+    const rawKey = customApiKey.trim() || 'AIzaSyFPT_PRO_STUDYHUB_KEY';
+    const expiresAt = Date.now() + days * 24 * 3600 * 1000;
+    const payload = `EXP|${expiresAt}|${planLabel}|${rawKey}`;
+    const salt = 'ENX_SEC_2026_FLASH_LITE';
+
+    let hex = '';
+    for (let i = 0; i < payload.length; i++) {
+      const c = payload.charCodeAt(i) ^ salt.charCodeAt(i % salt.length);
+      hex += c.toString(16).padStart(2, '0');
+    }
+    const b64 = btoa(hex);
+    const encKey = `ENC_AI_${b64}`;
+    const expDateStr = new Date(expiresAt).toLocaleDateString('vi-VN') + ' ' + new Date(expiresAt).toLocaleTimeString('vi-VN');
+
+    setLastGenerated({
+      key: encKey,
+      planLabel,
+      expDate: expDateStr,
+      days
+    });
 
     setGeneratedKeys(prev => [
       {
-        key: newKey,
-        service: serviceObj?.name || selectedService,
-        hours: parseInt(durationHours, 10),
+        key: encKey,
+        service: 'FPT EduNext AI Assistant Pro (v10.2.19)',
+        plan: planLabel,
+        expDate: expDateStr,
         status: 'active',
         users: 0
       },
       ...prev
     ]);
-    setCustomKeyName('');
   };
 
   const handleCopy = (text: string) => {
@@ -60,9 +89,9 @@ export default function AdminPage() {
   };
 
   const accountPools = [
-    { service: 'EduNext VIP Assistant Pool (v10.2.15)', accounts: 6, capacity: '240/300 slots', health: 'healthy', latency: '12ms' },
-    { service: 'Khảo Thí Online Exam Bank Pool', accounts: 4, capacity: '150/200 slots', health: 'healthy', latency: '18ms' },
-    { service: 'Safe Exam Browser Config Cloud Node', accounts: 3, capacity: '90/100 slots', health: 'healthy', latency: '9ms' }
+    { service: 'EduNext VIP Assistant Pool (v10.2.19)', accounts: 8, capacity: '280/300 slots', health: 'healthy', latency: '12ms' },
+    { service: 'Khảo Thí Online Exam Bank Pool (Sắp ra mắt)', accounts: 4, capacity: 'Chờ kiểm thử', health: 'healthy', latency: '18ms' },
+    { service: 'Safe Exam Browser Config Cloud Node (Sắp ra mắt)', accounts: 3, capacity: 'Chờ kiểm thử', health: 'healthy', latency: '9ms' }
   ];
 
   return (
@@ -82,10 +111,10 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Admin Console — FPT Academic Hub
               </h1>
-              <Badge variant="indigo" size="sm">Bản v2.4 (EduNext/Khảo Thí/SEB)</Badge>
+              <Badge variant="indigo" size="sm">Bản v10.2.19 (EduNext Pro)</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Quản trị License sinh viên FPT, giám sát tải server EduNext Assistant v10.2.15, Khảo Thí và SEB Toolkit.
+              Admin: <strong>{BANK_CONFIG.accountName}</strong> • MBBank: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
             </p>
           </div>
 
@@ -98,32 +127,32 @@ export default function AdminPage() {
         </div>
 
         {/* Overview Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
             <div className="flex items-center justify-between text-slate-400 text-xs">
-              <span>Doanh Thu Hôm Nay</span>
-              <DollarSign className="w-4 h-4 text-emerald-400" />
+              <span>Tổng Khách Hàng Đã Cấp</span>
+              <Users className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="text-2xl font-black text-white mt-2">1.820.000₫</div>
-            <div className="text-[11px] text-emerald-400 mt-1">↑ +38% sinh viên đăng ký</div>
+            <div className="text-2xl font-black text-white mt-2">3,820</div>
+            <div className="text-[11px] text-emerald-400 mt-1">99.8% giải bài tự động thành công</div>
           </div>
 
           <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
             <div className="flex items-center justify-between text-slate-400 text-xs">
-              <span>Đơn Hàng Kì Học</span>
-              <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+              <span>Doanh Thu Tích Lũy</span>
+              <DollarSign className="w-4 h-4 text-cyan-400" />
             </div>
-            <div className="text-2xl font-black text-white mt-2">42 Gói</div>
-            <div className="text-[11px] text-cyan-400 mt-1">EduNext & Khảo Thí chiếm 88%</div>
+            <div className="text-2xl font-black text-white mt-2">42.850.000 ₫</div>
+            <div className="text-[11px] text-cyan-400 mt-1">Chuyển khoản MBBank 151010042005</div>
           </div>
 
           <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
             <div className="flex items-center justify-between text-slate-400 text-xs">
-              <span>License Đang Hoạt Động</span>
-              <Key className="w-4 h-4 text-indigo-400" />
+              <span>Key Đang Hiệu Lực</span>
+              <Key className="w-4 h-4 text-amber-400" />
             </div>
-            <div className="text-2xl font-black text-white mt-2">156 Key</div>
-            <div className="text-[11px] text-indigo-400 mt-1">0 lỗi xung đột session</div>
+            <div className="text-2xl font-black text-white mt-2">1,240</div>
+            <div className="text-[11px] text-amber-400 mt-1">Tự động hết hạn sau 1w / 1m / 1 kỳ</div>
           </div>
 
           <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
@@ -132,138 +161,146 @@ export default function AdminPage() {
               <Server className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="text-2xl font-black text-emerald-400 mt-2">12ms</div>
-            <div className="text-[11px] text-slate-400 mt-1">Dual 429 Guard: Active</div>
+            <div className="text-[11px] text-slate-400 mt-1">Gemini Flash-Lite: Siêu tốc 1.2s</div>
           </div>
         </div>
 
-        {/* Section 2: Account Session Pools Status */}
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Server className="w-4 h-4 text-cyan-400" />
-                <span>Trạng Thái Cụm Node Server (EduNext • Khảo Thí • SEB)</span>
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Các node phân phối token và cấu hình cho sinh viên qua Bookmarklet.
-              </p>
-            </div>
-            <Badge variant="emerald" size="sm">3/3 Cụm Online</Badge>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {accountPools.map((pool, idx) => (
-              <div key={idx} className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-white text-xs">{pool.service}</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">
-                    {pool.accounts} nodes • Tải: {pool.capacity}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <Badge variant="emerald" size="sm">Hoạt Động</Badge>
-                  <div className="text-[10px] font-mono text-slate-500 mt-1">{pool.latency}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Section 3: License Key Generator & Management */}
+        {/* Section 2: License Key Generator (With Expiration) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Generator Form */}
           <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Plus className="w-4 h-4 text-emerald-400" />
-              <span>Tạo License Key FPT Mới</span>
+              <span>Tạo Key Mã Hóa Có Thời Hạn (ENC_AI_...)</span>
             </h3>
 
             <form onSubmit={handleGenerateKey} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-400 mb-1 font-medium">Hệ thống:</label>
+                <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
+                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4" />
+                  <span>FPT EduNext AI Assistant Pro (v10.2.19)</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-medium">Chọn Thời Hạn Bản Quyền:</label>
                 <select
-                  value={selectedService}
-                  onChange={(e) => setSelectedService(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-emerald-500"
+                  value={durationDays}
+                  onChange={(e) => setDurationDays(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-emerald-500 font-medium"
                 >
-                  {SERVICES_CATALOG.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
+                  <option value="7">1 Tuần (7 Ngày) — Gói 30.000₫</option>
+                  <option value="30">1 Tháng (30 Ngày) — Gói 69.000₫</option>
+                  <option value="120">1 Kỳ Học (4 Tháng / 120 Ngày) — Gói 220.000₫</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-medium">Thời hạn:</label>
-                <select
-                  value={durationHours}
-                  onChange={(e) => setDurationHours(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="168">1 Tuần (168 Giờ)</option>
-                  <option value="720">1 Tháng (720 Giờ)</option>
-                  <option value="2880">1 Kì Học 4 Tháng (2880 Giờ)</option>
-                  <option value="8760">1 Năm Học (8760 Giờ)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Mã License tùy chỉnh (Tùy chọn):</label>
+                <label className="block text-slate-400 mb-1 font-medium">API Key Gemini nạp vào (Tùy chọn):</label>
                 <input
                   type="text"
-                  value={customKeyName}
-                  onChange={(e) => setCustomKeyName(e.target.value)}
-                  placeholder="Ví dụ: FPT-EDUNEXT-K19"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white placeholder-slate-600 font-mono uppercase focus:outline-none focus:border-emerald-500"
+                  value={customApiKey}
+                  onChange={(e) => setCustomApiKey(e.target.value)}
+                  placeholder="Để trống sẽ dùng Key mặc định của hệ thống"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white placeholder-slate-600 font-mono focus:outline-none focus:border-emerald-500 text-[11px]"
                 />
               </div>
 
-              <Button type="submit" variant="primary" size="md" className="w-full mt-2">
-                <span>Tạo License Ngay</span>
+              <Button type="submit" variant="primary" size="md" className="w-full mt-2 font-bold gap-2">
+                <Sparkles className="w-4 h-4" />
+                <span>Mã Hóa & Tạo Key Gửi Khách Ngay</span>
               </Button>
             </form>
+
+            {/* Generated Output Card */}
+            {lastGenerated && (
+              <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-500/60 space-y-2 mt-4 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-emerald-300">✓ Đã Tạo Key Thành Công!</span>
+                  <Badge variant="emerald" size="sm">{lastGenerated.planLabel}</Badge>
+                </div>
+                <div className="text-[11px] text-slate-300">
+                  Hạn dùng đến: <strong className="text-white font-mono">{lastGenerated.expDate}</strong>
+                </div>
+                <div className="p-2 rounded bg-black/60 border border-slate-800 font-mono text-[10px] text-emerald-400 break-all select-all">
+                  {lastGenerated.key}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleCopy(lastGenerated.key)}
+                  className="w-full text-xs font-semibold gap-1.5"
+                >
+                  {copiedKey === lastGenerated.key ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedKey === lastGenerated.key ? 'Đã sao chép Key!' : 'Sao chép Key gửi khách trên Discord'}</span>
+                </Button>
+              </div>
+            )}
           </div>
 
-          {/* Key List */}
+          {/* Key List Table */}
           <div className="lg:col-span-2 p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
                   <Key className="w-4 h-4 text-emerald-400" />
-                  <span>Danh Sách License Key Đang Hoạt Động</span>
+                  <span>Danh Sách Key Bản Quyền Đã Cấp</span>
                 </h3>
-                <span className="text-xs text-slate-400">{generatedKeys.length} keys</span>
+                <span className="text-xs text-slate-400">Hiển thị {generatedKeys.length} keys</span>
               </div>
 
-              <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
-                {generatedKeys.map((k, i) => (
-                  <div
-                    key={i}
-                    className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 flex items-center justify-between gap-3 text-xs"
-                  >
-                    <div>
-                      <div className="font-mono font-bold text-emerald-400">{k.key}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        {k.service} • {k.hours >= 720 ? `${Math.round(k.hours / 720)} tháng` : `${k.hours}h`}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="emerald" size="sm">Đang Chạy</Badge>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleCopy(k.key)}
-                        className="py-1 px-2.5 h-auto text-xs"
-                      >
-                        {copiedKey === k.key ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="p-2.5 rounded-l-lg">Mã Key Bản Quyền</th>
+                      <th className="p-2.5">Gói & Thời Hạn</th>
+                      <th className="p-2.5">Ngày Hết Hạn</th>
+                      <th className="p-2.5">Trạng Thái</th>
+                      <th className="p-2.5 rounded-r-lg text-right">Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+                    {generatedKeys.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-slate-800/40">
+                        <td className="p-2.5 font-bold text-emerald-400 max-w-[200px] truncate">
+                          {item.key}
+                        </td>
+                        <td className="p-2.5 text-slate-300 font-sans">{item.plan}</td>
+                        <td className="p-2.5 text-slate-400">{item.expDate}</td>
+                        <td className="p-2.5">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Hiệu Lực
+                          </span>
+                        </td>
+                        <td className="p-2.5 text-right font-sans">
+                          <button
+                            onClick={() => handleCopy(item.key)}
+                            className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer inline-flex items-center gap-1"
+                          >
+                            {copiedKey === item.key ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            <span>{copiedKey === item.key ? 'Đã chép' : 'Sao chép'}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-800 text-xs text-slate-500">
-              * Sinh viên có thể dùng các License Key này để kích hoạt trực tiếp trên trang chủ hoặc trang Tra Cứu.
+            <div className="pt-4 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+              <span>Hỗ trợ kỹ thuật: DIEP DAI PHU</span>
+              <a
+                href={BANK_CONFIG.discordContactUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-semibold"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Discord Admin (888713971161505832)</span>
+              </a>
             </div>
           </div>
         </div>

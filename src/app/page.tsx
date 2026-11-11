@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Navbar } from '@/components/landing/Navbar';
 import { HeroSection } from '@/components/landing/HeroSection';
+import { DemoVideoTrailer } from '@/components/landing/DemoVideoTrailer';
 import { ServiceCatalog } from '@/components/landing/ServiceCatalog';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import { ComparisonTable } from '@/components/landing/ComparisonTable';
@@ -41,6 +42,7 @@ export default function HomePage() {
 
       <main className="flex-1">
         <HeroSection />
+        <DemoVideoTrailer />
         <ServiceCatalog onSelectPlan={handleSelectPlan} />
         <HowItWorks />
         <ComparisonTable />

@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { ShieldCheck, GraduationCap } from 'lucide-react';
+import { ShieldCheck, GraduationCap, MessageSquare, ExternalLink } from 'lucide-react';
+import { BANK_CONFIG } from '@/data/servicesCatalog';
 
 export function Footer() {
   return (
@@ -16,17 +17,30 @@ export function Footer() {
               <span className="font-bold text-white text-base">FPT Study Hub</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Hệ sinh thái công cụ hỗ trợ sinh viên FPT giải bài tập EduNext (v10.2.15), ôn luyện Khảo Thí Online và chuẩn hóa môi trường Safe Exam Browser (SEB).
+              Hệ sinh thái công cụ hỗ trợ sinh viên FPT giải bài tập EduNext (v10.2.19 Auto Loop), ôn luyện Khảo Thí Online và chuẩn hóa môi trường Safe Exam Browser (SEB).
             </p>
+            <div className="pt-2">
+              <a
+                href={BANK_CONFIG.discordContactUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 hover:text-white hover:bg-indigo-600 text-xs font-semibold transition-all"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Discord Admin (Nhận Key)</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
           </div>
 
           {/* Col 2 */}
           <div>
             <div className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">Hệ Thống Trọng Tâm</div>
             <ul className="space-y-2 text-xs">
-              <li><a href="#services" className="hover:text-white transition-colors">FPT EduNext Assistant Pro (v10.2.15)</a></li>
-              <li><a href="#services" className="hover:text-white transition-colors">FPT Khảo Thí Online — Đề Thi Thử</a></li>
-              <li><a href="#services" className="hover:text-white transition-colors">Safe Exam Browser (SEB) Toolkit</a></li>
+              <li><a href="#services" className="hover:text-white transition-colors">FPT EduNext Assistant Pro (v10.2.19)</a></li>
+              <li><a href="#services" className="hover:text-white transition-colors">FPT Khảo Thí Online (Sắp Ra Mắt)</a></li>
+              <li><a href="#services" className="hover:text-white transition-colors">Safe Exam Browser Toolkit (Sắp Ra Mắt)</a></li>
+              <li><a href="#trailer" className="hover:text-white transition-colors">Video Trailer Hoạt Động</a></li>
             </ul>
           </div>
 
@@ -35,9 +49,9 @@ export function Footer() {
             <div className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">Hỗ Trợ & Tra Cứu</div>
             <ul className="space-y-2 text-xs">
               <li><Link href="/activate" className="hover:text-white transition-colors">Tra Cứu License Sinh Viên</Link></li>
-              <li><a href="#how-it-works" className="hover:text-white transition-colors">Hướng Dẫn Cài Đặt Bookmarklet</a></li>
-              <li><a href="#comparison" className="hover:text-white transition-colors">Cam Kết Hoàn Tiền 100%</a></li>
-              <li><Link href="/admin" className="hover:text-white transition-colors text-slate-600">Trang Quản Trị Hệ Thống</Link></li>
+              <li><a href="/keo_bookmark.html" target="_blank" className="hover:text-white transition-colors">Trang Kéo Thả Bookmarklet Riêng</a></li>
+              <li><a href="#how-it-works" className="hover:text-white transition-colors">Hướng Dẫn Cài Đặt 30 Giây</a></li>
+              <li><Link href="/admin" className="hover:text-white transition-colors text-slate-500">Admin Console Cấp Key</Link></li>
             </ul>
           </div>
 
@@ -50,7 +64,7 @@ export function Footer() {
                 <span>Zero-Password Safe</span>
               </div>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                Hệ thống chỉ nạp session tạm thời qua Bookmarklet. Không bao giờ yêu cầu mật khẩu email hay can thiệp hệ thống phòng thi của nhà trường.
+                Hệ thống chỉ chạy qua Bookmarklet Client & Cloud AI Proxy. Không bao giờ yêu cầu mật khẩu email hay can thiệp hệ thống phòng thi của nhà trường.
               </p>
             </div>
           </div>
@@ -59,10 +73,10 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <div>
-            © 2026 FPT Study Hub. Thiết kế độc quyền cho cộng đồng sinh viên FPT University & FSchool.
+            © 2026 FPT Study Hub. Quản trị bởi <strong>{BANK_CONFIG.accountName}</strong> (MBBank: {BANK_CONFIG.accountNo}).
           </div>
           <div className="flex items-center gap-6">
-            <span className="text-slate-400">Phiên bản: <strong className="text-emerald-400 font-mono">v10.2.15 PRO</strong></span>
+            <span className="text-slate-400">Phiên bản: <strong className="text-emerald-400 font-mono">v10.2.19 PRO</strong></span>
             <span>Khảo Thí & SEB: <strong className="text-amber-400">Sắp Ra Mắt</strong></span>
           </div>
         </div>

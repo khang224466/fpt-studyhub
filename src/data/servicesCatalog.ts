@@ -7,22 +7,21 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     slug: 'edunext-assistant',
     category: 'edunext',
     categoryLabel: 'EduNext LMS',
-    tagline: 'Trợ lý học tập thông minh v10.2.15: Bảo mật License Key, tự động nộp bài 100%, Cloud AI Proxy mã hóa API Key, chống 429 Rate Limit',
+    tagline: 'Trợ lý học tập thông minh v10.2.19: Tự động chạy liên tục (Auto Loop), giải bài siêu tốc, kiểm soát hạn dùng bản quyền, bảo mật 100%',
     iconName: 'GraduationCap',
     targetDomain: 'fsc-edunext.fpt.edu.vn',
     authMethod: 'extensionBridge',
-    badge: 'Đang Hoạt Động (v10.2.15)',
+    badge: 'Đang Hoạt Động (v10.2.19)',
     isComingSoon: false,
     features: [
-      'Cloud AI Proxy: Toàn bộ API Key được mã hóa trên máy chủ bảo mật 100%',
-      'Tự động chọn & xác nhận hộp Làm Rõ Ý Định khi chuyển câu hỏi',
-      'Cơ chế Dual XHR/Fetch chống triệt để lỗi 429 Too Many Requests (25s backoff)',
-      'Tự động phát hiện & khớp mẫu "Trả lời: [đáp án của bạn]" chuẩn AI EduNext',
-      'Khóa nộp đơn nhất (Single Submit Lock) ngăn bão spam nút Nộp khi aria-pressed',
-      'Bookmarklet 1-Click Zero-Install độc lập v10.2.15 (Không cần Tampermonkey)'
+      'Auto Loop 100%: Tự động giải liên tục từ câu đầu đến khi hoàn thành bài học',
+      'Tích hợp thời hạn bản quyền tự động (1 Tuần, 1 Tháng, 1 Kỳ) minh bạch',
+      'Cloud AI Proxy & Gemini 2.0 Flash-Lite: Trả lời siêu tốc trong 1.2s',
+      'Đồng bộ React 18 Fiber 5 tầng, tự động kích hoạt onSendMessage & Enter',
+      'Cơ chế chống 429 Too Many Requests thông minh với backoff tự động',
+      'Bookmarklet 1-Click Zero-Install độc lập v10.2.19 (Không cần Tampermonkey)'
     ],
     plans: [
-      { id: 'edunext-2h', duration: '2h', durationLabel: 'Trải Nghiệm (2 Tiếng)', price: 0, originalPrice: 20000, badge: 'Miễn Phí' },
       { id: 'edunext-1w', duration: '1w', durationLabel: '1 Tuần', price: 30000, originalPrice: 50000 },
       { id: 'edunext-1m', duration: '1m', durationLabel: '1 Tháng', price: 69000, originalPrice: 110000 },
       { id: 'edunext-semester', duration: 'semester', durationLabel: '1 Kỳ Học (4 Tháng)', price: 220000, originalPrice: 350000, isPopular: true, badge: 'Khuyên Dùng' }
@@ -50,10 +49,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
       'Hỗ trợ chế độ thi thử tính giờ y hệt phòng thi thực tế',
       'Thống kê điểm số và cảnh báo phần kiến thức bạn còn yếu'
     ],
-    plans: [
-      { id: 'khaothi-1w', duration: '1w', durationLabel: '1 Tuần (1 Đợt Thi)', price: 500000, originalPrice: 750000, isPopular: true, badge: 'Dự Kiến' },
-      { id: 'khaothi-semester', duration: 'semester', durationLabel: '1 Kỳ Học (Toàn Bộ Môn)', price: 1200000, originalPrice: 1800000 }
-    ],
+    plans: [],
     activeUsersCount: 0,
     rating: 5.0,
     accentColor: '#3b82f6'
@@ -77,27 +73,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
       'Môi trường thi thử nghiệm mô phỏng giao diện SEB trước ngày thi chính thức',
       'Hỗ trợ kỹ thuật 1-1 trước giờ thi xử lý các lỗi certificate, camera, micro'
     ],
-    plans: [
-      { 
-        id: 'seb-1w', 
-        duration: '1w', 
-        durationLabel: '1 Tuần (+30% khi gia hạn)', 
-        price: 900000, 
-        originalPrice: 1200000, 
-        isPopular: true, 
-        badge: 'Dự Kiến',
-        renewalNote: '+30% mỗi lần gia hạn tiếp theo'
-      },
-      { 
-        id: 'seb-lifetime', 
-        duration: 'lifetime', 
-        durationLabel: 'Trọn Đời (Lifetime)', 
-        price: 3000000, 
-        originalPrice: 5000000, 
-        badge: 'VIP Vĩnh Viễn',
-        renewalNote: 'Dùng vĩnh viễn suốt các kỳ học FPT'
-      }
-    ],
+    plans: [],
     activeUsersCount: 0,
     rating: 5.0,
     accentColor: '#f59e0b'
@@ -105,9 +81,11 @@ export const SERVICES_CATALOG: ServiceItem[] = [
 ];
 
 export const BANK_CONFIG = {
-  bankId: 'MB', // MBBank
+  bankId: 'MB', // Ngân hàng Quân Đội (MBBank)
   bankName: 'Ngân hàng Quân Đội (MBBank)',
-  accountNo: '0987654321',
-  accountName: 'VO TRI KHANG',
-  qrTemplate: 'compact2'
+  accountNo: '151010042005',
+  accountName: 'DIEP DAI PHU',
+  qrTemplate: 'compact2',
+  qrStaticImage: '/qr_payment.jpg',
+  discordContactUrl: 'https://discord.com/users/888713971161505832'
 };
