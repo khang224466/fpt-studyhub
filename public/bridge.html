@@ -146,7 +146,7 @@
       <div class="title-box">
         <div class="icon">⚡</div>
         <div>
-          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.30</span></h1>
+          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.31</span></h1>
           <div class="sub">Vượt CSP Cloudflare 100% • Reactive Event Tracker (Tự Động Bắt Đề)</div>
         </div>
       </div>
@@ -181,7 +181,7 @@
       logsEl.scrollTop = logsEl.scrollHeight;
     }
 
-    log('success', '✓ Khởi tạo AI Bridge v10.2.30 thành công!');
+    log('success', '✓ Khởi tạo AI Bridge v10.2.31 thành công!');
 
     if (window.opener) {
       try {
@@ -191,6 +191,42 @@
     }
 
     // Cache list of validated vision models for key
+    const SALT = 'ENX_SEC_2026_FLASH_LITE';
+
+    function extractTrueGeminiKey(keyStr) {
+      if (!keyStr || typeof keyStr !== 'string') return '';
+      let cur = keyStr.trim();
+      for (let depth = 0; depth < 5; depth++) {
+        if (cur.startsWith('AIzaSy') || cur.startsWith('AIza')) {
+          return cur;
+        }
+        if (!cur.startsWith('ENC_AI_')) {
+          break;
+        }
+        try {
+          const b64 = cur.slice(7);
+          const hex = atob(b64);
+          let out = '';
+          for (let i = 0; i < hex.length; i += 2) {
+            const c = parseInt(hex.substr(i, 2), 16) ^ SALT.charCodeAt((i / 2) % SALT.length);
+            out += String.fromCharCode(c);
+          }
+          if (out.startsWith('EXP|')) {
+            const parts = out.split('|');
+            cur = parts.slice(3).join('|').trim();
+          } else {
+            cur = out.trim();
+          }
+        } catch (e) {
+          break;
+        }
+      }
+      if (cur.startsWith('AIzaSy') || cur.startsWith('AIza')) {
+        return cur;
+      }
+      return '';
+    }
+
     let cachedModelList = null;
     let preferredModel = 'gemini-flash-lite-latest';
 
@@ -285,78 +321,81 @@
         log('info', `Nhận yêu cầu: ${imageBase64 ? '📸 Ảnh Vision + ' : ''}"${(promptText || '').slice(0, 35)}..."`);
 
         try {
-          const cleanKey = (rawKey || '').trim();
-          const candidateModels = await discoverModels(cleanKey);
-
-          const parts = [];
-          if (imageBase64) {
-            const b64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-            parts.push({ inlineData: { mimeType: 'image/jpeg', data: b64 } });
-          }
-          parts.push({ text: promptText || 'Giải bài tập trên ảnh' });
-
+          const trueGeminiKey = extractTrueGeminiKey(rawKey);
           let answer = null;
           let lastErr = null;
 
-          // Thử model ưu tiên (preferredModel) trước, rồi đến danh sách còn lại
-          const orderedModels = [preferredModel].concat(candidateModels.filter(m => m !== preferredModel));
+          if (trueGeminiKey) {
+            const candidateModels = await discoverModels(trueGeminiKey);
 
-          for (let i = 0; i < orderedModels.length; i++) {
-            const model = orderedModels[i];
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
-
-            const controller = new AbortController();
-            const timeoutTimer = setTimeout(() => controller.abort(), 7500);
-
-            try {
-              log('info', `Gửi API tới Google Studio (${model})...`);
-              const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                signal: controller.signal,
-                body: JSON.stringify({
-                  systemInstruction: {
-                    parts: [{
-                      text: 'Bạn là Trợ lý Học tập FPT EduNext AI Pro. Giải bài tập ngắn gọn, chính xác theo định dạng trong ảnh. Tuyệt đối KHÔNG trả lời "Sẵn sàng" khi có câu hỏi bài tập. Nếu yêu cầu mẫu "Trả lời: [đáp án]", bắt buộc chỉ trả về đúng định dạng đó.'
-                    }]
-                  },
-                  contents: [{ role: 'user', parts }],
-                  generationConfig: { temperature: 0.1, maxOutputTokens: 800 }
-                })
-              });
-              clearTimeout(timeoutTimer);
-
-              if (res.ok) {
-                const resJson = await res.json();
-                const candidate = resJson.candidates && resJson.candidates[0];
-                const text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] ? candidate.content.parts[0].text : '';
-                if (text && text.trim()) {
-                  let clean = text.replace(/```(?:markdown|json|text)?/gi, '').replace(/```/g, '').trim();
-                  clean = clean.replace(/^\*\*Trả lời:\*\*/i, 'Trả lời:').trim();
-                  answer = clean;
-                  preferredModel = model;
-                  log('success', `✓ Gemini (${model}) phản hồi: "${answer.slice(0, 30)}..." (Đã lưu ưu tiên)`);
-                  break;
-                }
-              } else {
-                const errTxt = await res.text();
-                log('warn', `Model ${model} HTTP ${res.status}: ${(errTxt.slice(0, 70) || 'Lỗi')}`);
-                lastErr = `HTTP ${res.status}`;
-                if (res.status === 400 && (errTxt.includes('API key not valid') || errTxt.includes('API_KEY_INVALID'))) {
-                  log('err', `❌ LỖI API KEY: Google từ chối key ("${cleanKey.slice(0, 8)}..."). Key Google Gemini chuẩn luôn bắt đầu bằng "AIzaSy...". Hãy vào https://aistudio.google.com/app/apikey lấy key miễn phí!`);
-                  lastErr = 'API Key Google Gemini không hợp lệ (Phải bắt đầu bằng AIzaSy...)';
-                  break;
-                }
-              }
-            } catch(err) {
-              clearTimeout(timeoutTimer);
-              if (err.name === 'AbortError') {
-                log('warn', `Model ${model} quá hạn (timeout 7.5s) -> Bỏ qua`);
-              } else {
-                log('warn', `Lỗi kết nối ${model}: ${err.message || err}`);
-              }
-              lastErr = err.message || err;
+            const parts = [];
+            if (imageBase64) {
+              const b64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+              parts.push({ inlineData: { mimeType: 'image/jpeg', data: b64 } });
             }
+            parts.push({ text: promptText || 'Giải bài tập trên ảnh' });
+
+            const orderedModels = [preferredModel].concat(candidateModels.filter(m => m !== preferredModel));
+
+            for (let i = 0; i < orderedModels.length; i++) {
+              const model = orderedModels[i];
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${trueGeminiKey}`;
+
+              const controller = new AbortController();
+              const timeoutTimer = setTimeout(() => controller.abort(), 7500);
+
+              try {
+                log('info', `Gửi API tới Google Studio (${model})...`);
+                const res = await fetch(url, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  signal: controller.signal,
+                  body: JSON.stringify({
+                    systemInstruction: {
+                      parts: [{
+                        text: 'Bạn là Trợ lý Học tập FPT EduNext AI Pro. Giải bài tập ngắn gọn, chính xác theo định dạng trong ảnh. Tuyệt đối KHÔNG trả lời "Sẵn sàng" khi có câu hỏi bài tập. Nếu yêu cầu mẫu "Trả lời: [đáp án]", bắt buộc chỉ trả về đúng định dạng đó.'
+                      }]
+                    },
+                    contents: [{ role: 'user', parts }],
+                    generationConfig: { temperature: 0.1, maxOutputTokens: 800 }
+                  })
+                });
+                clearTimeout(timeoutTimer);
+
+                if (res.ok) {
+                  const resJson = await res.json();
+                  const candidate = resJson.candidates && resJson.candidates[0];
+                  const text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] ? candidate.content.parts[0].text : '';
+                  if (text && text.trim()) {
+                    let clean = text.replace(/```(?:markdown|json|text)?/gi, '').replace(/```/g, '').trim();
+                    clean = clean.replace(/^\*\*Trả lời:\*\*/i, 'Trả lời:').trim();
+                    answer = clean;
+                    preferredModel = model;
+                    log('success', `✓ Gemini (${model}) phản hồi: "${answer.slice(0, 30)}..." (Đã lưu ưu tiên)`);
+                    break;
+                  }
+                } else {
+                  const errTxt = await res.text();
+                  log('warn', `Model ${model} HTTP ${res.status}: ${(errTxt.slice(0, 70) || 'Lỗi')}`);
+                  lastErr = `HTTP ${res.status}`;
+                  if (res.status === 400 && (errTxt.includes('API key not valid') || errTxt.includes('API_KEY_INVALID'))) {
+                    log('err', `❌ LỖI API KEY: Google từ chối key ("${trueGeminiKey.slice(0, 8)}..."). Hãy vào https://aistudio.google.com/app/apikey lấy key mới!`);
+                    lastErr = 'API Key Google Gemini không hợp lệ';
+                    break;
+                  }
+                }
+              } catch(err) {
+                clearTimeout(timeoutTimer);
+                if (err.name === 'AbortError') {
+                  log('warn', `Model ${model} quá hạn (timeout 7.5s) -> Bỏ qua`);
+                } else {
+                  log('warn', `Lỗi kết nối ${model}: ${err.message || err}`);
+                }
+                lastErr = err.message || err;
+              }
+            }
+          } else {
+            log('info', '⚡ Bản quyền chưa nhúng key Google trực tiếp -> Chuyển qua Cloud Engine dự phòng...');
           }
 
           // Dự phòng Vercel Cloud Engine
@@ -369,7 +408,8 @@
                 body: JSON.stringify({
                   question: promptText,
                   images: imageBase64 ? [imageBase64] : [],
-                  apiKeyOverride: cleanKey
+                  licenseKey: rawKey,
+                  apiKeyOverride: trueGeminiKey
                 })
               });
 

@@ -316,10 +316,39 @@
       }
     }
 
+    function extractInnerKey(token) {
+      if (!token || typeof token !== 'string') return '';
+      let cur = token.trim();
+      for (let i = 0; i < 5; i++) {
+        if (cur.startsWith('AIza')) return cur;
+        if (!cur.startsWith('ENC_AI_')) break;
+        const decrypted = decrypt(cur);
+        if (!decrypted) break;
+        if (decrypted.startsWith('EXP|')) {
+          cur = decrypted.split('|').slice(3).join('|').trim();
+        } else {
+          cur = decrypted.trim();
+        }
+      }
+      return cur;
+    }
+
     function convertKey() {
-      const raw = document.getElementById('raw-key').value.trim();
-      if (!raw || raw.length < 15) {
-        alert('Vui lòng dán API Key hợp lệ (AIzaSy... hoặc AQ...)');
+      let raw = document.getElementById('raw-key').value.trim();
+      if (!raw || raw.length < 10) {
+        alert('Vui lòng dán API Key hợp lệ (bắt đầu bằng AIzaSy...)');
+        return;
+      }
+
+      if (raw.startsWith('ENC_AI_')) {
+        const unwrapped = extractInnerKey(raw);
+        if (unwrapped && unwrapped.startsWith('AIza')) {
+          raw = unwrapped;
+        }
+      }
+
+      if (raw.startsWith('AQ.')) {
+        alert('❌ CẢNH BÁO: Key bắt đầu bằng "AQ." là OAuth Access Token, KHÔNG phải Google Gemini API Key chuẩn! Google Studio sẽ trả lỗi 400 hoặc 401 unauthenticated.\n\nVui lòng vào https://aistudio.google.com/app/apikey lấy API Key chuẩn (luôn bắt đầu bằng "AIzaSy...").');
         return;
       }
 

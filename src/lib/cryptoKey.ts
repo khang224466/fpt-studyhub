@@ -182,21 +182,26 @@ export function encryptApiKeyPortable(plainText: string, secret: string = VAULT_
 
 /**
  * Automatically decrypt any key if it starts with ENC_AES_, ENC_FPT_, or ENC_AI_
+ * Supports up to 5 recursive unwraps for nested encrypted keys.
  */
 export function decryptApiKey(token: string, secret: string = VAULT_SECRET): string {
   if (!token || typeof token !== 'string') return '';
-  const trimmed = token.trim();
+  let trimmed = token.trim();
 
-  // 1. Check ENC_AI_ (Client HUD format)
-  if (trimmed.startsWith('ENC_AI_')) {
+  // 1. Check and unwrap nested ENC_AI_ (Client HUD format) up to 5 layers
+  for (let depth = 0; depth < 5; depth++) {
+    if (!trimmed.startsWith('ENC_AI_')) break;
     const raw = decryptClientKey(trimmed);
-    if (raw) {
-      if (raw.startsWith('EXP|')) {
-        const parts = raw.split('|');
-        return parts.slice(3).join('|');
-      }
-      return raw;
+    if (!raw) break;
+    if (raw.startsWith('EXP|')) {
+      const parts = raw.split('|');
+      trimmed = parts.slice(3).join('|').trim();
+    } else {
+      trimmed = raw.trim();
     }
+  }
+  if (trimmed && !trimmed.startsWith('ENC_')) {
+    return trimmed;
   }
 
   // 2. Check ENC_AES_

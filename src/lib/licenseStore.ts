@@ -1,4 +1,5 @@
 // Shared memory store for licenses, orders and trial tracking
+import { validateExpiringKey } from '@/lib/cryptoKey';
 
 export interface LicenseRecord {
   licenseKey: string;
@@ -74,6 +75,25 @@ export function verifyLicense(licenseKey: string): {
       reason: 'Thiếu License Key xác thực',
       remainingMs: 0,
       formattedRemaining: '0 phút'
+    };
+  }
+
+  // 1. Verify Encrypted Expiration License Key (ENC_AI_...)
+  if (licenseKey.startsWith('ENC_AI_')) {
+    const expInfo = validateExpiringKey(licenseKey);
+    if (!expInfo.valid) {
+      return {
+        valid: false,
+        reason: expInfo.reason || 'Key bản quyền đã hết hạn sử dụng',
+        remainingMs: 0,
+        formattedRemaining: '0 phút'
+      };
+    }
+    const days = expInfo.remainingDays || 1;
+    return {
+      valid: true,
+      remainingMs: days * 24 * 3600 * 1000,
+      formattedRemaining: `${days} ngày`
     };
   }
 

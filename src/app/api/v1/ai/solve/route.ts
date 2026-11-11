@@ -3,7 +3,7 @@ import { verifyLicense } from '@/lib/licenseStore';
 import { decryptApiKey } from '@/lib/cryptoKey';
 
 const SYSTEM_PROMPT = `
-Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.15) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
+Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.31) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
 
 [QUY TẮC BẮT BUỘC]:
 1. ĐỊNH DẠNG TRẢ LỜI MẪU (RẤT QUAN TRỌNG):
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     let usedModel = 'gemini-1.5-flash';
 
     // 2. Call AI Engine with Encrypted/Server Keys (Auto-decrypt if ENC_AES_ or ENC_FPT_)
-    const rawCustomKey = apiKeyOverride || (licenseKey.startsWith('AIza') || licenseKey.startsWith('gsk_') || licenseKey.startsWith('sk-') ? licenseKey : '');
+    const rawCustomKey = apiKeyOverride || licenseKey || '';
     const overrideKey = rawCustomKey ? decryptApiKey(rawCustomKey) : '';
     const geminiKey = (overrideKey && overrideKey.startsWith('AIza'))
       ? overrideKey
@@ -103,46 +103,49 @@ export async function POST(req: NextRequest) {
       : decryptApiKey(process.env.GROQ_API_KEY || '');
 
     if (geminiKey) {
-      // Call Google Gemini
-      try {
-        usedProvider = 'google-gemini';
-        usedModel = 'gemini-1.5-flash';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${usedModel}:generateContent?key=${geminiKey}`;
-
-        const parts: any[] = [{ text: cleanQuestion }];
-        if (hasImages) {
-          images.forEach(img => {
-            const b64 = img.replace(/^data:image\/\w+;base64,/, '');
-            const mt = (img.match(/^data:(image\/\w+);/) || [])[1] || 'image/jpeg';
-            parts.push({
-              inlineData: { mimeType: mt, data: b64 }
-            });
+      // Call Google Gemini (Multi-model fallback)
+      usedProvider = 'google-gemini';
+      const candidateModels = ['gemini-flash-lite-latest', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+      const parts: any[] = [{ text: cleanQuestion }];
+      if (hasImages) {
+        images.forEach(img => {
+          const b64 = img.replace(/^data:image\/\w+;base64,/, '');
+          const mt = (img.match(/^data:(image\/\w+);/) || [])[1] || 'image/jpeg';
+          parts.push({
+            inlineData: { mimeType: mt, data: b64 }
           });
-        }
-
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-            contents: [{ role: 'user', parts }],
-            generationConfig: {
-              temperature: 0.1,
-              maxOutputTokens: 800
-            }
-          }),
-          signal: AbortSignal.timeout(30000)
         });
+      }
 
-        if (res.ok) {
-          const data = await res.json();
-          const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (candidateText) {
-            answer = candidateText.trim();
+      for (const m of candidateModels) {
+        try {
+          usedModel = m;
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${geminiKey}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+              contents: [{ role: 'user', parts }],
+              generationConfig: {
+                temperature: 0.1,
+                maxOutputTokens: 800
+              }
+            }),
+            signal: AbortSignal.timeout(12000)
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (candidateText && candidateText.trim()) {
+              answer = candidateText.trim();
+              break;
+            }
           }
+        } catch (err: any) {
+          console.warn(`[AI Proxy] Gemini (${m}) call failed:`, err.message);
         }
-      } catch (err: any) {
-        console.warn('[AI Proxy] Gemini primary call failed, trying backup:', err.message);
       }
     }
 

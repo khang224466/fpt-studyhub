@@ -97,11 +97,25 @@ export default function AdminPage() {
 
   // Admin approves order and issues Key (supports orderId or transferCode)
   const handleApproveOrder = async (orderId: string, transferCode?: string) => {
-    if (!masterApiKey.trim()) {
-      const confirmed = window.confirm(
-        'Bạn chưa nhập Master Gemini API Key ở ô cấu hình phía trên!\nNếu duyệt không có Key, khách hàng sẽ nhận Key không chứa mã gọi AI.\n\nBạn có chắc chắn muốn tiếp tục không?'
+    let keyToUse = masterApiKey.trim();
+    if (!keyToUse || !keyToUse.startsWith('AIza')) {
+      const entered = window.prompt(
+        '⚠️ BẮT BUỘC: Bạn chưa cấu hình Master Google Gemini API Key chuẩn!\n' +
+        'Để khách hàng giải được bài tập bằng AI, cần nhập Key Google Gemini bắt đầu bằng "AIzaSy...".\n' +
+        '(Lấy Key miễn phí 100% tại: https://aistudio.google.com/app/apikey)\n\n' +
+        'Vui lòng dán Key Google Gemini của Admin vào đây để duyệt và lưu:',
+        keyToUse
       );
-      if (!confirmed) return;
+      if (!entered || !entered.trim()) {
+        alert('❌ Đã hủy duyệt đơn: Cần có Google Gemini API Key (AIzaSy...) để kích hoạt chức năng giải bài cho sinh viên.');
+        return;
+      }
+      keyToUse = entered.trim();
+      if (!keyToUse.startsWith('AIza')) {
+        alert('❌ Lỗi định dạng Key: Key Google Gemini chuẩn luôn bắt đầu bằng "AIzaSy...".\nKey "' + keyToUse.slice(0, 8) + '..." không hợp lệ và sẽ bị Google từ chối HTTP 400! Vui lòng vào aistudio.google.com/app/apikey tạo key mới.');
+        return;
+      }
+      handleMasterKeyChange(keyToUse);
     }
 
     setApprovingOrderId(orderId || transferCode || 'approving');
@@ -113,12 +127,13 @@ export default function AdminPage() {
           orderId,
           transferCode,
           action: 'approve',
-          apiKey: masterApiKey.trim()
+          apiKey: keyToUse
         })
       });
       const data = await res.json();
       if (data.success) {
         await fetchOrders();
+        alert(`✓ Đã duyệt và cấp Key thành công cho đơn ${orderId || transferCode}! Màn hình khách hàng sẽ tự động chuyển sang trang nhận Bookmarklet trong 2 giây.`);
       }
     } catch (e) {
       console.error('Approve order error:', e);
@@ -220,6 +235,10 @@ export default function AdminPage() {
     if (days === 120) { planLabel = '1 Kỳ Học (4 Tháng)'; safePlan = '1 Ky Hoc (4 Thang)'; }
 
     const rawKey = customApiKey.trim() || masterApiKey.trim();
+    if (rawKey && !rawKey.startsWith('AIza')) {
+      alert('❌ Key Google Gemini phải bắt đầu bằng "AIzaSy...". Key "' + rawKey.slice(0, 8) + '..." không đúng định dạng (có thể là OAuth token hoặc sai chuẩn)! Lấy key miễn phí tại aistudio.google.com');
+      return;
+    }
     const expiresAt = Date.now() + days * 24 * 3600 * 1000;
     const payload = `EXP|${expiresAt}|${safePlan}|${rawKey}`;
     const salt = 'ENX_SEC_2026_FLASH_LITE';
@@ -264,7 +283,7 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="emerald" size="sm">v10.2.30 PRO</Badge>
+              <Badge variant="emerald" size="sm">v10.2.31 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
@@ -288,9 +307,18 @@ export default function AdminPage() {
                 <h3 className="text-sm font-bold text-white">
                   Master Google Gemini API Key (Duyệt Cấp Bản Quyền)
                 </h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
-                  {masterApiKey ? '✓ Đã Lưu' : '⚠ Chưa Cấu Hình'}
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${masterApiKey && masterApiKey.startsWith('AIza') ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-red-500/20 text-red-300 border-red-500/50 animate-pulse'}`}>
+                  {masterApiKey && masterApiKey.startsWith('AIza') ? '✓ Đã Lưu Key Chuẩn' : '⚠ Chưa Cấu Hình Key AIzaSy'}
                 </span>
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-sm flex items-center gap-1"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>+ Lấy Key Miễn Phí (Google Studio)</span>
+                </a>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
                 Key này được đóng gói và mã hóa trực tiếp vào Key bản quyền khi Admin bấm <strong className="text-emerald-400">[Duyệt & Cấp Key]</strong>. Sinh viên mở Bookmarklet sẽ gọi thẳng Gemini Flash-Lite hoạt động 100%.
@@ -745,7 +773,7 @@ export default function AdminPage() {
                 <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
-                  <span>FPT EduNext AI Assistant Pro (v10.2.30)</span>
+                  <span>FPT EduNext AI Assistant Pro (v10.2.31)</span>
                 </div>
               </div>
 
