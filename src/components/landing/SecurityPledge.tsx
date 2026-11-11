@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { ShieldCheck, RefreshCw, Headphones, Lock } from 'lucide-react';
 

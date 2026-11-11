@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Play, 
   Pause, 
@@ -24,7 +24,7 @@ import { BANK_CONFIG } from '@/data/servicesCatalog';
 export function DemoVideoTrailer() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [playbackTime, setPlaybackTime] = useState(0); // 0 to 28 seconds
-  const [activeStep, setActiveStep] = useState<number>(1);
+  const activeStep = Math.min(4, Math.floor(playbackTime / 7) + 1);
   const [speed, setSpeed] = useState<number>(1);
   const [isMuted, setIsMuted] = useState(true);
 
@@ -41,19 +41,6 @@ export function DemoVideoTrailer() {
     }, 200);
     return () => clearInterval(interval);
   }, [isPlaying, speed]);
-
-  // Sync active step based on time
-  useEffect(() => {
-    if (playbackTime < 7) {
-      setActiveStep(1); // Scanning
-    } else if (playbackTime < 14) {
-      setActiveStep(2); // AI Solving
-    } else if (playbackTime < 21) {
-      setActiveStep(3); // React Fiber Fill & Submit
-    } else {
-      setActiveStep(4); // Auto loop next question
-    }
-  }, [playbackTime]);
 
   const handleSeek = (time: number) => {
     setPlaybackTime(time);

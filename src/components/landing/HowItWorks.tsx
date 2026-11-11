@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { QrCode, MousePointerClick, Zap, Shield, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';

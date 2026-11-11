@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { Check, X, ShieldAlert, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';

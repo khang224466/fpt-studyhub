@@ -39,8 +39,14 @@ export function ActivationSuccessModal({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setHost(window.location.origin);
+      if (licenseKey) {
+        try {
+          localStorage.setItem('enx_encrypted_ai_key', licenseKey);
+          localStorage.setItem('enx_license_key', licenseKey);
+        } catch (_) {}
+      }
     }
-  }, []);
+  }, [licenseKey]);
 
   if (!order || !service || !licenseKey) return null;
 
@@ -69,7 +75,7 @@ export function ActivationSuccessModal({
             </div>
             <div>
               <div className="font-bold text-white text-sm">
-                Đã mở khóa: {service.name} (v10.2.27)
+                Đã mở khóa: {service.name} (v10.2.28)
               </div>
               <div className="text-xs text-emerald-300">
                 Thời hạn: {order.durationLabel} • Trạng thái: Đã cấp quyền
@@ -118,7 +124,7 @@ export function ActivationSuccessModal({
               className="inline-flex items-center justify-center gap-3 w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-base sm:text-lg shadow-xl shadow-emerald-950/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-grab active:cursor-grabbing border-2 border-emerald-300/50 select-none animate-pulse"
             >
               <Bookmark className="w-6 h-6 fill-current shrink-0" />
-              <span>⚡ KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.27)</span>
+              <span>⚡ KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.28)</span>
             </a>
           </div>
 
@@ -144,7 +150,7 @@ export function ActivationSuccessModal({
               <span>{copiedBookmarkCode ? '✓ Đã sao chép mã Bookmarklet!' : '📋 Sao Chép Mã Bookmarklet'}</span>
             </Button>
             <a
-              href="/keo_bookmark.html"
+              href={`/keo_bookmark.html?key=${encodeURIComponent(licenseKey)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold"
