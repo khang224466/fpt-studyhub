@@ -108,7 +108,7 @@ export default function AiBridgePage() {
               <div className="font-extrabold text-white text-sm flex items-center gap-1.5">
                 <span>Cầu Nối AI EduNext (CSP Bridge)</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono border border-emerald-500/40">
-                  v10.2.29
+                  v10.2.30
                 </span>
               </div>
               <div className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">

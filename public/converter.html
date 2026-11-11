@@ -229,15 +229,15 @@
     <div class="grid-duration">
       <div class="plan-btn active" onclick="selectPlan(7, '1 Tuần (7 Ngày)', 3, this)">
         <div class="plan-title">1 Tuần</div>
-        <div class="plan-desc">7 Ngày (3 môn)</div>
+        <div class="plan-desc">7 Ngày (3 môn • 3 bài/tuần)</div>
       </div>
       <div class="plan-btn" onclick="selectPlan(30, '1 Tháng (30 Ngày)', 5, this)">
         <div class="plan-title">1 Tháng</div>
-        <div class="plan-desc">30 Ngày (5 môn)</div>
+        <div class="plan-desc">30 Ngày (5 môn • 3 bài/tuần)</div>
       </div>
       <div class="plan-btn" onclick="selectPlan(120, '1 Kỳ Học (4 Tháng)', 6, this)">
         <div class="plan-title">4 Tháng</div>
-        <div class="plan-desc">120 Ngày (1 Kỳ)</div>
+        <div class="plan-desc">120 Ngày (6 môn • 3 bài/tuần)</div>
       </div>
       <div class="plan-btn" onclick="selectPlan(0, 'Vĩnh Viễn', 99, this)">
         <div class="plan-title">Vĩnh Viễn</div>
@@ -259,7 +259,7 @@
 
       <div class="result-meta">
         <div>⏳ Hạn dùng đến: <b id="res-exp" style="color: #38bdf8;">--</b></div>
-        <div>📚 Giới hạn: <b id="res-rule" style="color: #34d399;">1 bài/môn/tuần</b></div>
+        <div>📚 Giới hạn: <b id="res-rule" style="color: #34d399;">3 bài/môn/tuần</b></div>
         <div>🔑 Trạng thái: <b style="color: #10b981;">Hiệu lực kích hoạt</b></div>
         <div>💬 Hỗ trợ: <b style="color: #a78bfa;">Admin Discord</b></div>
       </div>
@@ -338,7 +338,7 @@
       document.getElementById('output-code').textContent = encKey;
       document.getElementById('res-badge').textContent = 'GÓI ' + selectedLabel.toUpperCase();
       document.getElementById('res-exp').textContent = expText;
-      document.getElementById('res-rule').textContent = selectedMaxCourses + ' môn • 1 bài/tuần';
+      document.getElementById('res-rule').textContent = selectedMaxCourses + ' môn • 3 bài/tuần';
       document.getElementById('result').style.display = 'block';
     }
 
