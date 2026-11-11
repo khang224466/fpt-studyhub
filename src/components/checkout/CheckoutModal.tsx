@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { 
   Copy, 
@@ -11,7 +11,8 @@ import {
   RefreshCw, 
   MessageSquare, 
   ExternalLink,
-  Hourglass
+  Hourglass,
+  Radio
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -34,6 +35,7 @@ export function CheckoutModal({
   plan,
   onPaymentSuccess
 }: CheckoutModalProps) {
+  // Stable Order Initializer: Generated strictly ONCE per modal session
   const [order, setOrder] = useState<OrderItem | null>(() => {
     if (!service || !plan) return null;
     const randomCode = Math.floor(1000 + Math.random() * 9000);
@@ -53,10 +55,12 @@ export function CheckoutModal({
     };
     return initialOrder;
   });
+
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [isWaitingAdmin, setIsWaitingAdmin] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(600); // 10 mins
+  const hasRegisteredRef = useRef<boolean>(false);
 
   // Determine QR image based on exact plan price
   let qrImageSrc = BANK_CONFIG.qr69k || '/qr_69k.jpg';
@@ -68,52 +72,45 @@ export function CheckoutModal({
     qrImageSrc = BANK_CONFIG.qr220k || '/qr_220k.png';
   }
 
-  // Each checkout is mounted for one purchase; ignore responses after closing.
+  // 1. Initial Order Registration & Broadcast (Fires once, never aborted on re-renders)
   useEffect(() => {
-    if (isOpen && service && plan) {
-      const randomCode = Math.floor(1000 + Math.random() * 9000);
-      const activeTransferCode = `PR${randomCode}`;
-      const activeOrderId = `ORD-${Date.now().toString().slice(-4)}${randomCode}`;
+    if (!isOpen || !service || !plan || !order || hasRegisteredRef.current) return;
+    hasRegisteredRef.current = true;
 
-      const initialOrder: OrderItem = {
-        orderId: activeOrderId,
+    // Send order to Cloud Server
+    fetch(`/api/v1/orders?t=${Date.now()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' },
+      body: JSON.stringify({
         serviceId: service.id,
-        serviceName: service.name,
         planId: plan.id,
-        durationLabel: plan.durationLabel,
+        orderId: order.orderId,
+        transferCode: order.transferCode,
         amount: plan.price,
-        transferCode: activeTransferCode,
-        status: 'pending',
-        createdAt: Date.now()
-      };
-      setOrder(initialOrder);
-      setIsWaitingAdmin(false);
-
-      const controller = new AbortController();
-
-      fetch(`/api/v1/orders?t=${Date.now()}`, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' },
-        body: JSON.stringify({
-          serviceId: service.id,
-          planId: plan.id,
-          orderId: activeOrderId,
-          transferCode: activeTransferCode
-        })
+        durationLabel: plan.durationLabel,
+        status: 'pending'
       })
-      .then(res => res.json())
-      .then(data => {
-        if (!controller.signal.aborted && data.success && data.order) {
-          setOrder(data.order);
-        }
-      })
-      .catch(err => {
-        if (!controller.signal.aborted) console.error('Order creation error:', err);
-      });
-      return () => controller.abort();
-    }
-  }, [isOpen, service, plan]);
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.order) {
+        setOrder(data.order);
+      }
+    })
+    .catch(err => {
+      console.warn('[Checkout] Order register warning:', err);
+    });
+
+    // Instant local broadcast to Admin page on same machine (0ms sync)
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        const bc = new BroadcastChannel('fpt_studyhub_orders');
+        bc.postMessage({ type: 'ORDER_PENDING', order });
+        bc.close();
+      }
+      localStorage.setItem('fpt_latest_pending_order', JSON.stringify({ ...order, t: Date.now() }));
+    } catch {}
+  }, [isOpen, service, plan, order]);
 
   // Countdown timer
   useEffect(() => {
@@ -124,45 +121,117 @@ export function CheckoutModal({
     return () => clearInterval(timer);
   }, [isOpen]);
 
-  // Schedule the next request only after the current request has finished.
+  // 2. Continuous Double-Layer Sync (BroadcastChannel 0ms + Cloud Polling 1.5s + Auto-heal)
   const orderId = order?.orderId;
+  const transferCode = order?.transferCode;
+
   useEffect(() => {
     if (!isOpen || !orderId) return;
 
-    const controller = new AbortController();
-    let timer: ReturnType<typeof setTimeout>;
-    let completed = false;
-    const poll = async () => {
-      try {
-        if (document.visibilityState === 'hidden') return;
-        const res = await fetch(`/api/v1/orders?orderId=${encodeURIComponent(orderId)}`, {
-          cache: 'no-store',
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (controller.signal.aborted) return;
-        if (data.success && data.order) {
-          if ((data.order.status === 'approved' || data.order.status === 'paid') && data.licenseKey) {
-            completed = true;
-            confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
-            onPaymentSuccess(data.order, data.licenseKey);
-          } else if (data.order.status === 'waiting_approval') {
-            setIsWaitingAdmin(true);
+    let isCompleted = false;
+
+    const finishPayment = (approvedOrder: OrderItem, key: string) => {
+      if (isCompleted) return;
+      isCompleted = true;
+      confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+      onPaymentSuccess(approvedOrder, key);
+    };
+
+    // Layer A: BroadcastChannel (Instant 0ms sync with Admin in same browser)
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        bc = new BroadcastChannel('fpt_studyhub_orders');
+        bc.onmessage = (event) => {
+          const data = event.data;
+          if (data && data.type === 'ORDER_APPROVED') {
+            if (data.orderId === orderId || (transferCode && data.transferCode === transferCode)) {
+              finishPayment(data.order, data.licenseKey);
+            }
           }
-        }
-      } catch (error) {
-        if (!controller.signal.aborted) console.error('Polling order status error:', error);
-      } finally {
-        if (!controller.signal.aborted && !completed) timer = setTimeout(poll, 2000);
+        };
+      }
+    } catch {}
+
+    // Layer B: Cross-Tab Storage Event Fallback
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (e.key === 'fpt_latest_approved_order' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && (parsed.orderId === orderId || (transferCode && parsed.transferCode === transferCode))) {
+            finishPayment(parsed.order, parsed.licenseKey);
+          }
+        } catch {}
       }
     };
-    timer = setTimeout(poll, 2000);
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
+    window.addEventListener('storage', handleStorageEvent);
+
+    // Layer C: Worldwide Cloud Polling Loop (1.5s interval with Auto-Healing)
+    let pollTimer: ReturnType<typeof setTimeout>;
+
+    const poll = async () => {
+      if (isCompleted) return;
+      try {
+        const res = await fetch(`/api/v1/orders?orderId=${encodeURIComponent(orderId)}&t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache, no-store' }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.order) {
+            if ((data.order.status === 'approved' || data.order.status === 'paid') && data.licenseKey) {
+              finishPayment(data.order, data.licenseKey);
+              return;
+            } else if (data.order.status === 'waiting_approval') {
+              setIsWaitingAdmin(true);
+            }
+          }
+        } else if (res.status === 404 && service && plan) {
+          // Self-Healing: If order was wiped or missing on server, immediately re-register!
+          fetch(`/api/v1/orders?t=${Date.now()}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+            body: JSON.stringify({
+              serviceId: service.id,
+              planId: plan.id,
+              orderId,
+              transferCode,
+              amount: plan.price,
+              durationLabel: plan.durationLabel,
+              status: isWaitingAdmin ? 'waiting_approval' : 'pending'
+            })
+          }).catch(() => {});
+        }
+      } catch (error) {
+        // network glitch, silently retry
+      } finally {
+        if (!isCompleted) {
+          pollTimer = setTimeout(poll, 1500);
+        }
+      }
     };
-  }, [isOpen, orderId, onPaymentSuccess]);
+
+    pollTimer = setTimeout(poll, 1500);
+
+    // Layer D: Active Wakeup on Focus & Visibility Change
+    const handleWakeup = () => {
+      if (document.visibilityState === 'visible') {
+        poll();
+      }
+    };
+    document.addEventListener('visibilitychange', handleWakeup);
+    window.addEventListener('focus', handleWakeup);
+
+    return () => {
+      isCompleted = true;
+      clearTimeout(pollTimer);
+      if (bc) bc.close();
+      window.removeEventListener('storage', handleStorageEvent);
+      document.removeEventListener('visibilitychange', handleWakeup);
+      window.removeEventListener('focus', handleWakeup);
+    };
+  }, [isOpen, orderId, transferCode, service, plan, isWaitingAdmin, onPaymentSuccess]);
 
   // Copy helper
   const handleCopy = (text: string, field: string) => {
@@ -171,11 +240,10 @@ export function CheckoutModal({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  // Submit transfer confirmation -> Wait for admin approval
+  // Submit transfer confirmation -> Notify Admin to approve
   const handleConfirmPayment = async () => {
     if (!order || !service || !plan) return;
     setIsVerifying(true);
-    // Optimistic switch immediately so user sees state change
     setIsWaitingAdmin(true);
     setOrder(prev => prev ? { ...prev, status: 'waiting_approval' } : null);
 
@@ -185,19 +253,33 @@ export function CheckoutModal({
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
         body: JSON.stringify({ 
           orderId: order.orderId,
+          transferCode: order.transferCode,
           action: 'confirm_transfer',
           serviceId: service.id,
           serviceName: service.name,
           planId: plan.id,
           durationLabel: plan.durationLabel,
-          amount: plan.price,
-          transferCode: order.transferCode
+          amount: plan.price
         })
       });
       const data = await res.json();
       if (data.success && data.order) {
         setOrder(data.order);
       }
+
+      // Notify Admin page immediately via Broadcast & Storage
+      try {
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('fpt_studyhub_orders');
+          bc.postMessage({ type: 'ORDER_WAITING', orderId: order.orderId, transferCode: order.transferCode });
+          bc.close();
+        }
+        localStorage.setItem('fpt_latest_waiting_order', JSON.stringify({ 
+          orderId: order.orderId, 
+          transferCode: order.transferCode, 
+          t: Date.now() 
+        }));
+      } catch {}
     } catch (e) {
       console.error('Submit transfer confirmation error:', e);
     } finally {
@@ -219,15 +301,19 @@ export function CheckoutModal({
       maxWidth="lg"
     >
       <div className="space-y-6">
-        {/* Timer Bar */}
+        {/* Timer & Live Sync Status Bar */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
           <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-emerald-400" />
-            <span>Mã QR thanh toán có hiệu lực trong:</span>
+            <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            <span className="text-emerald-300 font-medium">Đã kết nối trực tiếp với Web Admin</span>
           </div>
-          <span className="font-mono font-bold text-amber-400 text-sm">
-            {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-          </span>
+          <div className="flex items-center gap-1.5 font-mono">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-slate-400 text-[11px]">Hết hạn:</span>
+            <span className="font-bold text-amber-400 text-xs">
+              {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+            </span>
+          </div>
         </div>
 
         {/* QR & Bank Information */}
@@ -345,7 +431,7 @@ export function CheckoutModal({
               <span>Đang Chờ Admin Duyệt Đơn & Cấp Key Bản Quyền...</span>
             </div>
             <p className="text-xs text-slate-300 max-w-md mx-auto">
-              Hệ thống đang tự động kiểm tra trạng thái mỗi 3 giây. Sau khi Admin bấm duyệt trên web quản trị, màn hình sẽ tự động chuyển sang trang nhận Key và Bookmarklet!
+              Hệ thống đang tự động kiểm tra trạng thái mỗi 1.5 giây. Sau khi Admin bấm duyệt trên web quản trị, màn hình sẽ tự động chuyển sang trang nhận Key và Bookmarklet!
             </p>
             <div className="pt-2">
               <a
@@ -372,7 +458,7 @@ export function CheckoutModal({
               variant="primary"
               onClick={handleConfirmPayment}
               disabled={isVerifying}
-              className="w-full sm:flex-1 justify-center shadow-lg shadow-emerald-950/60"
+              className="w-full sm:flex-1 justify-center shadow-lg shadow-emerald-950/60 cursor-pointer"
             >
               {isVerifying ? (
                 <>

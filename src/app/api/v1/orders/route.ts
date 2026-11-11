@@ -109,13 +109,13 @@ export async function POST(req: NextRequest) {
       serviceId: service.id,
       serviceName: service.name,
       planId: plan.id,
-      durationLabel: plan.durationLabel,
-      amount: plan.price,
+      durationLabel: body.durationLabel || plan.durationLabel,
+      amount: body.amount || plan.price,
       customerEmail,
       customerPhone,
       transferCode,
-      status: 'pending',
-      createdAt: Date.now()
+      status: body.status || 'pending',
+      createdAt: body.createdAt || Date.now()
     };
 
     const existingOrders = await fetchOrdersFromCloud();
@@ -157,7 +157,12 @@ export async function GET(req: NextRequest) {
     }, { headers: NO_CACHE_HEADERS });
   }
 
-  const order = orders.find(o => o.orderId === orderId || o.transferCode === orderId);
+  const search = (orderId || '').trim().toUpperCase();
+  const order = orders.find(o => {
+    const oId = (o.orderId || '').toUpperCase();
+    const tCode = (o.transferCode || '').toUpperCase();
+    return oId === search || tCode === search || tCode === ('PR' + search) || oId.endsWith(search);
+  });
   if (!order) {
     return NextResponse.json({ success: false, message: 'Đơn hàng không tồn tại' }, { status: 404, headers: NO_CACHE_HEADERS });
   }
@@ -176,10 +181,17 @@ export async function PUT(req: NextRequest) {
     const { orderId, action, apiKey, transferCode } = body;
 
     const orders = await fetchOrdersFromCloud();
-    let orderIndex = orders.findIndex(o => 
-      (orderId && o.orderId === orderId) || 
-      (transferCode && o.transferCode === transferCode)
-    );
+    const targetCode = (transferCode || '').trim().toUpperCase();
+    const targetOrderId = (orderId || '').trim().toUpperCase();
+
+    let orderIndex = orders.findIndex(o => {
+      const oId = (o.orderId || '').toUpperCase();
+      const tCode = (o.transferCode || '').toUpperCase();
+      if (targetOrderId && oId === targetOrderId) return true;
+      if (targetCode && (tCode === targetCode || tCode === ('PR' + targetCode) || ('PR' + tCode) === targetCode)) return true;
+      if (targetCode && oId.endsWith(targetCode)) return true;
+      return false;
+    });
 
     // If order not found in cloud store, auto-upsert so requests are NEVER dropped
     if (orderIndex === -1) {

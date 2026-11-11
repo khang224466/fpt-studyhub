@@ -2,6 +2,7 @@ import crypto from 'crypto';
 
 export const VAULT_SECRET = process.env.VAULT_SECRET || 'fpt-edunext-vault-v1011';
 export const ENX_CIPHER_SALT = 'ENX_SEC_2026_FLASH_LITE';
+export const ENCRYPTED_DEFAULT_TOKEN = 'ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl';
 
 /**
  * Encrypt payload using the exact XOR + Base64 cipher recognized by the client EduNext HUD
@@ -61,6 +62,15 @@ export function generateExpiringLicenseKey(
   }
   if (!activeKey) {
     activeKey = process.env.GEMINI_API_KEY || '';
+  }
+  if (!activeKey) {
+    const rawDef = decryptClientKey(ENCRYPTED_DEFAULT_TOKEN);
+    if (rawDef && rawDef.startsWith('EXP|')) {
+      const parts = rawDef.split('|');
+      activeKey = parts.slice(3).join('|').trim();
+    } else if (rawDef) {
+      activeKey = rawDef.trim();
+    }
   }
   const expiresAt = Date.now() + durationDays * 24 * 3600 * 1000;
   

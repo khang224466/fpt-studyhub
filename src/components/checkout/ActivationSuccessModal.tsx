@@ -75,7 +75,7 @@ export function ActivationSuccessModal({
             </div>
             <div>
               <div className="font-bold text-white text-sm">
-                Đã mở khóa: {service.name} (v10.2.36)
+                Đã mở khóa: {service.name} (v10.2.37)
               </div>
               <div className="text-xs text-emerald-300">
                 Thời hạn: {order.durationLabel} • Trạng thái: Đã cấp quyền
@@ -124,7 +124,7 @@ export function ActivationSuccessModal({
               className="inline-flex items-center justify-center gap-3 w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-base sm:text-lg shadow-xl shadow-emerald-950/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-grab active:cursor-grabbing border-2 border-emerald-300/50 select-none animate-pulse"
             >
               <Bookmark className="w-6 h-6 fill-current shrink-0" />
-              <span>⚡ KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.36)</span>
+              <span>⚡ KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.37)</span>
             </a>
           </div>
 

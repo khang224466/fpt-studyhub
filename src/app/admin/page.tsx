@@ -34,6 +34,8 @@ import { SERVICES_CATALOG, BANK_CONFIG } from '@/data/servicesCatalog';
 import { OrderItem } from '@/types/rental';
 import { parseClientLicense } from '@/lib/clientLicense';
 
+const ENCRYPTED_DEFAULT_TOKEN = 'ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl';
+
 export default function AdminPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [durationDays, setDurationDays] = useState('7');
@@ -91,8 +93,34 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 2000);
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchOrders, 1500);
+
+    // Instant Realtime sync from Customer Checkout Modal (0ms)
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        bc = new BroadcastChannel('fpt_studyhub_orders');
+        bc.onmessage = (event) => {
+          const data = event.data;
+          if (data && (data.type === 'ORDER_PENDING' || data.type === 'ORDER_WAITING')) {
+            fetchOrders();
+          }
+        };
+      }
+    } catch {}
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'fpt_latest_pending_order' || e.key === 'fpt_latest_waiting_order') {
+        fetchOrders();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      clearInterval(interval);
+      if (bc) bc.close();
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
   const extractInnerKey = (token: string): string => {
@@ -138,6 +166,10 @@ export default function AdminPage() {
         keyToUse = unwrapped;
       }
     }
+    // Auto-fallback to valid default key if Admin hasn't configured a key yet
+    if (!keyToUse) {
+      keyToUse = extractInnerKey(ENCRYPTED_DEFAULT_TOKEN);
+    }
 
     setApprovingOrderId(orderId || transferCode || 'approving');
     try {
@@ -153,6 +185,28 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (data.success) {
+        // Broadcast instant approval event to customer modal (0ms response)
+        try {
+          if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+            const bc = new BroadcastChannel('fpt_studyhub_orders');
+            bc.postMessage({
+              type: 'ORDER_APPROVED',
+              orderId: data.order?.orderId || orderId,
+              transferCode: data.order?.transferCode || transferCode,
+              licenseKey: data.licenseKey,
+              order: data.order
+            });
+            bc.close();
+          }
+          localStorage.setItem('fpt_latest_approved_order', JSON.stringify({
+            orderId: data.order?.orderId || orderId,
+            transferCode: data.order?.transferCode || transferCode,
+            licenseKey: data.licenseKey,
+            order: data.order,
+            t: Date.now()
+          }));
+        } catch {}
+
         await fetchOrders();
         alert(`✓ Đã duyệt và cấp Key thành công cho đơn ${orderId || transferCode}! Màn hình khách hàng sẽ tự động nhận Bookmarklet.`);
       }
@@ -166,8 +220,11 @@ export default function AdminPage() {
   // Quick Approve by Transfer Code (e.g. PR7874)
   const handleQuickApproveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const code = quickCode.trim().toUpperCase();
+    let code = quickCode.trim().toUpperCase();
     if (!code) return;
+    if (/^\d{4}$/.test(code)) {
+      code = 'PR' + code;
+    }
 
     setIsQuickApproving(true);
     try {
@@ -306,7 +363,7 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="emerald" size="sm">v10.2.36 PRO</Badge>
+              <Badge variant="emerald" size="sm">v10.2.37 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
@@ -804,7 +861,7 @@ export default function AdminPage() {
                 <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
-                  <span>FPT EduNext AI Assistant Pro (v10.2.36)</span>
+                  <span>FPT EduNext AI Assistant Pro (v10.2.37)</span>
                 </div>
               </div>
 
