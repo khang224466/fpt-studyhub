@@ -46,6 +46,8 @@ export interface OrderItem {
   createdAt: number;
   paidAt?: number;
   licenseKey?: string;
+  expiresAt?: number;
+  durationDays?: number;
 }
 
 export interface LicenseRecord {

@@ -20,6 +20,10 @@ import {
   ShieldCheck,
   MessageSquare,
   AlertCircle,
+  AlertTriangle,
+  Calendar,
+  Timer,
+  Trash2,
   ExternalLink,
   Hourglass
 } from 'lucide-react';
@@ -28,6 +32,7 @@ import { Badge } from '@/components/ui/Badge';
 import { formatVND } from '@/lib/utils';
 import { SERVICES_CATALOG, BANK_CONFIG } from '@/data/servicesCatalog';
 import { OrderItem } from '@/types/rental';
+import { parseClientLicense } from '@/lib/clientLicense';
 
 export default function AdminPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -36,6 +41,8 @@ export default function AdminPage() {
   const [masterApiKey, setMasterApiKey] = useState('');
   const [quickCode, setQuickCode] = useState('');
   const [isQuickApproving, setIsQuickApproving] = useState(false);
+  const [extendingOrderId, setExtendingOrderId] = useState<string | null>(null);
+  const [keyFilter, setKeyFilter] = useState<'all' | 'warning' | 'active' | 'expired'>('all');
   const [lastGenerated, setLastGenerated] = useState<{
     key: string;
     planLabel: string;
@@ -135,17 +142,86 @@ export default function AdminPage() {
     }
   };
 
+  // Extend active license key
+  const handleExtendOrder = async (orderId: string, addDays: number) => {
+    setExtendingOrderId(orderId);
+    try {
+      const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+        body: JSON.stringify({
+          orderId,
+          action: 'extend',
+          addDays,
+          apiKey: masterApiKey.trim()
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchOrders();
+      } else {
+        alert('Gia hạn không thành công: ' + (data.message || 'Lỗi server'));
+      }
+    } catch (e: any) {
+      alert('Lỗi: ' + e.message);
+    } finally {
+      setExtendingOrderId(null);
+    }
+  };
+
+  // Revoke active license key
+  const handleRevokeOrder = async (orderId: string) => {
+    if (!confirm(`Bạn có chắc muốn khóa / thu hồi bản quyền của đơn ${orderId} này? Khách hàng sẽ không thể tiếp tục sử dụng.`)) return;
+    try {
+      const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+        body: JSON.stringify({
+          orderId,
+          action: 'revoke'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchOrders();
+      }
+    } catch (e) {
+      console.error('Revoke order error:', e);
+    }
+  };
+
+  // Compute License Monitoring List
+  const licenseRows = approvedOrders.map(ord => {
+    const info = parseClientLicense(ord.licenseKey, ord.expiresAt);
+    return {
+      order: ord,
+      info
+    };
+  });
+
+  const activeCount = licenseRows.filter(r => r.info && !r.info.expired && !r.info.isNearExpiry).length;
+  const warningCount = licenseRows.filter(r => r.info && r.info.isNearExpiry).length;
+  const expiredCount = licenseRows.filter(r => r.info && r.info.expired).length;
+
+  const filteredLicenseRows = licenseRows.filter(r => {
+    if (keyFilter === 'warning') return r.info?.isNearExpiry;
+    if (keyFilter === 'active') return r.info && !r.info.expired && !r.info.isNearExpiry;
+    if (keyFilter === 'expired') return r.info?.expired;
+    return true;
+  });
+
   // Manual Key Generator
   const handleGenerateKey = (e: React.FormEvent) => {
     e.preventDefault();
     const days = parseInt(durationDays, 10);
     let planLabel = '1 Tuần';
-    if (days === 30) planLabel = '1 Tháng';
-    if (days === 120) planLabel = '1 Kỳ Học (4 Tháng)';
+    let safePlan = '1 Tuan';
+    if (days === 30) { planLabel = '1 Tháng'; safePlan = '1 Thang'; }
+    if (days === 120) { planLabel = '1 Kỳ Học (4 Tháng)'; safePlan = '1 Ky Hoc (4 Thang)'; }
 
     const rawKey = customApiKey.trim() || masterApiKey.trim();
     const expiresAt = Date.now() + days * 24 * 3600 * 1000;
-    const payload = `EXP|${expiresAt}|${planLabel}|${rawKey}`;
+    const payload = `EXP|${expiresAt}|${safePlan}|${rawKey}`;
     const salt = 'ENX_SEC_2026_FLASH_LITE';
 
     let hex = '';
@@ -188,7 +264,7 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="emerald" size="sm">v10.2.26 PRO</Badge>
+              <Badge variant="emerald" size="sm">v10.2.27 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
@@ -438,7 +514,213 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Section 2: LICENSE KEY GENERATOR (WITH EXPIRATION) */}
+        {/* Section 2: LICENSE EXPIRATION & WARNING MONITORING DASHBOARD */}
+        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Timer className="w-5 h-5 text-amber-400" />
+                <span>Bảng Quản Lý Thời Hạn & Cảnh Báo Key Gần Hết Hạn</span>
+                {warningCount > 0 && (
+                  <span className="px-2 py-0.5 text-[11px] rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 animate-pulse">
+                    ⚠ {warningCount} Key Cần Gia Hạn
+                  </span>
+                )}
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Theo dõi thời gian sử dụng thực tế của khách hàng. Khi hết hạn, key trên máy khách sẽ tự hủy hoàn toàn. Admin có thể bấm gia hạn nhanh +7 ngày hoặc +30 ngày.
+              </p>
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+              <button
+                type="button"
+                onClick={() => setKeyFilter('all')}
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
+                  keyFilter === 'all'
+                    ? 'bg-slate-800 text-white border border-slate-700'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Tất Cả ({licenseRows.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setKeyFilter('warning')}
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  keyFilter === 'warning'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    : 'text-amber-400/80 hover:text-amber-300'
+                }`}
+              >
+                <AlertTriangle className="w-3 h-3" />
+                <span>Sắp Hết Hạn ({warningCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setKeyFilter('active')}
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
+                  keyFilter === 'active'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'text-emerald-400/80 hover:text-emerald-300'
+                }`}
+              >
+                Còn Hạn ({activeCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setKeyFilter('expired')}
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
+                  keyFilter === 'expired'
+                    ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+                    : 'text-red-400/80 hover:text-red-300'
+                }`}
+              >
+                Đã Tự Hủy ({expiredCount})
+              </button>
+            </div>
+          </div>
+
+          {filteredLicenseRows.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">
+              {keyFilter === 'warning'
+                ? 'Không có Key nào sắp hết hạn trong 5 ngày tới. Tất cả khách hàng đều an toàn!'
+                : 'Chưa có bản ghi bản quyền nào phù hợp với bộ lọc.'}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-3">Khách Hàng / Mã Đơn</th>
+                    <th className="py-3 px-3">Gói Bản Quyền</th>
+                    <th className="py-3 px-3">Thời Điểm Hết Hạn</th>
+                    <th className="py-3 px-3">Thời Gian Còn Lại</th>
+                    <th className="py-3 px-3">Trạng Thái Key</th>
+                    <th className="py-3 px-3 text-right">Gia Hạn Nhanh</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-mono">
+                  {filteredLicenseRows.map(({ order: ord, info }) => {
+                    const isExp = info?.expired;
+                    const isWarn = info?.isNearExpiry;
+                    const isOk = info && !info.expired && !info.isNearExpiry;
+
+                    return (
+                      <tr key={ord.orderId} className={`hover:bg-slate-800/30 transition-colors ${isWarn ? 'bg-amber-500/5' : ''}`}>
+                        <td className="py-3 px-3">
+                          <div className="text-white font-bold">{ord.orderId}</div>
+                          <div className="text-amber-300 text-[11px] font-bold">Mã CK: {ord.transferCode}</div>
+                        </td>
+                        <td className="py-3 px-3 font-sans">
+                          <div className="text-slate-200 font-semibold">{ord.durationLabel || info?.plan || '1 Tuần'}</div>
+                          <div className="text-emerald-400 text-[11px] font-mono">{formatVND(ord.amount)}</div>
+                        </td>
+                        <td className="py-3 px-3 text-slate-300">
+                          {info ? (
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{info.expDateStr}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-600 italic font-sans">Chưa xác định</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 font-sans">
+                          {info ? (
+                            <div>
+                              {isExp && (
+                                <Badge variant="rose" size="sm">
+                                  {info.remainingFormatted}
+                                </Badge>
+                              )}
+                              {isWarn && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                  <AlertTriangle className="w-3 h-3 text-amber-400" />
+                                  <span>{info.remainingFormatted}</span>
+                                </span>
+                              )}
+                              {isOk && (
+                                <Badge variant="emerald" size="sm">
+                                  {info.remainingFormatted}
+                                </Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-600 italic">Không có mốc</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 font-sans">
+                          {isExp ? (
+                            <span className="text-red-400 text-xs font-bold flex items-center gap-1">
+                              <span className="inline-block w-2 h-2 rounded-full bg-red-500"></span>
+                              <span>Đã Tự Hủy</span>
+                            </span>
+                          ) : isWarn ? (
+                            <span className="text-amber-300 text-xs font-bold flex items-center gap-1">
+                              <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                              <span>Sắp Hết Hạn</span>
+                            </span>
+                          ) : (
+                            <span className="text-emerald-400 text-xs font-semibold flex items-center gap-1">
+                              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+                              <span>Đang Hoạt Động</span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-right font-sans">
+                          <div className="inline-flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={extendingOrderId === ord.orderId}
+                              onClick={() => handleExtendOrder(ord.orderId, 7)}
+                              className="text-[11px] px-2 py-1 h-auto cursor-pointer hover:border-emerald-500 hover:text-emerald-300"
+                              title="Gia hạn thêm 7 ngày"
+                            >
+                              +7 Ngày
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={extendingOrderId === ord.orderId}
+                              onClick={() => handleExtendOrder(ord.orderId, 30)}
+                              className="text-[11px] px-2 py-1 h-auto cursor-pointer hover:border-cyan-500 hover:text-cyan-300"
+                              title="Gia hạn thêm 30 ngày (1 Tháng)"
+                            >
+                              +30 Ngày
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={extendingOrderId === ord.orderId}
+                              onClick={() => handleExtendOrder(ord.orderId, 120)}
+                              className="text-[11px] px-2 py-1 h-auto cursor-pointer hover:border-indigo-500 hover:text-indigo-300"
+                              title="Gia hạn thêm 120 ngày (1 Kỳ)"
+                            >
+                              +1 Kỳ
+                            </Button>
+                            <button
+                              type="button"
+                              onClick={() => handleRevokeOrder(ord.orderId)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              title="Thu hồi / Khóa key"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Section 3: LICENSE KEY GENERATOR (WITH EXPIRATION) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Generator Form */}
           <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
@@ -452,7 +734,7 @@ export default function AdminPage() {
                 <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
-                  <span>FPT EduNext AI Assistant Pro (v10.2.23)</span>
+                  <span>FPT EduNext AI Assistant Pro (v10.2.27)</span>
                 </div>
               </div>
 

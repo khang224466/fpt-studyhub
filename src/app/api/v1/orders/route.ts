@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SERVICES_CATALOG, BANK_CONFIG } from '@/data/servicesCatalog';
 import { generateVietQRUrl } from '@/lib/utils';
 import { OrderItem } from '@/types/rental';
-import { generateExpiringLicenseKey } from '@/lib/cryptoKey';
+import { generateExpiringLicenseKey, extendLicenseKey } from '@/lib/cryptoKey';
 
 const NO_CACHE_HEADERS = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -212,7 +212,46 @@ export async function PUT(req: NextRequest) {
       }, { headers: NO_CACHE_HEADERS });
     }
 
-    // Action 2: Admin approves order -> generate key and status = 'approved'
+    // Action 2: Extend license expiration (Gia hạn Key)
+    if (action === 'extend') {
+      const addDays = parseInt(body.addDays, 10) || 7;
+      const currentKey = order.licenseKey || '';
+      const { licenseKey, expiresAt } = extendLicenseKey(
+        currentKey,
+        addDays,
+        order.durationLabel || '1 Tuan',
+        apiKey
+      );
+      order.licenseKey = licenseKey;
+      order.expiresAt = expiresAt;
+      order.status = 'approved';
+      order.durationDays = (order.durationDays || 7) + addDays;
+      orders[orderIndex] = order;
+      await saveOrdersToCloud(orders);
+      return NextResponse.json({
+        success: true,
+        message: `Đã gia hạn thành công thêm ${addDays} ngày!`,
+        order,
+        licenseKey,
+        expiresAt
+      }, { headers: NO_CACHE_HEADERS });
+    }
+
+    // Action 3: Revoke license key (Thu hồi / Khóa Key)
+    if (action === 'revoke') {
+      order.status = 'cancelled';
+      order.licenseKey = '';
+      order.expiresAt = 0;
+      orders[orderIndex] = order;
+      await saveOrdersToCloud(orders);
+      return NextResponse.json({
+        success: true,
+        message: 'Đã thu hồi bản quyền thành công!',
+        order
+      }, { headers: NO_CACHE_HEADERS });
+    }
+
+    // Action 4: Admin approves order -> generate key and status = 'approved'
     let durationDays = 7;
     if (order.planId === 'edunext-1m' || (order.durationLabel && order.durationLabel.includes('Tháng'))) {
       durationDays = 30;
@@ -220,11 +259,13 @@ export async function PUT(req: NextRequest) {
       durationDays = 120;
     }
 
-    const { licenseKey } = generateExpiringLicenseKey(durationDays, order.durationLabel, apiKey);
+    const { licenseKey, expiresAt } = generateExpiringLicenseKey(durationDays, order.durationLabel, apiKey);
 
     order.status = 'approved';
     order.paidAt = Date.now();
     order.licenseKey = licenseKey;
+    order.expiresAt = expiresAt;
+    order.durationDays = durationDays;
     orders[orderIndex] = order;
     await saveOrdersToCloud(orders);
 
@@ -232,6 +273,7 @@ export async function PUT(req: NextRequest) {
       success: true,
       message: 'Admin đã duyệt và cấp Key thành công!',
       licenseKey,
+      expiresAt,
       order
     }, { headers: NO_CACHE_HEADERS });
   } catch (error: any) {

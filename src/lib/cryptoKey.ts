@@ -52,9 +52,45 @@ export function generateExpiringLicenseKey(
 ): { licenseKey: string; expiresAt: number; payload: string } {
   const activeKey = (apiKey && apiKey.trim()) || process.env.GEMINI_API_KEY || '';
   const expiresAt = Date.now() + durationDays * 24 * 3600 * 1000;
-  const payload = `EXP|${expiresAt}|${planLabel}|${activeKey}`;
+  
+  // Normalize to ASCII label so XOR cipher is 100% byte-aligned across all platforms
+  let safePlan = '1 Tuan';
+  if (durationDays === 30 || planLabel.includes('Tháng') || planLabel.includes('1m')) safePlan = '1 Thang';
+  if (durationDays === 120 || planLabel.includes('Kỳ') || planLabel.includes('semester')) safePlan = '1 Ky Hoc (4 Thang)';
+
+  const payload = `EXP|${expiresAt}|${safePlan}|${activeKey}`;
   const licenseKey = encryptClientKey(payload);
   return { licenseKey, expiresAt, payload };
+}
+
+/**
+ * Extend an existing license key by addDays
+ */
+export function extendLicenseKey(
+  currentKey: string,
+  addDays: number,
+  fallbackPlanLabel: string = '1 Tuan',
+  fallbackApiKey?: string
+): { licenseKey: string; expiresAt: number; planLabel: string } {
+  const raw = decryptClientKey(currentKey);
+  let oldExp = Date.now();
+  let plan = fallbackPlanLabel;
+  let activeKey = fallbackApiKey || '';
+
+  if (raw && raw.startsWith('EXP|')) {
+    const parts = raw.split('|');
+    const parsedExp = parseInt(parts[1], 10);
+    if (!isNaN(parsedExp)) oldExp = parsedExp;
+    if (parts[2]) plan = parts[2];
+    if (parts.slice(3).join('|')) activeKey = parts.slice(3).join('|');
+  }
+
+  // Extend from oldExp if still valid, or from now if already expired
+  const baseTimestamp = oldExp > Date.now() ? oldExp : Date.now();
+  const expiresAt = baseTimestamp + addDays * 24 * 3600 * 1000;
+  const payload = `EXP|${expiresAt}|${plan}|${activeKey}`;
+  const licenseKey = encryptClientKey(payload);
+  return { licenseKey, expiresAt, planLabel: plan };
 }
 
 /**
