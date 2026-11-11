@@ -50,7 +50,18 @@ export function generateExpiringLicenseKey(
   planLabel: string,
   apiKey?: string
 ): { licenseKey: string; expiresAt: number; payload: string } {
-  const activeKey = (apiKey && apiKey.trim()) || process.env.GEMINI_API_KEY || '';
+  let activeKey = (apiKey && apiKey.trim()) || '';
+  if (activeKey.startsWith('ENC_AI_')) {
+    const unwrapped = decryptApiKey(activeKey);
+    if (unwrapped && (unwrapped.startsWith('AIza') || unwrapped.startsWith('AQ.') || (!unwrapped.startsWith('ENC_') && unwrapped.length >= 20))) {
+      activeKey = unwrapped;
+    } else {
+      activeKey = '';
+    }
+  }
+  if (!activeKey) {
+    activeKey = process.env.GEMINI_API_KEY || '';
+  }
   const expiresAt = Date.now() + durationDays * 24 * 3600 * 1000;
   
   // Normalize to ASCII label so XOR cipher is 100% byte-aligned across all platforms

@@ -95,33 +95,48 @@ export default function AdminPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const extractInnerKey = (token: string): string => {
+    if (!token || typeof token !== 'string') return '';
+    let cur = token.trim();
+    const salt = 'ENX_SEC_2026_FLASH_LITE';
+    for (let depth = 0; depth < 5; depth++) {
+      if (cur.startsWith('AIza') || cur.startsWith('AQ.')) return cur;
+      if (!cur.startsWith('ENC_AI_')) break;
+      try {
+        const b64 = cur.slice(7);
+        const hex = atob(b64);
+        let out = '';
+        for (let i = 0; i < hex.length; i += 2) {
+          const c = parseInt(hex.substr(i, 2), 16) ^ salt.charCodeAt((i / 2) % salt.length);
+          out += String.fromCharCode(c);
+        }
+        if (out.startsWith('EXP|')) {
+          const parts = out.split('|');
+          cur = parts.slice(3).join('|').trim();
+        } else {
+          cur = out.trim();
+        }
+      } catch {
+        break;
+      }
+    }
+    return cur;
+  };
+
   const isGeminiFormat = (k: string) => {
     if (!k || typeof k !== 'string') return false;
     const clean = k.trim();
-    return clean.startsWith('AIza') || clean.startsWith('AQ.') || (!clean.startsWith('ENC_') && clean.length >= 20);
+    return clean.startsWith('AIza') || clean.startsWith('AQ.') || clean.startsWith('ENC_AI_') || clean.length >= 20;
   };
 
   // Admin approves order and issues Key (supports orderId or transferCode)
   const handleApproveOrder = async (orderId: string, transferCode?: string) => {
     let keyToUse = masterApiKey.trim();
-    if (!keyToUse || !isGeminiFormat(keyToUse)) {
-      const entered = window.prompt(
-        '⚠️ BẮT BUỘC: Bạn chưa cấu hình Master Google Gemini API Key chuẩn!\n' +
-        'Để khách hàng giải được bài tập bằng AI, cần nhập Key Google Gemini (bắt đầu bằng "AIzaSy..." hoặc "AQ....").\n' +
-        '(Lấy Key miễn phí 100% tại: https://aistudio.google.com/app/apikey)\n\n' +
-        'Vui lòng dán Key Google Gemini của Admin vào đây để duyệt và lưu:',
-        keyToUse
-      );
-      if (!entered || !entered.trim()) {
-        alert('❌ Đã hủy duyệt đơn: Cần có Google Gemini API Key để kích hoạt chức năng giải bài cho sinh viên.');
-        return;
+    if (keyToUse.startsWith('ENC_AI_')) {
+      const unwrapped = extractInnerKey(keyToUse);
+      if (unwrapped && (unwrapped.startsWith('AIza') || unwrapped.startsWith('AQ.'))) {
+        keyToUse = unwrapped;
       }
-      keyToUse = entered.trim();
-      if (!isGeminiFormat(keyToUse)) {
-        alert('❌ Lỗi định dạng Key: Key Google Gemini chuẩn luôn bắt đầu bằng "AIzaSy..." hoặc "AQ....".\nKey "' + keyToUse.slice(0, 8) + '..." không hợp lệ! Vui lòng vào aistudio.google.com/app/apikey tạo key mới.');
-        return;
-      }
-      handleMasterKeyChange(keyToUse);
     }
 
     setApprovingOrderId(orderId || transferCode || 'approving');
@@ -139,7 +154,7 @@ export default function AdminPage() {
       const data = await res.json();
       if (data.success) {
         await fetchOrders();
-        alert(`✓ Đã duyệt và cấp Key thành công cho đơn ${orderId || transferCode}! Màn hình khách hàng sẽ tự động chuyển sang trang nhận Bookmarklet trong 2 giây.`);
+        alert(`✓ Đã duyệt và cấp Key thành công cho đơn ${orderId || transferCode}! Màn hình khách hàng sẽ tự động nhận Bookmarklet.`);
       }
     } catch (e) {
       console.error('Approve order error:', e);
@@ -240,10 +255,12 @@ export default function AdminPage() {
     if (days === 30) { planLabel = '1 Tháng'; safePlan = '1 Thang'; }
     if (days === 120) { planLabel = '1 Kỳ Học (4 Tháng)'; safePlan = '1 Ky Hoc (4 Thang)'; }
 
-    const rawKey = customApiKey.trim() || masterApiKey.trim();
-    if (rawKey && !isGeminiFormat(rawKey)) {
-      alert('❌ Key Google Gemini phải bắt đầu bằng "AIzaSy..." hoặc "AQ....". Key "' + rawKey.slice(0, 8) + '..." không đúng định dạng! Lấy key miễn phí tại aistudio.google.com');
-      return;
+    let rawKey = customApiKey.trim() || masterApiKey.trim();
+    if (rawKey.startsWith('ENC_AI_')) {
+      const unwrapped = extractInnerKey(rawKey);
+      if (unwrapped && (unwrapped.startsWith('AIza') || unwrapped.startsWith('AQ.'))) {
+        rawKey = unwrapped;
+      }
     }
     const expiresAt = Date.now() + days * 24 * 3600 * 1000;
     const payload = `EXP|${expiresAt}|${safePlan}|${rawKey}`;
@@ -289,7 +306,7 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="emerald" size="sm">v10.2.32 PRO</Badge>
+              <Badge variant="emerald" size="sm">v10.2.33 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
@@ -313,8 +330,8 @@ export default function AdminPage() {
                 <h3 className="text-sm font-bold text-white">
                   Master Google Gemini API Key (Duyệt Cấp Bản Quyền)
                 </h3>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${masterApiKey && isGeminiFormat(masterApiKey) ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-red-500/20 text-red-300 border-red-500/50 animate-pulse'}`}>
-                  {masterApiKey && isGeminiFormat(masterApiKey) ? '✓ Đã Lưu Key Chuẩn' : '⚠ Chưa Cấu Hình Key Gemini'}
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${masterApiKey ? (masterApiKey.startsWith('ENC_AI_') ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30') : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'}`}>
+                  {masterApiKey ? (masterApiKey.startsWith('ENC_AI_') ? '✓ Key Bản Quyền (ENC_AI)' : '✓ Đã Lưu Key Master') : '⚡ Cloud AI Server (Mặc Định)'}
                 </span>
                 <a
                   href="https://aistudio.google.com/app/apikey"
@@ -327,7 +344,7 @@ export default function AdminPage() {
                 </a>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Key này được đóng gói và mã hóa trực tiếp vào Key bản quyền khi Admin bấm <strong className="text-emerald-400">[Duyệt & Cấp Key]</strong>. Hỗ trợ chuẩn key Google AI Studio (bắt đầu bằng <code>AIzaSy...</code> hoặc <code>AQ....</code>).
+                Key này được đóng gói và mã hóa trực tiếp vào Key bản quyền khi Admin bấm <strong className="text-emerald-400">[Duyệt & Cấp Key]</strong>. Hỗ trợ mọi định dạng: <code>AIzaSy...</code>, <code>AQ....</code>, hoặc mã hóa <code>ENC_AI_...</code>.
               </p>
             </div>
             <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
@@ -340,7 +357,7 @@ export default function AdminPage() {
               type="password"
               value={masterApiKey}
               onChange={(e) => handleMasterKeyChange(e.target.value)}
-              placeholder="Nhập Master Gemini API Key của Admin (bắt đầu bằng AIzaSy... hoặc AQ....)"
+              placeholder="Nhập Master Gemini API Key của Admin (AIzaSy..., AQ..., hoặc ENC_AI_...)"
               className="flex-1 px-4 py-2 text-xs rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 font-mono focus:outline-none focus:border-emerald-500"
             />
             {masterApiKey && (
@@ -357,17 +374,6 @@ export default function AdminPage() {
               </button>
             )}
           </div>
-          {masterApiKey.trim() && !isGeminiFormat(masterApiKey.trim()) && (
-            <div className="p-2.5 rounded-lg bg-amber-950/60 border border-amber-500/50 text-xs text-amber-300 flex items-center gap-2 mt-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>
-                Key Google Gemini chuẩn luôn bắt đầu bằng <strong>"AIzaSy..."</strong> hoặc <strong>"AQ...."</strong>. Khóa hiện tại ("{masterApiKey.trim().slice(0, 8)}...") không đúng định dạng! Lấy key miễn phí tại{' '}
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-bold text-white hover:text-emerald-400">
-                  Google AI Studio
-                </a>.
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Overview Stats Cards */}
@@ -779,7 +785,7 @@ export default function AdminPage() {
                 <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
-                  <span>FPT EduNext AI Assistant Pro (v10.2.32)</span>
+                  <span>FPT EduNext AI Assistant Pro (v10.2.33)</span>
                 </div>
               </div>
 
