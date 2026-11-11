@@ -73,7 +73,7 @@ export function ActivationSuccessModal({
             </div>
             <div>
               <div className="font-bold text-white text-sm">
-                Đã mở khóa: {service.name} (v10.2.17)
+                Đã mở khóa: {service.name} (v10.2.18)
               </div>
               <div className="text-xs text-emerald-300">
                 Thời hạn: {order.durationLabel} • Trạng thái: Đã cấp quyền
