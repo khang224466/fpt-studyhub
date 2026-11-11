@@ -165,13 +165,33 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { orderId, action, apiKey } = body;
+    const { orderId, action, apiKey, transferCode } = body;
 
     const orders = await fetchOrdersFromCloud();
-    const orderIndex = orders.findIndex(o => o.orderId === orderId);
+    let orderIndex = orders.findIndex(o => 
+      (orderId && o.orderId === orderId) || 
+      (transferCode && o.transferCode === transferCode)
+    );
 
+    // If order not found in cloud store, auto-upsert so requests are NEVER dropped
     if (orderIndex === -1) {
-      return NextResponse.json({ success: false, message: 'Đơn hàng không tồn tại' }, { status: 404, headers: NO_CACHE_HEADERS });
+      const activeOrderId = orderId || `ORD-${Date.now().toString().slice(-4)}${Math.floor(1000 + Math.random() * 9000)}`;
+      const activeTransferCode = transferCode || body.transferCode || ('PR' + activeOrderId.slice(-4));
+      const newOrder: OrderItem = {
+        orderId: activeOrderId,
+        serviceId: body.serviceId || 'edunext-assistant',
+        serviceName: body.serviceName || 'FPT EduNext AI Assistant Pro',
+        planId: body.planId || 'edunext-semester',
+        durationLabel: body.durationLabel || '1 Kỳ Học (4 Tháng)',
+        amount: body.amount || 220000,
+        customerEmail: body.customerEmail,
+        customerPhone: body.customerPhone,
+        transferCode: activeTransferCode,
+        status: action === 'approve' ? 'approved' : 'waiting_approval',
+        createdAt: Date.now()
+      };
+      orders.unshift(newOrder);
+      orderIndex = 0;
     }
 
     const order = orders[orderIndex];
@@ -179,6 +199,10 @@ export async function PUT(req: NextRequest) {
     // Action 1: User indicates transfer done -> status = 'waiting_approval'
     if (action === 'confirm_transfer') {
       order.status = 'waiting_approval';
+      if (body.durationLabel) order.durationLabel = body.durationLabel;
+      if (body.amount) order.amount = body.amount;
+      if (body.planId) order.planId = body.planId;
+      if (transferCode) order.transferCode = transferCode;
       orders[orderIndex] = order;
       await saveOrdersToCloud(orders);
       return NextResponse.json({

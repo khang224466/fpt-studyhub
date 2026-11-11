@@ -52,11 +52,29 @@ export function CheckoutModal({
     qrImageSrc = BANK_CONFIG.qr220k || '/qr_220k.png';
   }
 
-  // Create order when modal opens
+  // Create order when modal opens (with immediate deterministic fallback)
   useEffect(() => {
     if (isOpen && service && plan) {
       setTimeLeft(600);
       setIsWaitingAdmin(false);
+
+      const randomCode = Math.floor(1000 + Math.random() * 9000);
+      const initialTransferCode = `PR${randomCode}`;
+      const initialOrderId = `ORD-${Date.now().toString().slice(-4)}${randomCode}`;
+
+      const initialOrder: OrderItem = {
+        orderId: initialOrderId,
+        serviceId: service.id,
+        serviceName: service.name,
+        planId: plan.id,
+        durationLabel: plan.durationLabel,
+        amount: plan.price,
+        transferCode: initialTransferCode,
+        status: 'pending',
+        createdAt: Date.now()
+      };
+      setOrder(initialOrder);
+
       fetch(`/api/v1/orders?t=${Date.now()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
@@ -67,7 +85,7 @@ export function CheckoutModal({
       })
       .then(res => res.json())
       .then(data => {
-        if (data.success) {
+        if (data.success && data.order) {
           setOrder(data.order);
         }
       })
@@ -111,7 +129,7 @@ export function CheckoutModal({
       } catch (e) {
         console.error('Polling order status error:', e);
       }
-    }, 3000);
+    }, 2000);
 
     return () => clearInterval(pollInterval);
   }, [isOpen, order, onPaymentSuccess]);
@@ -125,22 +143,30 @@ export function CheckoutModal({
 
   // Submit transfer confirmation -> Wait for admin approval
   const handleConfirmPayment = async () => {
-    if (!order) return;
+    if (!order || !service || !plan) return;
     setIsVerifying(true);
+    // Optimistic switch immediately so user sees state change
+    setIsWaitingAdmin(true);
+    setOrder(prev => prev ? { ...prev, status: 'waiting_approval' } : null);
 
     try {
-      const res = await fetch('/api/v1/orders', {
+      const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
         body: JSON.stringify({ 
           orderId: order.orderId,
-          action: 'confirm_transfer'
+          action: 'confirm_transfer',
+          serviceId: service.id,
+          serviceName: service.name,
+          planId: plan.id,
+          durationLabel: plan.durationLabel,
+          amount: plan.price,
+          transferCode: order.transferCode
         })
       });
       const data = await res.json();
-      if (data.success) {
-        setIsWaitingAdmin(true);
-        setOrder(prev => prev ? { ...prev, status: 'waiting_approval' } : null);
+      if (data.success && data.order) {
+        setOrder(data.order);
       }
     } catch (e) {
       console.error('Submit transfer confirmation error:', e);

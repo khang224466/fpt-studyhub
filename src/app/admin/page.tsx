@@ -34,6 +34,8 @@ export default function AdminPage() {
   const [durationDays, setDurationDays] = useState('7');
   const [customApiKey, setCustomApiKey] = useState('');
   const [masterApiKey, setMasterApiKey] = useState('');
+  const [quickCode, setQuickCode] = useState('');
+  const [isQuickApproving, setIsQuickApproving] = useState(false);
   const [lastGenerated, setLastGenerated] = useState<{
     key: string;
     planLabel: string;
@@ -61,7 +63,6 @@ export default function AdminPage() {
   };
 
   const fetchOrders = async () => {
-    setIsLoadingOrders(true);
     try {
       const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
         cache: 'no-store',
@@ -73,8 +74,6 @@ export default function AdminPage() {
       }
     } catch (e) {
       console.error('Fetch orders error:', e);
-    } finally {
-      setIsLoadingOrders(false);
     }
   };
 
@@ -85,12 +84,12 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 3000);
+    const interval = setInterval(fetchOrders, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  // Admin approves order and issues Key
-  const handleApproveOrder = async (orderId: string) => {
+  // Admin approves order and issues Key (supports orderId or transferCode)
+  const handleApproveOrder = async (orderId: string, transferCode?: string) => {
     if (!masterApiKey.trim()) {
       const confirmed = window.confirm(
         'Bạn chưa nhập Master Gemini API Key ở ô cấu hình phía trên!\nNếu duyệt không có Key, khách hàng sẽ nhận Key không chứa mã gọi AI.\n\nBạn có chắc chắn muốn tiếp tục không?'
@@ -98,13 +97,14 @@ export default function AdminPage() {
       if (!confirmed) return;
     }
 
-    setApprovingOrderId(orderId);
+    setApprovingOrderId(orderId || transferCode || 'approving');
     try {
-      const res = await fetch('/api/v1/orders', {
+      const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
         body: JSON.stringify({
           orderId,
+          transferCode,
           action: 'approve',
           apiKey: masterApiKey.trim()
         })
@@ -117,6 +117,21 @@ export default function AdminPage() {
       console.error('Approve order error:', e);
     } finally {
       setApprovingOrderId(null);
+    }
+  };
+
+  // Quick Approve by Transfer Code (e.g. PR7874)
+  const handleQuickApproveSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = quickCode.trim().toUpperCase();
+    if (!code) return;
+
+    setIsQuickApproving(true);
+    try {
+      await handleApproveOrder('', code);
+      setQuickCode('');
+    } finally {
+      setIsQuickApproving(false);
     }
   };
 
@@ -173,7 +188,7 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="emerald" size="sm">v10.2.24 PRO</Badge>
+              <Badge variant="emerald" size="sm">v10.2.25 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
@@ -294,9 +309,34 @@ export default function AdminPage() {
               </p>
             </div>
             <Badge variant="indigo" size="sm">
-              Tự động đồng bộ Realtime (3s)
+              Tự động đồng bộ Realtime (2s)
             </Badge>
           </div>
+
+          {/* Quick Approve Box by Transfer Code (e.g. PR7874) */}
+          <form onSubmit={handleQuickApproveSubmit} className="flex flex-col sm:flex-row items-center gap-2 p-3 rounded-xl bg-slate-950 border border-slate-800">
+            <div className="flex items-center gap-2 text-xs text-amber-300 font-bold shrink-0">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Duyệt nhanh theo Mã CK:</span>
+            </div>
+            <input
+              type="text"
+              value={quickCode}
+              onChange={(e) => setQuickCode(e.target.value)}
+              placeholder="Nhập mã CK (ví dụ: PR7874 hoặc ORD-...)"
+              className="flex-1 w-full px-3 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-700 text-amber-300 font-mono uppercase focus:outline-none focus:border-emerald-500"
+            />
+            <Button
+              type="submit"
+              size="sm"
+              variant="primary"
+              disabled={isQuickApproving || !quickCode.trim()}
+              className="w-full sm:w-auto text-xs shrink-0 cursor-pointer"
+            >
+              {isQuickApproving ? <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
+              <span>Duyệt & Cấp Key Ngay</span>
+            </Button>
+          </form>
 
           {orders.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-xs">
