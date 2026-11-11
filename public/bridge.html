@@ -24,13 +24,13 @@
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 25px rgba(16, 185, 129, 0.35);
       max-width: 520px;
       width: 100%;
-      padding: 22px 20px;
+      padding: 20px;
     }
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid #1e293b;
       padding-bottom: 12px;
       margin-bottom: 14px;
     }
@@ -40,16 +40,17 @@
       gap: 10px;
     }
     .icon {
-      width: 32px;
-      height: 32px;
-      background: #10b981;
-      border-radius: 8px;
+      font-size: 20px;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #000;
+      color: #10b981;
       font-weight: 900;
-      font-size: 16px;
     }
     h1 {
       font-size: 14px;
@@ -76,7 +77,7 @@
       border: 1px solid #1e293b;
       border-radius: 10px;
       padding: 10px 12px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       font-size: 11px;
     }
     .status-row {
@@ -109,13 +110,20 @@
       100% { opacity: 1; transform: scale(1); }
     }
     .note {
-      font-size: 10.5px;
+      font-size: 10px;
       color: #cbd5e1;
       line-height: 1.45;
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.25);
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.2);
       border-radius: 8px;
+      padding: 7px 9px;
+    }
+    .key-box {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
       padding: 8px 10px;
+      margin-bottom: 12px;
     }
     .logs-title {
       font-size: 11px;
@@ -146,8 +154,8 @@
       <div class="title-box">
         <div class="icon">⚡</div>
         <div>
-          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.35</span></h1>
-          <div class="sub">Vượt CSP Cloudflare 100% • Reactive Event Tracker (Tự Động Bắt Đề)</div>
+          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.36</span></h1>
+          <div class="sub">Vượt CSP Cloudflare 100% • Đồng Bộ Realtime 2 Chiều</div>
         </div>
       </div>
     </div>
@@ -164,6 +172,17 @@
       </div>
     </div>
 
+    <div class="key-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:11px;color:#94a3b8;font-weight:600;">🔑 Google Gemini API Key:</span>
+        <span id="key-badge" style="font-size:9.5px;color:#10b981;font-weight:700;">✓ Đã sẵn sàng</span>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <input id="custom-key-input" type="text" placeholder="AQ.Ab8... hoặc AIzaSy..." style="flex:1;background:#0b0f19;border:1px solid #334155;color:#38bdf8;font-family:monospace;font-size:10px;padding:5px 8px;border-radius:6px;outline:none;" />
+        <button id="save-key-btn" style="background:#059669;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;font-weight:700;cursor:pointer;">Lưu Key</button>
+      </div>
+    </div>
+
     <div class="logs-title">Nhật Ký Kết Nối Realtime:</div>
     <div id="logs" class="logs-box"></div>
   </div>
@@ -171,6 +190,11 @@
   <script>
     const logsEl = document.getElementById('logs');
     const statusEl = document.getElementById('bridge-status');
+    const keyInput = document.getElementById('custom-key-input');
+    const saveKeyBtn = document.getElementById('save-key-btn');
+    const keyBadge = document.getElementById('key-badge');
+
+    const ENCRYPTED_DEFAULT_TOKEN = 'ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl';
 
     function log(type, msg) {
       const time = new Date().toLocaleTimeString('vi-VN');
@@ -181,21 +205,56 @@
       logsEl.scrollTop = logsEl.scrollHeight;
     }
 
-    log('success', '✓ Khởi tạo AI Bridge v10.2.35 thành công!');
+    log('success', '✓ Khởi tạo AI Bridge v10.2.36 thành công!');
 
-    if (window.opener) {
-      try {
-        window.opener.postMessage({ type: 'ENX_BRIDGE_READY' }, '*');
-        log('success', '✓ Đã đồng bộ với cửa sổ EduNext!');
-      } catch(e) {}
+    // Initialize Key UI
+    let activeSavedKey = '';
+    try {
+      activeSavedKey = localStorage.getItem('enx_bridge_gemini_key') || extractTrueGeminiKey(ENCRYPTED_DEFAULT_TOKEN);
+    } catch(_) {
+      activeSavedKey = extractTrueGeminiKey(ENCRYPTED_DEFAULT_TOKEN);
     }
+    if (keyInput) keyInput.value = activeSavedKey;
+
+    if (saveKeyBtn) {
+      saveKeyBtn.onclick = function() {
+        const val = (keyInput.value || '').trim();
+        if (val) {
+          try {
+            localStorage.setItem('enx_bridge_gemini_key', val);
+            activeSavedKey = val;
+            log('success', '✓ Đã lưu Google Gemini API Key mới thành công!');
+            if (keyBadge) keyBadge.textContent = '✓ Đã lưu';
+          } catch(e) {}
+        }
+      };
+    }
+
+    // 1. HANDSHAKE & HEARTBEAT VỚI CỬA SỔ EDUNEXT
+    function syncWithEduNext() {
+      const opener = window.opener;
+      if (opener && !opener.closed) {
+        try {
+          opener.postMessage({ type: 'ENX_BRIDGE_READY' }, '*');
+          statusEl.innerHTML = '<span class="dot" style="background:#10b981"></span> 🟢 Đã liên kết với cửa sổ EduNext!';
+          return true;
+        } catch(e) {}
+      } else {
+        statusEl.innerHTML = '<span class="dot" style="background:#f59e0b"></span> ⚠️ Đang chờ EduNext mở Cầu Nối...';
+        return false;
+      }
+    }
+
+    if (syncWithEduNext()) {
+      log('success', '✓ Đã đồng bộ với cửa sổ EduNext!');
+    }
+    setInterval(syncWithEduNext, 2000);
 
     // Cache list of validated vision models for key
     const SALT = 'ENX_SEC_2026_FLASH_LITE';
 
     function extractTrueGeminiKey(keyStr) {
-      if (!keyStr || typeof keyStr !== 'string') return '';
-      let cur = keyStr.trim();
+      let cur = (keyStr || '').trim();
       for (let depth = 0; depth < 5; depth++) {
         if (cur.startsWith('AIzaSy') || cur.startsWith('AIza') || cur.startsWith('AQ.') || (!cur.startsWith('ENC_') && cur.length >= 20)) {
           return cur;
@@ -224,7 +283,8 @@
       if (cur.startsWith('AIzaSy') || cur.startsWith('AIza') || cur.startsWith('AQ.') || (!cur.startsWith('ENC_') && cur.length >= 20)) {
         return cur;
       }
-      return '';
+      // Fallback to active key saved in Bridge
+      return activeSavedKey || extractTrueGeminiKey(ENCRYPTED_DEFAULT_TOKEN);
     }
 
     let cachedModelList = null;
@@ -232,66 +292,58 @@
 
     async function discoverModels(cleanKey) {
       if (cachedModelList && cachedModelList.length > 0) return cachedModelList;
+      log('info', 'Đang đồng bộ model Google Gemini Studio khả dụng...');
+
       try {
-        log('info', 'Đang đồng bộ model Google Gemini Studio khả dụng...');
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`, {
-          headers: {
-            'x-goog-api-key': cleanKey
-          }
+          method: 'GET',
+          headers: { 'Cache-Control': 'no-cache' }
         });
+
         if (res.ok) {
           const data = await res.json();
           if (data.models && Array.isArray(data.models)) {
-            // LỌC BỎ CÁC MODEL KHÔNG PHÙ HỢP (tts, audio, embedding, aqa, gemma, 2.5, pro, ultra)
-            // TUYỆT ĐỐI CẤM MODEL PRO ĐỂ TRÁNH LỖI QUOTA 429 (Pro chỉ có 2 RPM trên bản miễn phí)
+            // LỌC BỎ PRO VÀ ULTRA - CHỈ GIỮ FLASH CAO RPM
             const visionCandidates = data.models
               .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
               .map(m => m.name.replace(/^models\//, ''))
               .filter(name => 
-                !name.includes('tts') && 
-                !name.includes('embed') && 
-                !name.includes('aqa') && 
-                !name.includes('audio') && 
-                !name.includes('realtime') &&
+                !name.includes('tts') &&
+                !name.includes('audio') &&
+                !name.includes('embed') &&
+                !name.includes('aqa') &&
                 !name.includes('gemma') &&
                 !name.includes('2.5') &&
                 !name.includes('pro') &&
                 !name.includes('ultra')
               );
 
-            if (visionCandidates.length > 0) {
-              // Ưu tiên các model Flash-Lite và Flash siêu nhanh, đã kiểm chứng cao RPM:
-              const priority = [
-                'gemini-flash-lite-latest',
-                'gemini-2.0-flash-lite',
-                'gemini-2.0-flash-lite-preview-02-05',
-                'gemini-1.5-flash',
-                'gemini-1.5-flash-latest',
-                'gemini-2.0-flash',
-                'gemini-flash-latest',
-                'gemini-1.5-flash-8b'
-              ];
+            const flashPriority = [
+              'gemini-flash-lite-latest',
+              'gemini-2.0-flash-lite',
+              'gemini-2.0-flash-lite-preview-02-05',
+              'gemini-1.5-flash',
+              'gemini-1.5-flash-latest',
+              'gemini-2.0-flash',
+              'gemini-flash-latest',
+              'gemini-1.5-flash-8b'
+            ];
 
-              visionCandidates.sort((a, b) => {
-                const idxA = priority.indexOf(a);
-                const idxB = priority.indexOf(b);
-                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-                if (idxA !== -1) return -1;
-                if (idxB !== -1) return 1;
-                return 0;
-              });
+            const prioritized = flashPriority.filter(m => visionCandidates.includes(m));
+            const others = visionCandidates.filter(m => !flashPriority.includes(m));
+            cachedModelList = [...prioritized, ...others];
 
-              log('success', `✓ Đã chọn ${visionCandidates.length} model Vision Flash cao RPM: ${visionCandidates.slice(0, 3).join(', ')}...`);
-              cachedModelList = visionCandidates;
-              return visionCandidates;
+            if (cachedModelList.length > 0) {
+              log('success', `✓ Đã chọn ${cachedModelList.length} model Vision khả dụng: ${cachedModelList.slice(0, 3).join(', ')}...`);
+              return cachedModelList;
             }
           }
         }
-      } catch(e) {
-        log('warn', 'Không thể ListModels: ' + (e.message || e));
+      } catch (err) {
+        log('warn', 'Không thể lấy danh sách model trực tiếp, chuyển sang danh sách chuẩn...');
       }
 
-      return [
+      cachedModelList = [
         'gemini-flash-lite-latest',
         'gemini-2.0-flash-lite',
         'gemini-1.5-flash',
@@ -299,6 +351,7 @@
         'gemini-2.0-flash',
         'gemini-flash-latest'
       ];
+      return cachedModelList;
     }
 
     // KHÓA ĐỒNG BỘ & ĐIỀU TIẾT NHỊP (CHỐNG SPAM LIÊN TỤC & 429 RATE LIMIT)
@@ -310,9 +363,11 @@
       if (!data || typeof data !== 'object') return;
 
       if (data.type === 'ENX_PING') {
-        if (e.source) {
-          e.source.postMessage({ type: 'ENX_PONG' }, '*');
+        const target = e.source || window.opener;
+        if (target) {
+          try { target.postMessage({ type: 'ENX_BRIDGE_PONG' }, '*'); } catch(_) {}
         }
+        statusEl.innerHTML = '<span class="dot" style="background:#10b981"></span> 🟢 Đã liên kết với cửa sổ EduNext!';
         return;
       }
 
@@ -334,7 +389,7 @@
         lastBridgeReqTime = Date.now();
 
         isBridgeSolving = true;
-        statusEl.innerHTML = '<span class="dot" style="background:#38bdf8"></span> Đang giải bài tập từ ảnh...';
+        statusEl.innerHTML = '<span class="dot" style="background:#38bdf8"></span> ⚡ Đang giải bài tập từ ảnh...';
         log('info', `Nhận yêu cầu: ${imageBase64 ? '📸 Ảnh Vision + ' : ''}"${(promptText || '').slice(0, 35)}..."`);
 
         try {
@@ -354,75 +409,72 @@
 
             const orderedModels = [preferredModel].concat(candidateModels.filter(m => m !== preferredModel));
 
-            for (let i = 0; i < orderedModels.length; i++) {
-              const model = orderedModels[i];
-              const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${trueGeminiKey}`;
-
-              const controller = new AbortController();
-              const timeoutTimer = setTimeout(() => controller.abort(), 12000);
-
+            for (const model of orderedModels) {
               try {
                 log('info', `Gửi API tới Google Studio (${model})...`);
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${trueGeminiKey}`;
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 12000);
+
                 const res = await fetch(url, {
                   method: 'POST',
-                  headers: { 
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': trueGeminiKey
-                  },
+                  headers: { 'Content-Type': 'application/json' },
                   signal: controller.signal,
                   body: JSON.stringify({
+                    contents: [{ role: 'user', parts }],
                     systemInstruction: {
                       parts: [{
-                        text: 'Bạn là Trợ lý Học tập FPT EduNext AI Pro. Giải bài tập ngắn gọn, chính xác theo định dạng trong ảnh. Tuyệt đối KHÔNG trả lời "Sẵn sàng" khi có câu hỏi bài tập. Nếu yêu cầu mẫu "Trả lời: [đáp án]", bắt buộc chỉ trả về đúng định dạng đó.'
+                        text: 'Bạn là Trợ lý Học tập FPT EduNext AI Pro. Đọc kỹ câu hỏi và mọi phản hồi, gợi ý của giáo viên. Nếu giáo viên vừa từ chối câu trả lời trước, tuyệt đối không lặp lại câu sai cũ mà phải đưa ra đáp án mới đúng theo gợi ý. Trả lời đúng mẫu yêu cầu (ví dụ: "Trả lời: [đáp án]").'
                       }]
                     },
-                    contents: [{ role: 'user', parts }],
-                    generationConfig: { temperature: 0.1, maxOutputTokens: 800 }
+                    generationConfig: {
+                      temperature: 0.1,
+                      maxOutputTokens: 800
+                    }
                   })
                 });
-                clearTimeout(timeoutTimer);
+
+                clearTimeout(timeoutId);
 
                 if (res.ok) {
                   const resJson = await res.json();
                   const candidate = resJson.candidates && resJson.candidates[0];
-                  const text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] ? candidate.content.parts[0].text : '';
-                  if (text && text.trim()) {
-                    let clean = text.replace(/```(?:markdown|json|text)?/gi, '').replace(/```/g, '').trim();
-                    clean = clean.replace(/^\*\*Trả lời:\*\*/i, 'Trả lời:').trim();
-                    answer = clean;
-                    preferredModel = model;
-                    log('success', `✓ Gemini (${model}) phản hồi: "${answer.slice(0, 30)}..." (Đã lưu ưu tiên)`);
-                    break;
+                  if (candidate && candidate.content && candidate.content.parts && candidate.content.parts[0]) {
+                    const rawAns = candidate.content.parts[0].text || '';
+                    if (rawAns.trim()) {
+                      answer = rawAns.replace(/```(?:markdown|json|text)?/gi, '').replace(/```/g, '').trim();
+                      answer = answer.replace(/^\*\*Trả lời:\*\*/i, 'Trả lời:').trim();
+                      preferredModel = model;
+                      log('success', `✓ Gemini (${model}) phản hồi: "${answer.slice(0, 30)}..." (Đã lưu ưu tiên)`);
+                      break;
+                    }
                   }
                 } else {
-                  const errTxt = await res.text();
-                  log('warn', `Model ${model} HTTP ${res.status}: ${(errTxt.slice(0, 70) || 'Lỗi')}`);
-                  lastErr = `HTTP ${res.status}`;
+                  const errText = await res.text();
+                  lastErr = `Model ${model} HTTP ${res.status}: ${errText.slice(0, 50)}`;
+                  log('warn', lastErr);
+
+                  if (res.status === 400 && errText.includes('API key not valid')) {
+                    log('err', `❌ LỖI API KEY: Google từ chối key. Hãy kiểm tra lại key ở ô bên trên!`);
+                    break;
+                  }
+
                   if (res.status === 429) {
-                    log('warn', `⚠️ Google báo 429 Quota Exceeded (${model}) -> Tự động chuyển Cloud AI Engine dự phòng...`);
-                    break;
-                  }
-                  if ((res.status === 400 || res.status === 401) && (errTxt.includes('API key not valid') || errTxt.includes('API_KEY_INVALID') || errTxt.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED'))) {
-                    log('warn', `⚠️ Google từ chối key client (HTTP ${res.status}). Đang tự động chuyển sang Cloud AI Engine dự phòng...`);
-                    lastErr = 'API Key Google Gemini lỗi quyền';
-                    break;
+                    log('warn', `⚠️ Bị giới hạn tần suất 429 trên model ${model}, thử model khác...`);
                   }
                 }
-              } catch(err) {
-                clearTimeout(timeoutTimer);
-                if (err.name === 'AbortError') {
-                  log('warn', `Model ${model} quá hạn (timeout 12s) -> Thử model khác`);
+              } catch (modelErr) {
+                if (modelErr.name === 'AbortError') {
+                  log('warn', `Model ${model} quá hạn (timeout 12s) -> Bỏ qua`);
                 } else {
-                  log('warn', `Lỗi kết nối ${model}: ${err.message || err}`);
+                  log('warn', `Lỗi gọi model ${model}: ${modelErr.message}`);
                 }
-                lastErr = err.message || err;
               }
             }
-          } else {
-            log('info', '⚡ Bản quyền chưa nhúng key Google trực tiếp -> Chuyển qua Cloud Engine dự phòng...');
           }
 
-          // Dự phòng Vercel Cloud Engine
+          // Fallback to Cloud Engine if needed
           if (!answer) {
             log('warn', '⚡ Đang gọi Cloud Engine dự phòng...');
             try {
@@ -432,25 +484,27 @@
                 body: JSON.stringify({
                   question: promptText,
                   images: imageBase64 ? [imageBase64] : [],
-                  licenseKey: rawKey,
+                  licenseKey: rawKey || activeSavedKey,
                   apiKeyOverride: trueGeminiKey
                 })
               });
-
-              if (cloudRes.ok) {
-                const cloudData = await cloudRes.json();
-                if (cloudData.success && cloudData.answer) {
-                  answer = cloudData.answer;
-                  log('success', `✓ Cloud Engine dự phòng phản hồi: "${answer.slice(0, 30)}..."`);
-                }
+              const cloudData = await cloudRes.json();
+              if (cloudData.success && cloudData.answer) {
+                answer = cloudData.answer;
+                log('success', '✓ Cloud Engine giải thành công!');
+              } else {
+                lastErr = cloudData.message || 'Cloud Engine không phản hồi';
               }
-            } catch(err) {}
+            } catch(ce) {
+              lastErr = ce.message;
+            }
           }
 
+          const targetWin = e.source || window.opener;
           if (answer) {
             statusEl.innerHTML = '<span class="dot" style="background:#10b981"></span> ✓ Đã giải xong, đang gửi về EduNext';
-            if (e.source) {
-              e.source.postMessage({
+            if (targetWin) {
+              targetWin.postMessage({
                 type: 'ENX_SOLVE_RES',
                 requestId,
                 success: true,
@@ -459,8 +513,8 @@
             }
           } else {
             statusEl.innerHTML = '<span class="dot" style="background:#ef4444"></span> ✗ Lỗi giải bài';
-            if (e.source) {
-              e.source.postMessage({
+            if (targetWin) {
+              targetWin.postMessage({
                 type: 'ENX_SOLVE_RES',
                 requestId,
                 success: false,
@@ -471,19 +525,14 @@
         } finally {
           isBridgeSolving = false;
           setTimeout(() => {
-            statusEl.innerHTML = '<span class="dot"></span> Đang sẵn sàng nhận bài tiếp theo...';
-          }, 1500);
+            if (statusEl.innerHTML.includes('Đã giải xong')) {
+              statusEl.innerHTML = '<span class="dot"></span> Đang sẵn sàng nhận bài tiếp theo...';
+            }
+          }, 3000);
         }
       }
     });
-
-    setInterval(() => {
-      if (window.opener) {
-        try {
-          window.opener.postMessage({ type: 'ENX_BRIDGE_HEARTBEAT' }, '*');
-        } catch(_) {}
-      }
-    }, 4000);
   </script>
+
 </body>
 </html>

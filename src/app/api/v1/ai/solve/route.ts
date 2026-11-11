@@ -3,7 +3,7 @@ import { verifyLicense } from '@/lib/licenseStore';
 import { decryptApiKey } from '@/lib/cryptoKey';
 
 const SYSTEM_PROMPT = `
-Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.35) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
+Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.36) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
 
 [QUY TẮC BẮT BUỘC]:
 1. ĐỊNH DẠNG TRẢ LỜI MẪU (RẤT QUAN TRỌNG):
@@ -46,8 +46,11 @@ interface SolveRequestBody {
 
 export async function POST(req: NextRequest) {
   try {
-    const body: SolveRequestBody = await req.json();
-    const { licenseKey, question, images, subject, formatHint, apiKeyOverride } = body;
+    const body: any = await req.json();
+    const licenseKey = body.licenseKey || body.apiKey || body.key || '';
+    const question = body.question;
+    const images = Array.isArray(body.images) ? body.images : (body.image ? [body.image] : []);
+    const { subject, formatHint, apiKeyOverride } = body;
 
     // 1. License Check & Remaining Time calculation
     const licenseCheck = verifyLicense(licenseKey);
