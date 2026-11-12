@@ -11,7 +11,7 @@ const NO_CACHE_HEADERS = {
   'Expires': '0'
 };
 
-const CLOUD_STORE_ID = 'ff808181a09d98f701a1c947378e0537';
+const CLOUD_STORE_ID = 'ff808181a09d98f701a1cd0fe3610db6';
 const CLOUD_STORE_URL = `https://api.restful-api.dev/objects/${CLOUD_STORE_ID}`;
 
 // In-memory fallback
@@ -23,6 +23,83 @@ if (!globalForOrders.ordersStore) {
 }
 const localOrdersStore = globalForOrders.ordersStore;
 
+interface CompactOrder {
+  id: string; // orderId
+  tc: string; // transferCode
+  st: 'p' | 'w' | 'a' | 'c'; // pending, waiting_approval, approved, cancelled
+  pi: string; // planId
+  am: number; // amount
+  ca: number; // createdAt
+  pa?: number; // paidAt
+  ea?: number; // expiresAt
+  dd?: number; // durationDays
+  k?: string; // licenseKey
+}
+
+function serializeCompactOrders(orders: OrderItem[]): string {
+  // Prune queue to fit well within SQL column limits:
+  // Always preserve ALL pending and waiting orders, plus up to 6 latest approved/finished orders
+  const pendingOrWaiting = orders.filter(o => o.status === 'pending' || o.status === 'waiting_approval');
+  const finished = orders.filter(o => o.status !== 'pending' && o.status !== 'waiting_approval');
+  const sortedFinished = finished.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 6);
+  const toSave = [...pendingOrWaiting, ...sortedFinished];
+
+  const compactList: CompactOrder[] = toSave.map(o => ({
+    id: o.orderId,
+    tc: o.transferCode,
+    st: (o.status === 'approved' || o.status === 'paid') ? 'a' : o.status === 'waiting_approval' ? 'w' : o.status === 'cancelled' ? 'c' : 'p',
+    pi: o.planId,
+    am: o.amount,
+    ca: o.createdAt || Date.now(),
+    pa: o.paidAt,
+    ea: o.expiresAt,
+    dd: o.durationDays,
+    k: o.licenseKey || undefined
+  }));
+
+  return JSON.stringify(compactList);
+}
+
+function deserializeCompactOrders(rawStr: string): OrderItem[] {
+  try {
+    const compactList: CompactOrder[] = JSON.parse(rawStr);
+    if (!Array.isArray(compactList)) return [];
+
+    return compactList.map(co => {
+      const plan = SERVICES_CATALOG[0].plans.find(p => p.id === co.pi) || SERVICES_CATALOG[0].plans[0];
+      const status = co.st === 'a' ? 'approved' : co.st === 'w' ? 'waiting_approval' : co.st === 'c' ? 'cancelled' : 'pending';
+      const durationDays = co.dd || (co.pi.includes('semester') ? 120 : co.pi.includes('1m') ? 30 : 7);
+      const durationLabel = co.pi.includes('semester') ? '1 Kỳ Học (4 Tháng)' : co.pi.includes('1m') ? '1 Tháng' : '1 Tuần';
+
+      let licenseKey = co.k || '';
+      let expiresAt = co.ea || 0;
+      if (status === 'approved' && !licenseKey) {
+        const gen = generateExpiringLicenseKey(durationDays, durationLabel);
+        licenseKey = gen.licenseKey;
+        expiresAt = gen.expiresAt;
+      }
+
+      return {
+        orderId: co.id,
+        serviceId: 'edunext-assistant',
+        serviceName: 'FPT EduNext AI Assistant Pro',
+        planId: co.pi || plan.id,
+        durationLabel,
+        amount: co.am || plan.price,
+        transferCode: co.tc,
+        status,
+        createdAt: co.ca,
+        paidAt: co.pa,
+        expiresAt,
+        durationDays,
+        licenseKey
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
 async function fetchOrdersFromCloud(): Promise<OrderItem[]> {
   try {
     const res = await fetch(`${CLOUD_STORE_URL}?t=${Date.now()}`, {
@@ -32,12 +109,24 @@ async function fetchOrdersFromCloud(): Promise<OrderItem[]> {
     });
     if (res.ok) {
       const json = await res.json();
-      if (json && json.data && Array.isArray(json.data.orders)) {
-        localOrdersStore.clear();
-        for (const ord of json.data.orders) {
-          if (ord.orderId) localOrdersStore.set(ord.orderId, ord);
+      if (json && json.data) {
+        let incoming: OrderItem[] = [];
+        if (typeof json.data.raw === 'string') {
+          incoming = deserializeCompactOrders(json.data.raw);
+        } else if (Array.isArray(json.data.orders)) {
+          incoming = json.data.orders;
         }
-        return json.data.orders;
+
+        // Merge incoming into local memory store (preserving any newer local memory updates)
+        for (const ord of incoming) {
+          if (ord.orderId) {
+            const existing = localOrdersStore.get(ord.orderId);
+            if (!existing || existing.status === 'pending' || ord.status === 'approved') {
+              localOrdersStore.set(ord.orderId, ord);
+            }
+          }
+        }
+        return Array.from(localOrdersStore.values());
       }
     }
   } catch (err) {
@@ -47,10 +136,11 @@ async function fetchOrdersFromCloud(): Promise<OrderItem[]> {
 }
 
 async function saveOrdersToCloud(orders: OrderItem[]): Promise<boolean> {
-  localOrdersStore.clear();
   for (const ord of orders) {
     if (ord.orderId) localOrdersStore.set(ord.orderId, ord);
   }
+
+  const rawCompact = serializeCompactOrders(Array.from(localOrdersStore.values()));
 
   try {
     const res = await fetch(CLOUD_STORE_URL, {
@@ -58,7 +148,7 @@ async function saveOrdersToCloud(orders: OrderItem[]): Promise<boolean> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'FPT_STUDYHUB_ORDERS_STORE_2026',
-        data: { orders }
+        data: { raw: rawCompact }
       })
     });
     return res.ok;
@@ -80,15 +170,8 @@ export async function POST(req: NextRequest) {
       transferCode: clientTransferCode
     } = body;
 
-    const service = SERVICES_CATALOG.find(s => s.id === serviceId);
-    if (!service) {
-      return NextResponse.json({ success: false, message: 'Dịch vụ không tồn tại' }, { status: 404, headers: NO_CACHE_HEADERS });
-    }
-
+    const service = SERVICES_CATALOG.find(s => s.id === serviceId) || SERVICES_CATALOG[0];
     const plan = service.plans.find(p => p.id === planId) || service.plans[0];
-    if (!plan) {
-      return NextResponse.json({ success: false, message: 'Gói dịch vụ không khả dụng' }, { status: 400, headers: NO_CACHE_HEADERS });
-    }
 
     const orderRandom = Math.floor(1000 + Math.random() * 9000);
     const orderId = clientOrderId || body.orderId || `ORD-${Date.now().toString().slice(-4)}${orderRandom}`;
@@ -145,10 +228,11 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderId = searchParams.get('orderId');
+  const transferCode = searchParams.get('transferCode');
 
   const orders = await fetchOrdersFromCloud();
 
-  if (!orderId) {
+  if (!orderId && !transferCode) {
     const sorted = [...orders].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     return NextResponse.json({
       success: true,
@@ -157,14 +241,28 @@ export async function GET(req: NextRequest) {
     }, { headers: NO_CACHE_HEADERS });
   }
 
-  const search = (orderId || '').trim().toUpperCase();
+  const searchOrderId = (orderId || '').trim().toUpperCase();
+  const searchCode = (transferCode || '').trim().toUpperCase();
+
   const order = orders.find(o => {
     const oId = (o.orderId || '').toUpperCase();
     const tCode = (o.transferCode || '').toUpperCase();
-    return oId === search || tCode === search || tCode === ('PR' + search) || oId.endsWith(search);
+    if (searchOrderId && (oId === searchOrderId || oId.endsWith(searchOrderId))) return true;
+    if (searchCode && (tCode === searchCode || tCode === ('PR' + searchCode) || ('PR' + tCode) === searchCode || oId.endsWith(searchCode))) return true;
+    if (searchOrderId && (tCode === searchOrderId || tCode === ('PR' + searchOrderId))) return true;
+    return false;
   });
+
   if (!order) {
     return NextResponse.json({ success: false, message: 'Đơn hàng không tồn tại' }, { status: 404, headers: NO_CACHE_HEADERS });
+  }
+
+  // If approved but licenseKey empty, auto-generate valid license key
+  if ((order.status === 'approved' || order.status === 'paid') && !order.licenseKey) {
+    const durationDays = order.durationDays || (order.planId?.includes('semester') ? 120 : order.planId?.includes('1m') ? 30 : 7);
+    const gen = generateExpiringLicenseKey(durationDays, order.durationLabel || '1 Ky Hoc (4 Thang)');
+    order.licenseKey = gen.licenseKey;
+    order.expiresAt = gen.expiresAt;
   }
 
   return NextResponse.json({
@@ -279,7 +377,7 @@ export async function PUT(req: NextRequest) {
       durationDays = 120;
     }
 
-    const { licenseKey, expiresAt } = generateExpiringLicenseKey(durationDays, order.durationLabel, apiKey);
+    const { licenseKey, expiresAt } = generateExpiringLicenseKey(durationDays, order.durationLabel || '1 Ky Hoc (4 Thang)', apiKey);
 
     order.status = 'approved';
     order.paidAt = Date.now();

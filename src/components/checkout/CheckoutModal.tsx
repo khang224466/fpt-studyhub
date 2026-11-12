@@ -59,8 +59,13 @@ export function CheckoutModal({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [isWaitingAdmin, setIsWaitingAdmin] = useState<boolean>(false);
+  const isWaitingAdminRef = useRef<boolean>(false);
+  useEffect(() => {
+    isWaitingAdminRef.current = isWaitingAdmin;
+  }, [isWaitingAdmin]);
+
   const [timeLeft, setTimeLeft] = useState<number>(600); // 10 mins
-  const hasRegisteredRef = useRef<boolean>(false);
+  const hasRegisteredRef = useRef<string | null>(null);
 
   // Determine QR image based on exact plan price
   let qrImageSrc = BANK_CONFIG.qr69k || '/qr_69k.jpg';
@@ -72,10 +77,11 @@ export function CheckoutModal({
     qrImageSrc = BANK_CONFIG.qr220k || '/qr_220k.png';
   }
 
-  // 1. Initial Order Registration & Broadcast (Fires once, never aborted on re-renders)
+  // 1. Initial Order Registration & Broadcast (Fires per order session, never aborted on re-renders)
   useEffect(() => {
-    if (!isOpen || !service || !plan || !order || hasRegisteredRef.current) return;
-    hasRegisteredRef.current = true;
+    if (!isOpen || !service || !plan || !order) return;
+    if (hasRegisteredRef.current === order.orderId) return;
+    hasRegisteredRef.current = order.orderId;
 
     // Send order to Cloud Server
     fetch(`/api/v1/orders?t=${Date.now()}`, {
@@ -106,11 +112,11 @@ export function CheckoutModal({
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
         const bc = new BroadcastChannel('fpt_studyhub_orders');
         bc.postMessage({ type: 'ORDER_PENDING', order });
-        bc.close();
+        setTimeout(() => { try { bc.close(); } catch {} }, 1500);
       }
       localStorage.setItem('fpt_latest_pending_order', JSON.stringify({ ...order, t: Date.now() }));
     } catch {}
-  }, [isOpen, service, plan, order]);
+  }, [isOpen, service, plan, order?.orderId]);
 
   // Countdown timer
   useEffect(() => {
@@ -121,7 +127,7 @@ export function CheckoutModal({
     return () => clearInterval(timer);
   }, [isOpen]);
 
-  // 2. Continuous Double-Layer Sync (BroadcastChannel 0ms + Cloud Polling 1.5s + Auto-heal)
+  // 2. Continuous Double-Layer Sync (BroadcastChannel 0ms + Cloud Polling 1s + Auto-heal)
   const orderId = order?.orderId;
   const transferCode = order?.transferCode;
 
@@ -146,7 +152,7 @@ export function CheckoutModal({
           const data = event.data;
           if (data && data.type === 'ORDER_APPROVED') {
             if (data.orderId === orderId || (transferCode && data.transferCode === transferCode)) {
-              finishPayment(data.order, data.licenseKey);
+              finishPayment(data.order || order, data.licenseKey);
             }
           }
         };
@@ -159,20 +165,21 @@ export function CheckoutModal({
         try {
           const parsed = JSON.parse(e.newValue);
           if (parsed && (parsed.orderId === orderId || (transferCode && parsed.transferCode === transferCode))) {
-            finishPayment(parsed.order, parsed.licenseKey);
+            finishPayment(parsed.order || order, parsed.licenseKey);
           }
         } catch {}
       }
     };
     window.addEventListener('storage', handleStorageEvent);
 
-    // Layer C: Worldwide Cloud Polling Loop (1.5s interval with Auto-Healing)
+    // Layer C: Worldwide Cloud Polling Loop (1s interval with Auto-Healing)
     let pollTimer: ReturnType<typeof setTimeout>;
 
     const poll = async () => {
       if (isCompleted) return;
       try {
-        const res = await fetch(`/api/v1/orders?orderId=${encodeURIComponent(orderId)}&t=${Date.now()}`, {
+        const url = `/api/v1/orders?orderId=${encodeURIComponent(orderId)}&transferCode=${encodeURIComponent(transferCode || '')}&t=${Date.now()}`;
+        const res = await fetch(url, {
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache, no-store' }
         });
@@ -180,8 +187,9 @@ export function CheckoutModal({
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.order) {
-            if ((data.order.status === 'approved' || data.order.status === 'paid') && data.licenseKey) {
-              finishPayment(data.order, data.licenseKey);
+            const key = data.licenseKey || data.order.licenseKey;
+            if ((data.order.status === 'approved' || data.order.status === 'paid') && key) {
+              finishPayment(data.order, key);
               return;
             } else if (data.order.status === 'waiting_approval') {
               setIsWaitingAdmin(true);
@@ -199,7 +207,7 @@ export function CheckoutModal({
               transferCode,
               amount: plan.price,
               durationLabel: plan.durationLabel,
-              status: isWaitingAdmin ? 'waiting_approval' : 'pending'
+              status: isWaitingAdminRef.current ? 'waiting_approval' : 'pending'
             })
           }).catch(() => {});
         }
@@ -207,12 +215,12 @@ export function CheckoutModal({
         // network glitch, silently retry
       } finally {
         if (!isCompleted) {
-          pollTimer = setTimeout(poll, 1500);
+          pollTimer = setTimeout(poll, 1000);
         }
       }
     };
 
-    pollTimer = setTimeout(poll, 1500);
+    pollTimer = setTimeout(poll, 1000);
 
     // Layer D: Active Wakeup on Focus & Visibility Change
     const handleWakeup = () => {
@@ -231,7 +239,7 @@ export function CheckoutModal({
       document.removeEventListener('visibilitychange', handleWakeup);
       window.removeEventListener('focus', handleWakeup);
     };
-  }, [isOpen, orderId, transferCode, service, plan, isWaitingAdmin, onPaymentSuccess]);
+  }, [isOpen, orderId, transferCode, service, plan, onPaymentSuccess]);
 
   // Copy helper
   const handleCopy = (text: string, field: string) => {
@@ -272,7 +280,7 @@ export function CheckoutModal({
         if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
           const bc = new BroadcastChannel('fpt_studyhub_orders');
           bc.postMessage({ type: 'ORDER_WAITING', orderId: order.orderId, transferCode: order.transferCode });
-          bc.close();
+          setTimeout(() => { try { bc.close(); } catch {} }, 1500);
         }
         localStorage.setItem('fpt_latest_waiting_order', JSON.stringify({ 
           orderId: order.orderId, 

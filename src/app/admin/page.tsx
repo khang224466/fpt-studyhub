@@ -185,6 +185,19 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (data.success) {
+        // Optimistically update orders table in 0ms
+        setOrders(prev => prev.map(o => {
+          if ((orderId && o.orderId === orderId) || (transferCode && o.transferCode === transferCode)) {
+            return {
+              ...o,
+              status: 'approved',
+              paidAt: Date.now(),
+              licenseKey: data.licenseKey || o.licenseKey
+            };
+          }
+          return o;
+        }));
+
         // Broadcast instant approval event to customer modal (0ms response)
         try {
           if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -196,7 +209,7 @@ export default function AdminPage() {
               licenseKey: data.licenseKey,
               order: data.order
             });
-            bc.close();
+            setTimeout(() => { try { bc.close(); } catch {} }, 2000);
           }
           localStorage.setItem('fpt_latest_approved_order', JSON.stringify({
             orderId: data.order?.orderId || orderId,
@@ -363,7 +376,7 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="emerald" size="sm">v10.2.30 PRO</Badge>
+              <Badge variant="emerald" size="sm">v10.2.39 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
@@ -620,7 +633,7 @@ export default function AdminPage() {
                               size="sm"
                               variant="primary"
                               disabled={approvingOrderId === ord.orderId}
-                              onClick={() => handleApproveOrder(ord.orderId)}
+                              onClick={() => handleApproveOrder(ord.orderId, ord.transferCode)}
                               className="text-xs shadow-md shadow-emerald-950 cursor-pointer"
                             >
                               {approvingOrderId === ord.orderId ? (
