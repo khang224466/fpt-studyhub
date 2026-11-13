@@ -39,7 +39,7 @@ export default function ActivatePage() {
     setSearchResult(null);
 
     try {
-      const key = searchKey.trim().toUpperCase();
+      const key = searchKey.trim();
 
       const res = await fetch('/api/v1/auth/session-claim', {
         method: 'POST',

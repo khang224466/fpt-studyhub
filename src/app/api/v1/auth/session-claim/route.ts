@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const check = verifyLicense(licenseKey);
+    const check = await verifyLicense(licenseKey);
     if (!check.valid) {
       return NextResponse.json({
         success: false,

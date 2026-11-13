@@ -46,3 +46,6 @@ next-env.d.ts
 /assistant_tools/
 /extension/
 /research_and_tests/
+
+# Local development orders (never commit customer data)
+.data/

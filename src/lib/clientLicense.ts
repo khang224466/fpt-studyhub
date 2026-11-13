@@ -11,26 +11,18 @@ export interface ParsedLicenseInfo {
 }
 
 export function parseClientLicense(encKey?: string, fallbackExpiresAt?: number): ParsedLicenseInfo | null {
-  const salt = 'ENX_SEC_2026_FLASH_LITE';
   let expTimestamp = fallbackExpiresAt || 0;
   let planLabel = 'VIP';
-
-  if (encKey && typeof encKey === 'string' && encKey.startsWith('ENC_AI_')) {
+  if (encKey?.startsWith('FPT1.')) {
     try {
-      const b64 = encKey.slice(7);
-      const hex = typeof window !== 'undefined' ? window.atob(b64) : Buffer.from(b64, 'base64').toString('binary');
-      let raw = '';
-      for (let i = 0; i < hex.length; i += 2) {
-        const c = parseInt(hex.substr(i, 2), 16) ^ salt.charCodeAt((i / 2) % salt.length);
-        raw += String.fromCharCode(c);
-      }
-      if (raw.startsWith('EXP|')) {
-        const parts = raw.split('|');
-        const parsedExp = parseInt(parts[1], 10);
-        if (!isNaN(parsedExp)) expTimestamp = parsedExp;
-        if (parts[2]) planLabel = parts[2];
-      }
-    } catch (_) {}
+      const encoded = encKey.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const json = typeof window !== 'undefined'
+        ? new TextDecoder().decode(Uint8Array.from(atob(encoded), c => c.charCodeAt(0)))
+        : Buffer.from(encoded, 'base64').toString('utf8');
+      const claims = JSON.parse(json);
+      if (Number.isSafeInteger(claims.expiresAt)) expTimestamp = claims.expiresAt;
+      if (typeof claims.plan === 'string') planLabel = claims.plan;
+    } catch { return null; }
   }
 
   if (!expTimestamp) return null;

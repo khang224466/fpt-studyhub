@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { 
   Copy, 
@@ -38,9 +38,9 @@ export function CheckoutModal({
   // Stable Order Initializer: Generated strictly ONCE per modal session
   const [order, setOrder] = useState<OrderItem | null>(() => {
     if (!service || !plan) return null;
-    const randomCode = Math.floor(1000 + Math.random() * 9000);
-    const initialTransferCode = `PR${randomCode}`;
-    const initialOrderId = `ORD-${Date.now().toString().slice(-4)}${randomCode}`;
+    const id = crypto.randomUUID();
+    const initialOrderId = `ORD-${id}`;
+    const initialTransferCode = `PR${id.replaceAll('-', '').slice(0, 12).toUpperCase()}`;
 
     const initialOrder: OrderItem = {
       orderId: initialOrderId,
@@ -59,13 +59,10 @@ export function CheckoutModal({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [isWaitingAdmin, setIsWaitingAdmin] = useState<boolean>(false);
-  const isWaitingAdminRef = useRef<boolean>(false);
-  useEffect(() => {
-    isWaitingAdminRef.current = isWaitingAdmin;
-  }, [isWaitingAdmin]);
-
-  const [timeLeft, setTimeLeft] = useState<number>(600); // 10 mins
-  const hasRegisteredRef = useRef<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState(600);
+  const [registered, setRegistered] = useState(false);
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
 
   // Determine QR image based on exact plan price
   let qrImageSrc = BANK_CONFIG.qr69k || '/qr_69k.jpg';
@@ -77,46 +74,21 @@ export function CheckoutModal({
     qrImageSrc = BANK_CONFIG.qr220k || '/qr_220k.png';
   }
 
-  // 1. Initial Order Registration & Broadcast (Fires per order session, never aborted on re-renders)
+  const orderId = order?.orderId;
   useEffect(() => {
-    if (!isOpen || !service || !plan || !order) return;
-    if (hasRegisteredRef.current === order.orderId) return;
-    hasRegisteredRef.current = order.orderId;
-
-    // Send order to Cloud Server
-    fetch(`/api/v1/orders?t=${Date.now()}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' },
-      body: JSON.stringify({
-        serviceId: service.id,
-        planId: plan.id,
-        orderId: order.orderId,
-        transferCode: order.transferCode,
-        amount: plan.price,
-        durationLabel: plan.durationLabel,
-        status: 'pending'
-      })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success && data.order) {
-        setOrder(data.order);
-      }
-    })
-    .catch(err => {
-      console.warn('[Checkout] Order register warning:', err);
-    });
-
-    // Instant local broadcast to Admin page on same machine (0ms sync)
-    try {
-      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-        const bc = new BroadcastChannel('fpt_studyhub_orders');
-        bc.postMessage({ type: 'ORDER_PENDING', order });
-        setTimeout(() => { try { bc.close(); } catch {} }, 1500);
-      }
-      localStorage.setItem('fpt_latest_pending_order', JSON.stringify({ ...order, t: Date.now() }));
-    } catch {}
-  }, [isOpen, service, plan, order?.orderId]);
+    if (!isOpen || !service || !plan || !orderId) return;
+    const controller = new AbortController();
+    fetch('/api/v1/orders', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId, serviceId: service.id, planId: plan.id }),
+      signal: controller.signal
+    }).then(async response => {
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || 'Không thể tạo đơn.');
+      if (!controller.signal.aborted) { setOrder(data.order); setRegistered(true); setError(''); }
+    }).catch(error => { if (!controller.signal.aborted) setError(error.message); });
+    return () => controller.abort();
+  }, [isOpen, service, plan, orderId, retry]);
 
   // Countdown timer
   useEffect(() => {
@@ -127,119 +99,28 @@ export function CheckoutModal({
     return () => clearInterval(timer);
   }, [isOpen]);
 
-  // 2. Continuous Double-Layer Sync (BroadcastChannel 0ms + Cloud Polling 1s + Auto-heal)
-  const orderId = order?.orderId;
-  const transferCode = order?.transferCode;
-
   useEffect(() => {
-    if (!isOpen || !orderId) return;
-
-    let isCompleted = false;
-
-    const finishPayment = (approvedOrder: OrderItem, key: string) => {
-      if (isCompleted) return;
-      isCompleted = true;
-      confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
-      onPaymentSuccess(approvedOrder, key);
-    };
-
-    // Layer A: BroadcastChannel (Instant 0ms sync with Admin in same browser)
-    let bc: BroadcastChannel | null = null;
-    try {
-      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-        bc = new BroadcastChannel('fpt_studyhub_orders');
-        bc.onmessage = (event) => {
-          const data = event.data;
-          if (data && data.type === 'ORDER_APPROVED') {
-            if (data.orderId === orderId || (transferCode && data.transferCode === transferCode)) {
-              finishPayment(data.order || order, data.licenseKey);
-            }
-          }
-        };
-      }
-    } catch {}
-
-    // Layer B: Cross-Tab Storage Event Fallback
-    const handleStorageEvent = (e: StorageEvent) => {
-      if (e.key === 'fpt_latest_approved_order' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (parsed && (parsed.orderId === orderId || (transferCode && parsed.transferCode === transferCode))) {
-            finishPayment(parsed.order || order, parsed.licenseKey);
-          }
-        } catch {}
-      }
-    };
-    window.addEventListener('storage', handleStorageEvent);
-
-    // Layer C: Worldwide Cloud Polling Loop (1s interval with Auto-Healing)
-    let pollTimer: ReturnType<typeof setTimeout>;
-
+    if (!isOpen || !orderId || !registered) return;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    let completed = false;
     const poll = async () => {
-      if (isCompleted) return;
       try {
-        const url = `/api/v1/orders?orderId=${encodeURIComponent(orderId)}&transferCode=${encodeURIComponent(transferCode || '')}&t=${Date.now()}`;
-        const res = await fetch(url, {
-          cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache, no-store' }
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.order) {
-            const key = data.licenseKey || data.order.licenseKey;
-            if ((data.order.status === 'approved' || data.order.status === 'paid') && key) {
-              finishPayment(data.order, key);
-              return;
-            } else if (data.order.status === 'waiting_approval') {
-              setIsWaitingAdmin(true);
-            }
-          }
-        } else if (res.status === 404 && service && plan) {
-          // Self-Healing: If order was wiped or missing on server, immediately re-register!
-          fetch(`/api/v1/orders?t=${Date.now()}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
-            body: JSON.stringify({
-              serviceId: service.id,
-              planId: plan.id,
-              orderId,
-              transferCode,
-              amount: plan.price,
-              durationLabel: plan.durationLabel,
-              status: isWaitingAdminRef.current ? 'waiting_approval' : 'pending'
-            })
-          }).catch(() => {});
-        }
-      } catch (error) {
-        // network glitch, silently retry
-      } finally {
-        if (!isCompleted) {
-          pollTimer = setTimeout(poll, 1000);
-        }
-      }
+        if (document.visibilityState === 'hidden') return;
+        const response = await fetch(`/api/v1/orders?orderId=${encodeURIComponent(orderId)}`, { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]) });
+        const data = await response.json();
+        if (controller.signal.aborted || !response.ok || !data.success) return;
+        if (['approved', 'paid'].includes(data.order.status) && data.licenseKey) {
+          completed = true;
+          confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+          onPaymentSuccess(data.order, data.licenseKey);
+        } else if (data.order.status === 'waiting_approval') setIsWaitingAdmin(true);
+      } catch { /* Retry transient failures without creating replacement orders. */ }
+      finally { if (!completed && !controller.signal.aborted) timer = setTimeout(poll, 3000); }
     };
-
-    pollTimer = setTimeout(poll, 1000);
-
-    // Layer D: Active Wakeup on Focus & Visibility Change
-    const handleWakeup = () => {
-      if (document.visibilityState === 'visible') {
-        poll();
-      }
-    };
-    document.addEventListener('visibilitychange', handleWakeup);
-    window.addEventListener('focus', handleWakeup);
-
-    return () => {
-      isCompleted = true;
-      clearTimeout(pollTimer);
-      if (bc) bc.close();
-      window.removeEventListener('storage', handleStorageEvent);
-      document.removeEventListener('visibilitychange', handleWakeup);
-      window.removeEventListener('focus', handleWakeup);
-    };
-  }, [isOpen, orderId, transferCode, service, plan, onPaymentSuccess]);
+    void poll();
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [isOpen, orderId, registered, onPaymentSuccess]);
 
   // Copy helper
   const handleCopy = (text: string, field: string) => {
@@ -248,51 +129,16 @@ export function CheckoutModal({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  // Submit transfer confirmation -> Notify Admin to approve
   const handleConfirmPayment = async () => {
-    if (!order || !service || !plan) return;
-    setIsVerifying(true);
-    setIsWaitingAdmin(true);
-    setOrder(prev => prev ? { ...prev, status: 'waiting_approval' } : null);
-
+    if (!order || !registered || isVerifying) return;
+    setIsVerifying(true); setError('');
     try {
-      const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
-        body: JSON.stringify({ 
-          orderId: order.orderId,
-          transferCode: order.transferCode,
-          action: 'confirm_transfer',
-          serviceId: service.id,
-          serviceName: service.name,
-          planId: plan.id,
-          durationLabel: plan.durationLabel,
-          amount: plan.price
-        })
-      });
-      const data = await res.json();
-      if (data.success && data.order) {
-        setOrder(data.order);
-      }
-
-      // Notify Admin page immediately via Broadcast & Storage
-      try {
-        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-          const bc = new BroadcastChannel('fpt_studyhub_orders');
-          bc.postMessage({ type: 'ORDER_WAITING', orderId: order.orderId, transferCode: order.transferCode });
-          setTimeout(() => { try { bc.close(); } catch {} }, 1500);
-        }
-        localStorage.setItem('fpt_latest_waiting_order', JSON.stringify({ 
-          orderId: order.orderId, 
-          transferCode: order.transferCode, 
-          t: Date.now() 
-        }));
-      } catch {}
-    } catch (e) {
-      console.error('Submit transfer confirmation error:', e);
-    } finally {
-      setIsVerifying(false);
-    }
+      const response = await fetch('/api/v1/orders', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: order.orderId, action: 'confirm_transfer' }) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || 'Chưa gửi được xác nhận.');
+      setOrder(data.order); setIsWaitingAdmin(data.order.status === 'waiting_approval');
+    } catch (error) { setError(error instanceof Error ? error.message : 'Lỗi kết nối'); }
+    finally { setIsVerifying(false); }
   };
 
   if (!service || !plan) return null;
@@ -309,6 +155,8 @@ export function CheckoutModal({
       maxWidth="lg"
     >
       <div className="space-y-6">
+        {error && <div role="alert" className="text-amber-300">{error}{!registered && <Button onClick={() => setRetry(value => value + 1)}>Thử tạo đơn lại</Button>}</div>}
+        {!registered && <p role="status">Đang tạo đơn. Chờ xác nhận trước khi chuyển khoản.</p>}
         {/* Timer & Live Sync Status Bar */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
           <div className="flex items-center gap-2">
@@ -324,6 +172,7 @@ export function CheckoutModal({
           </div>
         </div>
 
+        {registered && <>
         {/* QR & Bank Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
           {/* QR Column */}
@@ -414,6 +263,8 @@ export function CheckoutModal({
           </div>
         </div>
 
+        </>}
+
         {/* Discord Admin Contact Banner */}
         <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/40 text-xs text-indigo-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -465,7 +316,7 @@ export function CheckoutModal({
             <Button
               variant="primary"
               onClick={handleConfirmPayment}
-              disabled={isVerifying}
+              disabled={isVerifying || !registered}
               className="w-full sm:flex-1 justify-center shadow-lg shadow-emerald-950/60 cursor-pointer"
             >
               {isVerifying ? (

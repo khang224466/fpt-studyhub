@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:client": "node scripts/build-edunext.cjs",
+    "test": "node --test tests/security.test.cjs",
+    "test:tracker": "node tests/tracker-browser.cjs"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
