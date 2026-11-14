@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.62";
+        var t = "v10.2.63";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -826,24 +826,41 @@ function e(e, serverOrigin) {
                 if (t.allowed) {
                     var n = readEduNextTurn(document);
 
-                    // IF 1: Check Dead-End Conversation ("This conversation can no longer be continued")
-                    if (n.deadConversation || /This conversation can no longer be continued|start a new chat/i.test(document.body ? document.body.innerText : '')) {
-                        P("warn", "⚡ Phát hiện hội thoại bị kết thúc! Tự động khởi động lại...");
-                        L("⚡ Đang tự động bấm [Try again] hoặc [+ New]...", "#f59e0b");
-                        var tryAgainBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
-                            return !b.closest('#enx-pro-hud') && /try\s*again|thử\s*lại/i.test((b.innerText || b.textContent || '').trim());
+                    // IF 1: Check Dead-End Conversation or Long 429 (> 30s) -> Click [+ New] to start fresh session!
+                    if (n.state === 'need_new_chat') {
+                        P("warn", "⚡ Phát hiện phiên học cũ bị ngắt / nghẽn (429 dài). Tự động bấm [+ New] mở phiên mới ngay...");
+                        L("⚡ Đang tự động bấm [+ New] mở phiên mới...", "#f59e0b");
+                        var newChatBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
+                            return !b.closest('#enx-pro-hud') && /(?:\+\s*New|Tạo\s*mới|New\s*Chat)/i.test((b.innerText || b.textContent || '').trim());
                         });
-                        if (tryAgainBtn) {
-                            try { tryAgainBtn.click(); P("success", "✓ Đã bấm [Try again] khôi phục hội thoại!"); } catch (_) {}
+                        if (newChatBtn) {
+                            try {
+                                newChatBtn.click();
+                                P("success", "✓ Đã bấm [+ New] mở phiên học mới thành công!");
+                                h = 0; // Clear any old 429 cooldown
+                            } catch (_) {}
                         } else {
-                            var newChatBtn = Array.from(document.querySelectorAll('button, a')).find(function(b) {
-                                return !b.closest('#enx-pro-hud') && /\+\s*New/i.test((b.innerText || b.textContent || '').trim());
+                            // Fallback: If no [+ New] button, try [Try again] once
+                            var tryAgainBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
+                                return !b.closest('#enx-pro-hud') && /try\s*again|thử\s*lại/i.test((b.innerText || b.textContent || '').trim());
                             });
-                            if (newChatBtn) {
-                                try { newChatBtn.click(); P("success", "✓ Đã bấm [+ New] mở phiên học mới!"); } catch (_) {}
+                            if (tryAgainBtn && Date.now() - (window.__ENX_LAST_TRY_AGAIN__ || 0) > 30000) {
+                                window.__ENX_LAST_TRY_AGAIN__ = Date.now();
+                                try { tryAgainBtn.click(); P("success", "✓ Đã bấm [Try again] thử lại!"); } catch (_) {}
                             }
                         }
                         remaining = 5;
+                        updateCountdownUI();
+                        return;
+                    }
+
+                    // IF 2: Check Short 429 Rate Limit Cooldown (<= 30s)
+                    if (n.state === 'rate_limited' || n.rateLimitSeconds > 0) {
+                        var sWait = n.rateLimitSeconds + 3;
+                        h = Math.max(h, Date.now() + (sWait * 1000));
+                        var leftSec = Math.ceil((h - Date.now()) / 1e3);
+                        L("⏳ Chờ hồi phục Rate Limit 429 (" + leftSec + "s)...", "#f59e0b");
+                        remaining = leftSec;
                         updateCountdownUI();
                         return;
                     }
@@ -864,18 +881,6 @@ function e(e, serverOrigin) {
                     }
 
                     if ("waiting_teacher" !== n.state || e) {
-                        // IF 2: Check 429 Rate Limit Cooldown
-                        var bodyTxt = document.body ? document.body.innerText : "";
-                        var tooManyMatch = bodyTxt.match(/Too\s*many\s*requests.*?after\s*(\d+)\s*seconds/i);
-                        if (tooManyMatch) {
-                            var sWait = parseInt(tooManyMatch[1], 10) + 3;
-                            h = Math.max(h, Date.now() + (sWait * 1000));
-                            L("⏳ Chờ hồi phục Rate Limit 429 (" + Math.ceil((h - Date.now()) / 1e3) + "s)...", "#f59e0b");
-                            remaining = sWait;
-                            updateCountdownUI();
-                            return;
-                        }
-
                         if (Date.now() < h) {
                             var leftSec = Math.ceil((h - Date.now()) / 1e3);
                             L("⏳ Chờ hồi phục Rate Limit 429 (" + leftSec + "s)...", "#f59e0b");
@@ -886,16 +891,6 @@ function e(e, serverOrigin) {
                             L("⏳ Chờ EduNext cập nhật sau khi nộp...", "#94a3b8");
                         } else {
                             var i = n.lastTeacherMsg || "";
-
-                            // Auto-click Try again if present after 429 cooldown has elapsed
-                            if (Date.now() >= h) {
-                                var tryBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
-                                    return !b.closest('#enx-pro-hud') && /try\s*again|thử\s*lại/i.test((b.innerText || b.textContent || '').trim());
-                                });
-                                if (tryBtn) {
-                                    try { tryBtn.click(); } catch (_) {}
-                                }
-                            }
 
                             // 1. Ready & Transition Check - STRICT ANTI-"YES" FIREWALL FOR EXERCISES
                             var hasActualExercise = (function() {
@@ -990,7 +985,7 @@ function e(e, serverOrigin) {
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
                                             /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.62 PRO." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.63 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +

@@ -132,13 +132,21 @@ function readEduNextTurn(doc) {
   const activeInput = all('textarea.w-md-editor-text-input, .w-md-editor textarea, textarea, input[type="text"]')
     .find(el => !el.disabled && !el.readOnly && el.offsetParent !== null);
 
-  // 5. Dead Conversation detection
-  const deadConversation = /this\s*conversation\s*can\s*no\s*longer\s*be\s*continued|start\s*a\s*new\s*chat/i.test(doc.body ? text(doc.body) : '');
+  // 5. Dead Conversation & Rate Limit Detection (ONLY in recent bubbles, NEVER global doc.body!)
+  const chatBubbles = all('.wrap-message-view, [class*="message-item"], [class*="chat-item"], .chat-message, [class*="message"], [class*="chat"]');
+  const recentBubbles = chatBubbles.slice(-3);
+  const recentText = recentBubbles.map(b => text(b)).join(' ');
+
+  const isDeadConversation = /this\s*conversation\s*can\s*no\s*longer\s*be\s*continued|start\s*a\s*new\s*chat/i.test(recentText);
+  const rateLimitMatch = recentText.match(/Too\s*many\s*requests.*?after\s*(\d+)\s*seconds/i);
+  const rateLimitSeconds = rateLimitMatch ? parseInt(rateLimitMatch[1], 10) : 0;
 
   // 6. State classification
   let state = 'idle';
-  if (deadConversation) {
-    state = 'dead_conversation';
+  if (isDeadConversation || rateLimitSeconds > 30) {
+    state = 'need_new_chat';
+  } else if (rateLimitSeconds > 0) {
+    state = 'rate_limited';
   } else if (activeInput && !activeInput.disabled) {
     // If the input box is active and enabled, student is allowed to type!
     state = 'student_turn';
@@ -161,7 +169,8 @@ function readEduNextTurn(doc) {
 
   return {
     state,
-    deadConversation,
+    isDeadConversation,
+    rateLimitSeconds,
     lastStudentBadge: studentBadge,
     lastTeacherBadge: teacherMarkers.at(-1) || null,
     lastStudentMsg: studentMessage ? text(studentMessage) : '',

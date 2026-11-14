@@ -16,7 +16,7 @@ const minifiedCode = JSON.parse(rawCode);
 console.log('Successfully extracted minifiedCode from edunextBundle.ts, length:', minifiedCode.length);
 
 const finalScript = `/**
- * EduNext AI Assistant Pro v10.2.62 PRO (Self-Healing Key & Instant Direct Flash-Lite / Bridge)
+ * EduNext AI Assistant Pro v10.2.63 PRO (Self-Healing Key & Instant Direct Flash-Lite / Bridge)
  * Delivered via jsDelivr CDN — Whitelisted by FPT EduNext CSP & TrustedTypes
  */
 (function() {
@@ -40,7 +40,7 @@ const finalScript = `/**
 
 // List of all versions to keep backward compatibility 100%
 const versions = [
-  '62', '61', '60', '59', '58', '57', '56', '55', '54', '53', '52', '51', '50',
+  '63', '62', '61', '60', '59', '58', '57', '56', '55', '54', '53', '52', '51', '50',
   '30', '29', '28', '27', '26', '25', '24', '23', '22', '21', '20',
   '19', '18', '17', '16'
 ];
