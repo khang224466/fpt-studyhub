@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.65";
+        var t = "v10.2.66";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -370,6 +370,16 @@ function e(e, serverOrigin) {
                     updateCountdownUI();
                 }
             }, B.appendChild(G), q.appendChild(B);
+            var rescueBtn = document.createElement("button");
+            rescueBtn.style.cssText = "width:100%;background:rgba(239,68,68,0.2);border:1px solid #ef4444;color:#fca5a5;font-weight:700;font-size:10px;padding:6px;border-radius:6px;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:4px;";
+            rescueBtn.innerHTML = "🚨 Mở Phiên Mới [+ New] / Hủy Khóa 14 Tiếng";
+            rescueBtn.onclick = function() {
+                var ok = forceResetEduNextSession();
+                if (!ok) {
+                    alert("Đã gửi lệnh reset! Nếu trang vẫn kẹt, hãy kéo bảng bot này sang bên trái để bấm nút [+ New] màu xanh ở góc trên bên phải EduNext, hoặc bấm F5 tải lại trang!");
+                }
+            };
+            q.appendChild(rescueBtn);
             var D = document.createElement("div");
             D.id = "hud-status-text", D.style.cssText = "font-size:11px;color:#38bdf8;margin-bottom:6px;min-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;", 
             D.textContent = e ? "● Auto Loop đang chạy: Tự động chụp & giải bài..." : "⚠️ Chờ cấp quyền chia sẻ màn hình...", 
@@ -834,6 +844,51 @@ function e(e, serverOrigin) {
                 }, '*');
             });
         }
+        function forceResetEduNextSession() {
+            P("warn", "🚨 Đang kích hoạt giải cứu phiên học: Tìm [+ New] hoặc đặt lại bài...");
+            var newChatBtn = Array.from(document.querySelectorAll('button, a, div[role="button"], span')).find(function(b) {
+                return !b.closest('#enx-pro-hud') && /(?:\+\s*New|Tạo\s*mới|New\s*Chat)/i.test((b.innerText || b.textContent || '').trim());
+            });
+            if (newChatBtn) {
+                try {
+                    newChatBtn.click();
+                    P("success", "✓ ĐÃ BẤM [+ New] THÀNH CÔNG! Đã mở phiên mới, hết bị khóa.");
+                    h = 0;
+                    remaining = 5;
+                    updateCountdownUI();
+                    return true;
+                } catch (_) {}
+            }
+            var moreBtn = Array.from(document.querySelectorAll('button, div[role="button"], span')).find(function(b) {
+                return !b.closest('#enx-pro-hud') && (/yêu\s*cầu\s*khác/i.test(b.innerText || '') || (b.innerText || '').trim() === '...');
+            });
+            if (moreBtn) {
+                try {
+                    moreBtn.click();
+                    setTimeout(function() {
+                        var resetBtn = Array.from(document.querySelectorAll('button, div[role="button"], li, span')).find(function(b) {
+                            return !b.closest('#enx-pro-hud') && /(?:bắt\s*đầu\s*lại|tạo\s*mới|làm\s*lại|hội\s*thoại\s*mới)/i.test(b.innerText || '');
+                        });
+                        if (resetBtn) {
+                            resetBtn.click();
+                            P("success", "✓ Đã chọn [Bắt đầu lại] từ menu thành công!");
+                        }
+                    }, 400);
+                    h = 0;
+                    return true;
+                } catch (_) {}
+            }
+            try {
+                sessionStorage.clear();
+                var activeLesson = document.querySelector('.course-lesson-list .active, [class*="lesson-item"][class*="active"], [class*="selected"]');
+                if (activeLesson) {
+                    activeLesson.click();
+                    P("success", "✓ Đã tải lại bài học từ danh sách bên trái!");
+                    return true;
+                }
+            } catch (_) {}
+            return false;
+        }
         async function Q(e, isManual) {
             if ((d || e) && !s) {
                 var t = K();
@@ -843,33 +898,13 @@ function e(e, serverOrigin) {
                     // IF 1: Check Dead-End Conversation or Long 429 (> 30s) -> Click [+ New] to start fresh session!
                     if (n.state === 'need_new_chat' || n.rateLimitSeconds > 30) {
                         if (n.rateLimitSeconds > 60) {
-                            P("warn", "⛔ EduNext báo Rate Limit (" + n.rateLimitSeconds + "s). Khuyên bạn F5 hoặc bấm chọn lại bài học!");
-                            L("⛔ Bị Rate Limit " + n.rateLimitSeconds + "s! Bấm F5 hoặc chọn bài học.", "#ef4444");
+                            P("warn", "⛔ EduNext báo Rate Limit (" + n.rateLimitSeconds + "s). Đang tự động mở phiên mới...");
+                            L("⛔ Bị Rate Limit " + n.rateLimitSeconds + "s! Đang reset phiên...", "#ef4444");
                         } else {
-                            P("warn", "⚡ Phát hiện phiên học cũ bị ngắt / nghẽn (429 dài). Tự động bấm [+ New] mở phiên mới ngay...");
-                            L("⚡ Đang tự động bấm [+ New] mở phiên mới...", "#f59e0b");
+                            P("warn", "⚡ Phát hiện phiên học cũ bị ngắt / nghẽn. Tự động mở phiên mới ngay...");
+                            L("⚡ Đang tự động mở phiên mới...", "#f59e0b");
                         }
-                        var newChatBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
-                            return !b.closest('#enx-pro-hud') && /(?:\+\s*New|Tạo\s*mới|New\s*Chat)/i.test((b.innerText || b.textContent || '').trim());
-                        });
-                        if (newChatBtn) {
-                            try {
-                                newChatBtn.click();
-                                P("success", "✓ Đã bấm [+ New] mở phiên học mới thành công!");
-                                h = 0; // Clear any old 429 cooldown
-                            } catch (_) {}
-                        } else {
-                            // Fallback: If no [+ New] button and cooldown is small (<= 60s), try [Try again / Thử lại] once
-                            if (n.rateLimitSeconds <= 60) {
-                                var tryAgainBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
-                                    return !b.closest('#enx-pro-hud') && /try\s*again|thử\s*lại/i.test((b.innerText || b.textContent || '').trim());
-                                });
-                                if (tryAgainBtn && Date.now() - (window.__ENX_LAST_TRY_AGAIN__ || 0) > 30000) {
-                                    window.__ENX_LAST_TRY_AGAIN__ = Date.now();
-                                    try { tryAgainBtn.click(); P("success", "✓ Đã bấm [Thử lại] thử lại!"); } catch (_) {}
-                                }
-                            }
-                        }
+                        forceResetEduNextSession();
                         remaining = 10;
                         updateCountdownUI();
                         return;
@@ -1006,7 +1041,7 @@ function e(e, serverOrigin) {
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
                                             /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.65 PRO." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.66 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +
