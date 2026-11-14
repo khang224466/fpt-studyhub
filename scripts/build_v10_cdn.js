@@ -16,7 +16,7 @@ const minifiedCode = JSON.parse(rawCode);
 console.log('Successfully extracted minifiedCode from edunextBundle.ts, length:', minifiedCode.length);
 
 const finalScript = `/**
- * EduNext AI Assistant Pro v10.2.54 (English Ready/Yes Support & 7 Sessions/Week Quota)
+ * EduNext AI Assistant Pro v10.2.55 (Self-Healing Key & Instant Direct Flash-Lite / Bridge)
  * Delivered via jsDelivr CDN — Whitelisted by FPT EduNext CSP & TrustedTypes
  */
 (function() {
@@ -27,6 +27,9 @@ const finalScript = `/**
       key = localStorage.getItem('enx_encrypted_ai_key') || localStorage.getItem('enx_license_key') || '';
     } catch(_) {}
   }
+  if (!key) {
+    key = 'ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl';
+  }
   try {
     ;(${minifiedCode})(key);
   } catch(e) {
@@ -35,7 +38,12 @@ const finalScript = `/**
 })();
 `;
 
-// 1. Target v10.2.54
+// 1. Target v10.2.55
+const outputPath55 = path.join(__dirname, '../../v10_2_55_minified.js');
+fs.writeFileSync(outputPath55, finalScript, 'utf8');
+console.log('Saved to', outputPath55, 'size:', finalScript.length);
+
+// 2. Backward compatibility for earlier links
 const outputPath54 = path.join(__dirname, '../../v10_2_54_minified.js');
 fs.writeFileSync(outputPath54, finalScript, 'utf8');
 console.log('Saved to', outputPath54, 'size:', finalScript.length);

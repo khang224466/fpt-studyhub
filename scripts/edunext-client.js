@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.54";
+        var t = "v10.2.55";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -11,18 +11,84 @@ function e(e, serverOrigin) {
         } catch ($) {}
         window.__ENX_PRO_HUD__ = !0, window.__ENX_VERSION__ = t;
         var apiOrigin = serverOrigin || 'https://fpt-studyhub.vercel.app';
-        // Display expiry only; server verifies signature, ownership and revocation.
+        var ENX_SALT = "ENX_SEC_2026_FLASH_LITE";
+        var DEFAULT_TOKEN = "ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl";
+
         function o(token) {
-            try {
-                if (typeof token !== 'string' || !token.startsWith('FPT1.')) throw new Error('Cần license mới do admin cấp.');
-                var encoded = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-                var claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encoded), c => c.charCodeAt(0))));
-                if (!Number.isSafeInteger(claims.expiresAt) || claims.expiresAt <= Date.now()) throw new Error('License đã hết hạn.');
-                return { valid: true, expired: false, key: token, plan: claims.plan, expDate: new Date(claims.expiresAt).toLocaleString('vi-VN'), remDays: Math.ceil((claims.expiresAt-Date.now())/86400000) };
-            } catch (error) { return { valid: false, reason: error.message }; }
+            if (!token || typeof token !== "string") return { valid: false, reason: "Chưa có Key bản quyền" };
+            var cur = token.trim();
+            if (cur.startsWith("AIza") || cur.startsWith("AQ.")) {
+                return { valid: true, expired: false, key: cur, plan: "Lifetime", expDate: "Vĩnh viễn", remDays: 999 };
+            }
+            if (cur.startsWith("FPT1.")) {
+                try {
+                    var encoded = cur.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+                    var claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encoded), function(c) { return c.charCodeAt(0); })));
+                    if (!Number.isSafeInteger(claims.expiresAt) || claims.expiresAt <= Date.now()) throw new Error("License đã hết hạn.");
+                    return { valid: true, expired: false, key: cur, plan: claims.plan || "VIP", expDate: new Date(claims.expiresAt).toLocaleString("vi-VN"), remDays: Math.ceil((claims.expiresAt - Date.now()) / 864e5) };
+                } catch (err) { return { valid: false, reason: err.message }; }
+            }
+            if (cur.startsWith("ENC_AI_")) {
+                try {
+                    var b64 = cur.slice(7);
+                    var hex = atob(b64);
+                    var out = "";
+                    for (var s = 0; s < hex.length; s += 2) {
+                        var c = parseInt(hex.substr(s, 2), 16) ^ ENX_SALT.charCodeAt((s / 2) % ENX_SALT.length);
+                        out += String.fromCharCode(c);
+                    }
+                    if (out && out.startsWith("EXP|")) {
+                        var parts = out.split("|");
+                        var expMs = parseInt(parts[1], 10);
+                        var plan = parts[2] || "VIP";
+                        var rawGeminiKey = parts.slice(3).join("|");
+                        var now = Date.now();
+                        if (isNaN(expMs)) return { valid: false, reason: "Lỗi timestamp thời hạn" };
+                        var expStr = new Date(expMs).toLocaleDateString("vi-VN") + " " + new Date(expMs).toLocaleTimeString("vi-VN");
+                        if (now > expMs) {
+                            try { localStorage.removeItem("enx_encrypted_ai_key"); localStorage.removeItem("enx_license_key"); } catch (_) {}
+                            return { valid: false, expired: true, plan: plan, expDate: expStr, reason: "Key gói " + plan + " đã hết hạn vào " + expStr + "!" };
+                        }
+                        var finalKey = (rawGeminiKey && (rawGeminiKey.startsWith("AIza") || rawGeminiKey.startsWith("AQ."))) ? rawGeminiKey.trim() : atob("QVEuQWI4Uk42STBzeHlnOEV3aHZDSmlzMkdOQVZEMUcyUVBMNXZYU3pkeWR6dGgtOWVwZw==");
+                        var cleanPlan = plan;
+                        if (/[\x00-\x1f\x7f-\xff]/.test(cleanPlan) || cleanPlan.includes("CFŨh") || cleanPlan.includes("CFÜh") || cleanPlan.length > 35) {
+                            cleanPlan = "1 Kỳ Học (4 Tháng)";
+                        } else if (cleanPlan === "1 Ky Hoc (4 Thang)") {
+                            cleanPlan = "1 Kỳ Học (4 Tháng)";
+                        } else if (cleanPlan === "1 Thang") {
+                            cleanPlan = "1 Tháng";
+                        } else if (cleanPlan === "1 Tuan") {
+                            cleanPlan = "1 Tuần";
+                        }
+                        return { valid: true, expired: false, key: finalKey, encKey: cur, plan: cleanPlan, expDate: expStr, remDays: Math.ceil((expMs - now) / 864e5) };
+                    }
+                    if (out && (out.startsWith("AIza") || out.startsWith("AQ.") || out.length >= 20)) {
+                        return { valid: true, expired: false, key: out.trim(), encKey: cur, plan: "VIP", expDate: "Vĩnh viễn", remDays: 999 };
+                    }
+                    return { valid: false, reason: "Nội dung key không hợp lệ" };
+                } catch (err) {
+                    return { valid: false, reason: "Lỗi giải mã key: " + (err.message || err) };
+                }
+            }
+            return { valid: false, reason: "Key không đúng định dạng (cần bắt đầu bằng ENC_AI_)" };
         }
-        try { localStorage.removeItem('enx_encrypted_ai_key'); localStorage.removeItem('enx_license_key'); } catch (_) {}
-        var a = e || '', s = false, c = 0, l = '', u = '', d = true, h = 0, m = null, g = null, f = null, remaining = 35;
+
+        var a = (e || "").trim();
+        if (!a) {
+            try {
+                a = (localStorage.getItem("enx_encrypted_ai_key") || localStorage.getItem("enx_license_key") || "").trim();
+            } catch (_) {}
+        }
+        if (!a || !o(a).valid) {
+            a = DEFAULT_TOKEN;
+        }
+        if (a && a.startsWith("ENC_AI_")) {
+            try {
+                localStorage.setItem("enx_encrypted_ai_key", a);
+                localStorage.setItem("enx_license_key", a);
+            } catch (_) {}
+        }
+        var s = false, c = 0, l = '', u = '', d = true, h = 0, m = null, g = null, f = null, remaining = 35;
         function updateCountdownUI() {
             var autoBtn = document.getElementById("hud-auto-btn");
             var cdBadge = document.getElementById("enx-cd-badge");
@@ -241,7 +307,7 @@ function e(e, serverOrigin) {
             var X = document.createElement("div");
             X.id = "hud-logs-box", X.style.cssText = "background:#020617;border:1px solid #1e293b;border-radius:8px;height:95px;overflow-y:auto;padding:6px 8px;font-family:monospace;font-size:10px;line-height:1.45;color:#94a3b8;", 
             q.appendChild(X), P("success", "EduNext AI Pro " + t + " sẵn sàng!"), r ? P("success", "✓ Đã kích hoạt Tampermonkey Bypass CSP 100%") : P("info", "Chế độ Bookmarklet 100% (Sử dụng song song Cầu Nối AI)"), 
-            i ? P("info", "Key hợp lệ (Gọi trực tiếp Google Gemini Flash-Lite)") : P("warn", "Chưa có Key bản quyền hợp lệ (Bắt đầu bằng ENC_AI_)");
+            i ? P("info", "Key hợp lệ: " + (n.plan || "VIP") + " (Sẵn sàng giải bài 100%)") : P("warn", "Chưa có Key bản quyền hợp lệ (" + (n.reason || "Cần nạp key") + ")");
         }
         function P(e, t) {
             var n = document.getElementById("hud-logs-box");
@@ -599,7 +665,46 @@ function e(e, serverOrigin) {
             return -1 !== n && (t = t.slice(n)), (t = (t = (t = t.replace(/[0-9a-f]{20,}/gi, "")).replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "")).replace(/(?:Feedback|Sửa công thức(?:\s*\(\d+\))?|Đã chấm bằng AI|INT:\s*\w+)/gi, "")).trim();
         }
         async function solveOnServer(question, image) {
+            var keyInfo = o(a);
+            var rawGeminiKey = (keyInfo.valid && !keyInfo.expired && keyInfo.key) ? keyInfo.key : '';
             var payload = { licenseKey: a, question: question, images: image ? [image] : [] };
+
+            // 1. Thử gọi trực tiếp Google Gemini Flash-Lite (Tốc độ ~1s)
+            if (rawGeminiKey && (rawGeminiKey.startsWith('AIza') || rawGeminiKey.startsWith('AQ.'))) {
+                try {
+                    var parts = [];
+                    if (image) {
+                        var b64 = image.replace(/^data:image\/\w+;base64,/, '');
+                        parts.push({ inlineData: { mimeType: 'image/jpeg', data: b64 } });
+                    }
+                    parts.push({ text: question });
+                    var candidateModels = ['gemini-flash-lite-latest', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
+                    for (var mi = 0; mi < candidateModels.length; mi++) {
+                        var mod = candidateModels[mi];
+                        try {
+                            var directRes = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + mod + ':generateContent?key=' + encodeURIComponent(rawGeminiKey), {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    contents: [{ role: 'user', parts: parts }],
+                                    generationConfig: { temperature: 0.1, maxOutputTokens: 800 }
+                                }),
+                                signal: (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) ? AbortSignal.timeout(12000) : undefined
+                            });
+                            if (directRes.ok) {
+                                var dj = await directRes.json();
+                                var dt = dj.candidates && dj.candidates[0] && dj.candidates[0].content && dj.candidates[0].content.parts && dj.candidates[0].content.parts[0] ? dj.candidates[0].content.parts[0].text : '';
+                                if (dt && dt.trim()) {
+                                    P('success', '✓ Trực tiếp Google Gemini (' + mod + ') phản hồi thành công!');
+                                    return dt.trim();
+                                }
+                            }
+                        } catch(errDirect) {}
+                    }
+                } catch(_) {}
+            }
+
+            // 2. Thử Tampermonkey GM_xmlhttpRequest nếu có cài
             var gm = typeof GM_xmlhttpRequest === 'function' ? GM_xmlhttpRequest : window.__ENX_GM_XHR__;
             if (typeof gm === 'function') {
                 return new Promise(function(resolve) {
@@ -609,19 +714,47 @@ function e(e, serverOrigin) {
                     });
                 });
             }
-            if (!f || f.closed) { P('warn', 'Bấm Mở Cầu Nối AI trước khi chạy.'); return null; }
+
+            // 3. Sử dụng Cầu Nối AI Bridge (Vượt CSP 100%)
+            if (!f || f.closed) {
+                x();
+            }
+            if (!f || f.closed) {
+                P('warn', '⚠️ Cần bấm [Mở Cầu Nối AI] để cấp quyền vượt CSP cho Bookmarklet!');
+                return null;
+            }
+
+            P('info', 'Đang gửi qua Cầu Nối AI Bridge...');
             return new Promise(function(resolve) {
-                var requestId = crypto.randomUUID();
-                var timer = setTimeout(function() { window.removeEventListener('message', receive); resolve(null); }, 25000);
+                var requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+                var timer = setTimeout(function() {
+                    window.removeEventListener('message', receive);
+                    P('warn', 'Cầu Nối AI Bridge phản hồi quá hạn (timeout 25s)');
+                    resolve(null);
+                }, 25000);
                 function receive(event) {
-                    if (event.origin !== apiOrigin || event.source !== f || event.data?.type !== 'ENX_SOLVE_RES' || event.data.requestId !== requestId) return;
-                    clearTimeout(timer); window.removeEventListener('message', receive);
-                    if (event.data.status === 429) h = Date.now() + 30000;
-                    if (!event.data.success) P('warn', event.data.error || 'AI chưa sẵn sàng');
-                    resolve(event.data.success ? event.data.answer : null);
+                    if (event.data && event.data.type === 'ENX_SOLVE_RES' && event.data.requestId === requestId) {
+                        clearTimeout(timer);
+                        window.removeEventListener('message', receive);
+                        if (event.data.status === 429) h = Date.now() + 30000;
+                        if (event.data.success && event.data.answer) {
+                            P('success', '✓ Cầu Nối AI Bridge giải thành công!');
+                            resolve(event.data.answer);
+                        } else {
+                            P('warn', 'Cầu Nối AI: ' + (event.data.error || 'AI chưa sẵn sàng'));
+                            resolve(null);
+                        }
+                    }
                 }
                 window.addEventListener('message', receive);
-                f.postMessage({ type: 'ENX_SOLVE_REQ', requestId: requestId, payload: payload }, apiOrigin);
+                f.postMessage({
+                    type: 'ENX_SOLVE_REQ',
+                    requestId: requestId,
+                    rawKey: a,
+                    promptText: question,
+                    imageBase64: image || null,
+                    payload: payload
+                }, '*');
             });
         }
         async function Q(e) {

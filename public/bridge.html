@@ -154,7 +154,7 @@
       <div class="title-box">
         <div class="icon">⚡</div>
         <div>
-          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.54 PRO</span></h1>
+          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.55 PRO</span></h1>
           <div class="sub">Vượt CSP Cloudflare 100% • Đồng Bộ Realtime 2 Chiều</div>
         </div>
       </div>
@@ -381,7 +381,10 @@
       }
 
       if (data.type === 'ENX_SOLVE_REQ') {
-        const { requestId, rawKey, promptText, imageBase64 } = data;
+        const requestId = data.requestId;
+        const rawKey = data.rawKey || data.payload?.licenseKey || '';
+        const promptText = data.promptText || data.payload?.question || '';
+        const imageBase64 = data.imageBase64 || (data.payload?.images && data.payload.images[0]) || null;
         const targetWin = e.source || edunextWindow || window.opener;
 
         if (isBridgeSolving) {
