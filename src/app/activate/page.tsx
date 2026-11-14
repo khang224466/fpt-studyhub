@@ -180,40 +180,35 @@ export default function ActivatePage() {
 
             {/* DRAGGABLE BUTTON BOX */}
             <div className="p-6 rounded-2xl bg-slate-950 border-2 border-dashed border-emerald-500/50 text-center space-y-3">
-              <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
-                <Zap className="w-3.5 h-3.5" />
-                <span>Kéo Thả Lên Thanh Dấu Trang (Bookmarks Bar)</span>
+              <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-left text-amber-200 text-xs">
+                ⚠️ <strong>Lưu ý Windows:</strong> Chrome chặn kéo thả liên kết dài (hiện biểu tượng 🚫). Hãy bấm <strong>Sao Chép Mã</strong> &rarr; Chuột phải thanh Bookmark &rarr; Thêm trang &rarr; Dán URL!
               </div>
 
               <div className="py-2">
-                <a
-                  href={bookmarkletJs}
-                  draggable="true"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('👉 Hãy dùng chuột KÉO nút này thả lên thanh dấu trang (Bookmarks Bar) của trình duyệt!');
-                  }}
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold text-sm shadow-xl shadow-emerald-950/80 hover:scale-105 active:scale-95 transition-all cursor-grab active:cursor-grabbing border border-emerald-400/40 select-none animate-pulse"
-                >
-                  <Bookmark className="w-4 h-4 fill-current" />
-                  <span>⚡ Kích Hoạt {searchResult.service.name}</span>
-                </a>
-              </div>
-
-              <div className="flex items-center justify-center gap-3 pt-1">
-                <Button
-                  size="sm"
-                  variant="outline"
+                <button
+                  type="button"
                   onClick={() => {
                     navigator.clipboard.writeText(bookmarkletJs);
                     setCopiedScript(true);
-                    setTimeout(() => setCopiedScript(false), 2000);
+                    setTimeout(() => setCopiedScript(false), 2500);
                   }}
-                  className="text-xs"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold text-sm shadow-xl shadow-emerald-950/80 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-emerald-400/40 select-none"
                 >
-                  {copiedScript ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedScript ? 'Đã sao chép' : 'Sao chép đoạn mã JS'}</span>
-                </Button>
+                  {copiedScript ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedScript ? '✓ Đã sao chép mã! Hãy chuột phải Bookmark và dán' : `📋 Bấm Sao Chép Mã ${searchResult.service.name} (v10.2.50)`}</span>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-center gap-3 pt-1">
+                <a
+                  href={`${origin}/keo_bookmark.html?key=${encodeURIComponent(searchResult.key)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-700 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Trang Hướng Dẫn Riêng</span>
+                </a>
                 <a
                   href={`${origin}/edunext.user.js?key=${encodeURIComponent(searchResult.key)}`}
                   target="_blank"
@@ -221,7 +216,7 @@ export default function ActivatePage() {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-700 transition-colors"
                 >
                   <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Cài Tampermonkey (v10.2.15)</span>
+                  <span>Cài Tampermonkey (v10.2.50)</span>
                 </a>
               </div>
             </div>
@@ -233,9 +228,10 @@ export default function ActivatePage() {
                 <span>Cách Sử Dụng Đơn Giản:</span>
               </div>
               <ol className="list-decimal list-inside space-y-1 text-slate-400">
+                <li>Bấm nút <strong>Sao Chép Mã</strong> ở trên</li>
+                <li>Chuột phải lên thanh Bookmark trình duyệt (Ctrl+Shift+B) &rarr; Chọn <strong>Thêm trang...</strong> &rarr; Dán vào ô URL</li>
                 <li>Truy cập vào trang học tập: <strong>https://{searchResult.service.targetDomain}</strong></li>
-                <li>Nhấn vào nút Bookmarklet trên thanh dấu trang (hoặc bật Userscript)</li>
-                <li>Bảng điều khiển HUD của trợ lý <strong>v10.2.15</strong> sẽ xuất hiện, tự động giải bài và nộp theo mẫu!</li>
+                <li>Nhấn vào nút Bookmark vừa tạo &rarr; Bảng điều khiển HUD <strong>v10.2.50 PRO</strong> sẽ xuất hiện, tự động giải bài và nộp theo mẫu 35s!</li>
               </ol>
             </div>
           </div>
