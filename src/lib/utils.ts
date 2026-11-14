@@ -25,5 +25,5 @@ export function generateVietQRUrl(bankId: string, accountNo: string, amount: num
 
 export function generateBookmarkletCode(licenseKey?: string, host?: string): string {
   const key = licenseKey || '';
-  return `javascript:(function(){window.__ENX_KEY__='${key}';var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/khang224466/NX@main/BUISINESS/v10_2_51_minified.js?t='+Date.now();s.async=true;(document.head||document.documentElement).appendChild(s);})();`;
+  return `javascript:(function(){window.__ENX_KEY__='${key}';var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/khang224466/NX@main/BUISINESS/v10_2_52_minified.js?t='+Date.now();s.async=true;(document.head||document.documentElement).appendChild(s);})();`;
 }
