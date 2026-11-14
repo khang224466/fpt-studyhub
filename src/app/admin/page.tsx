@@ -86,6 +86,7 @@ export default function AdminPage() {
   });
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [approvingOrderId, setApprovingOrderId] = useState<string | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -352,6 +353,78 @@ export default function AdminPage() {
     }
   };
 
+  // Delete single order permanently
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN đơn hàng [${orderId}] không?\nThao tác này sẽ xóa đơn khỏi hệ thống và không thể hoàn tác.`)) return;
+    setDeletingOrderId(orderId);
+    try {
+      // 1. Mark as deleted in localStorage blacklist
+      try {
+        const rawDel = localStorage.getItem('fpt_admin_deleted_orders_v10');
+        const delList = rawDel ? JSON.parse(rawDel) : [];
+        if (!delList.includes(orderId)) {
+          delList.push(orderId);
+          localStorage.setItem('fpt_admin_deleted_orders_v10', JSON.stringify(delList));
+        }
+      } catch {}
+
+      // 2. Remove from persisted orders
+      try {
+        const rawStored = localStorage.getItem('fpt_admin_persisted_orders_v10');
+        if (rawStored) {
+          const parsed = JSON.parse(rawStored);
+          const filtered = parsed.filter((o: any) => o && o.orderId !== orderId);
+          localStorage.setItem('fpt_admin_persisted_orders_v10', JSON.stringify(filtered));
+        }
+      } catch {}
+
+      // 3. Remove from UI immediately
+      setOrders(prev => prev.filter(o => o.orderId !== orderId));
+
+      // 4. Call server DELETE API
+      await fetch(`/api/v1/orders?orderId=${encodeURIComponent(orderId)}`, {
+        method: 'DELETE'
+      });
+    } catch (e: any) {
+      alert('Lỗi khi xóa đơn: ' + (e.message || e));
+    } finally {
+      setDeletingOrderId(null);
+    }
+  };
+
+  // Delete all pending orders
+  const handleDeletePendingOrders = async () => {
+    const pending = orders.filter(o => o.status !== 'approved' && o.status !== 'paid');
+    if (pending.length === 0) {
+      alert('Hiện không có đơn nào đang chờ duyệt hoặc chờ thanh toán.');
+      return;
+    }
+    if (!confirm(`Bạn có chắc chắn muốn xóa toàn bộ ${pending.length} đơn hàng chưa thanh toán / chờ duyệt rác không?`)) return;
+    try {
+      const pendingIds = pending.map(o => o.orderId);
+      try {
+        const rawDel = localStorage.getItem('fpt_admin_deleted_orders_v10');
+        const delList = rawDel ? JSON.parse(rawDel) : [];
+        pendingIds.forEach(id => { if (!delList.includes(id)) delList.push(id); });
+        localStorage.setItem('fpt_admin_deleted_orders_v10', JSON.stringify(delList));
+      } catch {}
+
+      try {
+        const rawStored = localStorage.getItem('fpt_admin_persisted_orders_v10');
+        if (rawStored) {
+          const parsed = JSON.parse(rawStored);
+          const filtered = parsed.filter((o: any) => !pendingIds.includes(o.orderId));
+          localStorage.setItem('fpt_admin_persisted_orders_v10', JSON.stringify(filtered));
+        }
+      } catch {}
+
+      setOrders(prev => prev.filter(o => !pendingIds.includes(o.orderId)));
+      await fetch('/api/v1/orders?action=delete_pending', { method: 'DELETE' });
+    } catch (e: any) {
+      alert('Lỗi: ' + (e.message || e));
+    }
+  };
+
   // Revoke active license key
   const handleRevokeOrder = async (orderId: string) => {
     if (!confirm(`Bạn có chắc muốn khóa / thu hồi bản quyền của đơn ${orderId} này? Khách hàng sẽ không thể tiếp tục sử dụng.`)) return;
@@ -460,7 +533,7 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="emerald" size="sm">v10.2.56 PRO</Badge>
+              <Badge variant="emerald" size="sm">v10.2.57 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
@@ -959,7 +1032,7 @@ export default function AdminPage() {
                 <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
-                  <span>FPT EduNext AI Assistant Pro (v10.2.56 PRO)</span>
+                  <span>FPT EduNext AI Assistant Pro (v10.2.57 PRO)</span>
                 </div>
               </div>
 

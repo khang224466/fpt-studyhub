@@ -100,6 +100,26 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    let orderId = req.nextUrl.searchParams.get('orderId');
+    let action = req.nextUrl.searchParams.get('action');
+    if (!orderId && !action) {
+      try {
+        const body = await req.json();
+        if (body && typeof body === 'object') {
+          if (body.orderId) orderId = body.orderId;
+          if (body.action) action = body.action;
+        }
+      } catch {}
+    }
+    const { deleteOrder, deletePendingOrders, clearOrders } = await import('@/lib/orderRepository');
+    if (orderId) {
+      await deleteOrder(orderId.trim());
+      return reply({ success: true, message: `Đã xóa đơn ${orderId} thành công!` });
+    }
+    if (action === 'delete_pending') {
+      const count = await deletePendingOrders();
+      return reply({ success: true, count, message: `Đã xóa ${count} đơn chờ thanh toán thành công!` });
+    }
     await clearOrders();
     return reply({ success: true, message: 'Đã xóa sạch danh sách đơn hàng (trắng tinh)!' });
   } catch { return failed(); }

@@ -87,26 +87,35 @@ async function localOrders(): Promise<Record<string, OrderItem>> {
   return obj;
 }
 
+const deletedOrderIds = new Set<string>();
+
 export async function getOrder(id: string): Promise<OrderItem | null> {
+  if (deletedOrderIds.has(id)) return null;
   if (!useRedis()) return (await localOrders())[id] || memoryStore.get(id) || null;
   const raw = await redis(['HGET', hash, id]);
   return raw ? JSON.parse(raw) : null;
 }
 
 export async function listOrders(): Promise<OrderItem[]> {
-  if (!useRedis()) return Object.values(await localOrders());
-  const raw: string[] = await redis(['HVALS', hash]);
-  const parsed: OrderItem[] = raw.map(value => JSON.parse(value));
-  if (parsed.length === 0) {
-    // Seed Redis if empty
-    for (const seed of DEFAULT_SEED_ORDERS) {
-      try {
-        await redis(['HSET', hash, seed.orderId, JSON.stringify(seed)]);
-      } catch {}
+  let list: OrderItem[];
+  if (!useRedis()) {
+    list = Object.values(await localOrders());
+  } else {
+    const raw: string[] = await redis(['HVALS', hash]);
+    list = raw.map(value => JSON.parse(value));
+    if (list.length === 0) {
+      // Seed Redis if empty and not deleted
+      for (const seed of DEFAULT_SEED_ORDERS) {
+        if (!deletedOrderIds.has(seed.orderId)) {
+          try {
+            await redis(['HSET', hash, seed.orderId, JSON.stringify(seed)]);
+          } catch {}
+        }
+      }
+      list = [...DEFAULT_SEED_ORDERS];
     }
-    return [...DEFAULT_SEED_ORDERS];
   }
-  return parsed;
+  return list.filter(ord => ord && ord.orderId && !deletedOrderIds.has(ord.orderId));
 }
 
 export async function changeOrder(id: string, change: (current: OrderItem | null) => OrderItem): Promise<OrderItem> {
@@ -143,7 +152,7 @@ export async function changeOrder(id: string, change: (current: OrderItem | null
 export async function upsertBulkOrders(items: OrderItem[]): Promise<OrderItem[]> {
   const orders = await localOrders();
   for (const it of items) {
-    if (it && it.orderId) {
+    if (it && it.orderId && !deletedOrderIds.has(it.orderId)) {
       orders[it.orderId] = it;
       memoryStore.set(it.orderId, it);
       if (useRedis()) {
@@ -158,10 +167,41 @@ export async function upsertBulkOrders(items: OrderItem[]): Promise<OrderItem[]>
     await writeFile(`${localFile}.tmp`, JSON.stringify(orders), 'utf8');
     await rename(`${localFile}.tmp`, localFile);
   } catch {}
-  return Object.values(orders);
+  return Object.values(orders).filter(ord => ord && ord.orderId && !deletedOrderIds.has(ord.orderId));
+}
+
+export async function deleteOrder(id: string): Promise<boolean> {
+  deletedOrderIds.add(id);
+  memoryStore.delete(id);
+  if (!useRedis()) {
+    const orders = await localOrders();
+    delete orders[id];
+    try {
+      await mkdir(path.dirname(localFile), { recursive: true });
+      await writeFile(`${localFile}.tmp`, JSON.stringify(orders), 'utf8');
+      await rename(`${localFile}.tmp`, localFile);
+    } catch {}
+    return true;
+  }
+  try {
+    await redis(['HDEL', hash, id]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function deletePendingOrders(): Promise<number> {
+  const all = await listOrders();
+  const pending = all.filter(o => o.status === 'pending' || o.status === 'waiting_approval');
+  for (const o of pending) {
+    await deleteOrder(o.orderId);
+  }
+  return pending.length;
 }
 
 export async function clearOrders(): Promise<void> {
+  for (const k of memoryStore.keys()) deletedOrderIds.add(k);
   memoryStore.clear();
   if (!useRedis()) {
     try {
