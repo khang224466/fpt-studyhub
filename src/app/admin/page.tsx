@@ -1,113 +1,1189 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { 
+  Users, 
+  DollarSign, 
+  Key, 
+  KeyRound, 
+  Server, 
+  Plus, 
+  Copy, 
+  Check, 
+  RefreshCw, 
+  ArrowLeft, 
+  CheckCircle2, 
+  GraduationCap, 
+  Clock, 
+  Sparkles, 
+  ShieldCheck, 
+  MessageSquare, 
+  AlertCircle, 
+  AlertTriangle, 
+  Calendar, 
+  Timer, 
+  Trash2, 
+  ExternalLink, 
+  Hourglass,
+  LogOut,
+  QrCode
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { formatVND, generateBookmarkletCode } from '@/lib/utils';
-import type { OrderItem } from '@/types/rental';
+import { Badge } from '@/components/ui/Badge';
+import { formatVND, generateBookmarkletCode, generateVietQRUrl } from '@/lib/utils';
+import { SERVICES_CATALOG, BANK_CONFIG } from '@/data/servicesCatalog';
+import { OrderItem } from '@/types/rental';
+import { parseClientLicense } from '@/lib/clientLicense';
+
+const ENCRYPTED_DEFAULT_TOKEN = 'ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl';
 
 export default function AdminPage() {
-  const [token, setToken] = useState('');
-  const [password, setPassword] = useState('');
-  const [orders, setOrders] = useState<OrderItem[]>([]);
-  const [message, setMessage] = useState('');
-  const [busy, setBusy] = useState('');
-  const [code, setCode] = useState('');
-  const [days, setDays] = useState(7);
-  const [generated, setGenerated] = useState('');
+  const [token, setToken] = useState<string>('');
+  const [passwordInput, setPasswordInput] = useState<string>('');
+  const [loginError, setLoginError] = useState<string>('');
+  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 
-  const request = useCallback(async (url: string, init?: RequestInit, credential = token) => {
-    const response = await fetch(url, { ...init, cache: 'no-store', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${credential}` } });
-    const data = await response.json();
-    if (!response.ok || !data.success) throw new Error(data.message || 'Yêu cầu không thành công.');
-    return data;
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [durationDays, setDurationDays] = useState('7');
+  const [customApiKey, setCustomApiKey] = useState('');
+  const [masterApiKey, setMasterApiKey] = useState('');
+  const [quickCode, setQuickCode] = useState('');
+  const [isQuickApproving, setIsQuickApproving] = useState(false);
+  const [extendingOrderId, setExtendingOrderId] = useState<string | null>(null);
+  const [keyFilter, setKeyFilter] = useState<'all' | 'warning' | 'active' | 'expired'>('all');
+  const [lastGenerated, setLastGenerated] = useState<{
+    key: string;
+    bookmarklet?: string;
+    planLabel: string;
+    expDate: string;
+    days: number;
+  } | null>(null);
+
+  // Live Orders state from API
+  const [orders, setOrders] = useState<OrderItem[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [approvingOrderId, setApprovingOrderId] = useState<string | null>(null);
+
+  // Restore saved token & master API key on mount
+  useEffect(() => {
+    try {
+      const savedAuth = sessionStorage.getItem('fpt_admin_token') || localStorage.getItem('fpt_admin_token');
+      if (savedAuth) setToken(savedAuth);
+      const savedKey = localStorage.getItem('fpt_admin_master_gemini_key');
+      if (savedKey) setMasterApiKey(savedKey);
+    } catch {}
+  }, []);
+
+  const handleMasterKeyChange = (val: string) => {
+    setMasterApiKey(val);
+    try {
+      localStorage.setItem('fpt_admin_master_gemini_key', val);
+    } catch {}
+  };
+
+  const authHeaders = useCallback(() => {
+    return {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store',
+      'Authorization': `Bearer ${token || 'admin123'}`
+    };
   }, [token]);
-  const refresh = useCallback(async () => {
-    const data = await request('/api/v1/orders');
-    setOrders(data.orders);
-  }, [request]);
+
+  const fetchOrders = useCallback(async () => {
+    if (!token) return;
+    setIsLoadingOrders(true);
+    try {
+      const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: authHeaders()
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.orders)) {
+        setOrders(data.orders);
+      } else if (res.status === 401) {
+        setToken('');
+        sessionStorage.removeItem('fpt_admin_token');
+        localStorage.removeItem('fpt_admin_token');
+        setLoginError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+      }
+    } catch (e) {
+      console.error('Fetch orders error:', e);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  }, [token, authHeaders]);
+
+  const handleLogin = async (passToTry?: string) => {
+    const cred = (passToTry || passwordInput).trim();
+    if (!cred) return;
+    setIsLoggingIn(true);
+    setLoginError('');
+    try {
+      const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${cred}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setToken(cred);
+        sessionStorage.setItem('fpt_admin_token', cred);
+        localStorage.setItem('fpt_admin_token', cred);
+        if (Array.isArray(data.orders)) setOrders(data.orders);
+        setPasswordInput('');
+      } else {
+        setLoginError(data.message || 'Mật mã quản trị không chính xác.');
+      }
+    } catch (err: any) {
+      setLoginError(err.message || 'Lỗi kết nối máy chủ.');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setToken('');
+    setOrders([]);
+    sessionStorage.removeItem('fpt_admin_token');
+    localStorage.removeItem('fpt_admin_token');
+  };
+
+  const approvedOrders = orders.filter(o => o.status === 'approved' || o.status === 'paid');
+  const pendingOrders = orders.filter(o => o.status === 'waiting_approval' || o.status === 'pending');
+  const totalRevenue = approvedOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
+  const totalCustomers = approvedOrders.length;
 
   useEffect(() => {
-    // Remove credentials retained by older versions. Admin session stays in memory only.
-    localStorage.removeItem('fpt_admin_master_gemini_key');
-    localStorage.removeItem('enx_bridge_gemini_key');
     if (!token) return;
-    let stopped = false;
-    let timer: ReturnType<typeof setTimeout>;
-    const poll = async () => {
-      try { if (document.visibilityState !== 'hidden') await refresh(); }
-      catch (error) { if (!stopped) setMessage(error instanceof Error ? error.message : 'Lỗi kết nối'); }
-      if (!stopped) timer = setTimeout(poll, 4000);
-    };
-    void poll();
-    return () => { stopped = true; clearTimeout(timer); };
-  }, [token, refresh]);
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 2000);
 
-  const act = async (action: string, orderId?: string, transferCode?: string) => {
-    if (action === 'revoke' && !confirm('Thu hồi quyền sử dụng của đơn này?')) return;
-    setBusy(orderId || 'quick'); setMessage('');
+    // Instant Realtime sync from Customer Checkout Modal (0ms)
+    let bc: BroadcastChannel | null = null;
     try {
-      await request('/api/v1/orders', { method: 'PUT', body: JSON.stringify({ action, orderId, transferCode, addDays: days }) });
-      await refresh(); setMessage('Đã cập nhật đơn hàng.');
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Lỗi kết nối'); }
-    finally { setBusy(''); }
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        bc = new BroadcastChannel('fpt_studyhub_orders');
+        bc.onmessage = (event) => {
+          const data = event.data;
+          if (data && (data.type === 'ORDER_PENDING' || data.type === 'ORDER_WAITING')) {
+            fetchOrders();
+          }
+        };
+      }
+    } catch {}
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'fpt_latest_pending_order' || e.key === 'fpt_latest_waiting_order') {
+        fetchOrders();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      clearInterval(interval);
+      if (bc) bc.close();
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [token, fetchOrders]);
+
+  const extractInnerKey = (keyToken: string): string => {
+    if (!keyToken || typeof keyToken !== 'string') return '';
+    let cur = keyToken.trim();
+    const salt = 'ENX_SEC_2026_FLASH_LITE';
+    for (let depth = 0; depth < 5; depth++) {
+      if (cur.startsWith('AIza') || cur.startsWith('AQ.')) return cur;
+      if (!cur.startsWith('ENC_AI_')) break;
+      try {
+        const b64 = cur.slice(7);
+        const hex = atob(b64);
+        let out = '';
+        for (let i = 0; i < hex.length; i += 2) {
+          const c = parseInt(hex.substr(i, 2), 16) ^ salt.charCodeAt((i / 2) % salt.length);
+          out += String.fromCharCode(c);
+        }
+        if (out.startsWith('EXP|')) {
+          const parts = out.split('|');
+          cur = parts.slice(3).join('|').trim();
+        } else {
+          cur = out.trim();
+        }
+      } catch {
+        break;
+      }
+    }
+    return cur;
   };
-  if (!token) return (
-    <main className="min-h-screen grid place-items-center bg-slate-950 p-6">
-      <form className="w-full max-w-md space-y-5 rounded-2xl border border-slate-700 p-8" onSubmit={async event => {
-        event.preventDefault(); setBusy('login'); setMessage('');
+
+  // Admin approves order and issues Key (supports orderId or transferCode)
+  const handleApproveOrder = async (orderId: string, transferCode?: string) => {
+    let keyToUse = masterApiKey.trim();
+    if (keyToUse.startsWith('ENC_AI_')) {
+      const unwrapped = extractInnerKey(keyToUse);
+      if (unwrapped && (unwrapped.startsWith('AIza') || unwrapped.startsWith('AQ.'))) {
+        keyToUse = unwrapped;
+      }
+    }
+    if (!keyToUse) {
+      keyToUse = extractInnerKey(ENCRYPTED_DEFAULT_TOKEN);
+    }
+
+    setApprovingOrderId(orderId || transferCode || 'approving');
+    try {
+      const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          orderId,
+          transferCode,
+          action: 'approve',
+          apiKey: keyToUse
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrders(prev => prev.map(o => {
+          if ((orderId && o.orderId === orderId) || (transferCode && o.transferCode === transferCode)) {
+            return {
+              ...o,
+              status: 'approved',
+              paidAt: Date.now(),
+              licenseKey: data.licenseKey || o.licenseKey
+            };
+          }
+          return o;
+        }));
+
+        // Broadcast instant approval event to customer modal (0ms response)
         try {
-          const cleanPass = password.trim();
-          const data = await request('/api/v1/orders', undefined, cleanPass);
-          setOrders(data.orders);
-          setToken(cleanPass);
-          setPassword('');
-        } catch (error) { setMessage(error instanceof Error ? error.message : 'Đăng nhập thất bại'); }
-        finally { setBusy(''); }
-      }}>
-        <h1 className="text-2xl font-bold">Quản trị FPT Study Hub</h1>
-        <div>
-          <label className="block mb-1 text-sm text-slate-300" htmlFor="admin-token">Mã truy cập quản trị</label>
-          <p className="text-xs text-slate-400 mb-2">Mật mã mặc định: <span className="font-mono text-emerald-400 font-bold">admin123</span> (hoặc token Vercel nếu có cài)</p>
-          <input id="admin-token" type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Nhập admin123" className="w-full rounded-lg bg-slate-900 p-3 border border-slate-700 text-white" />
-        </div>
-        <Button disabled={Boolean(busy)} type="submit">Đăng nhập</Button>
-        <p role="alert" className="text-amber-300">{message}</p>
-        <Link href="/" className="block text-emerald-400">Về trang chủ</Link>
-      </form>
-    </main>
-  );
+          if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+            const bc = new BroadcastChannel('fpt_studyhub_orders');
+            bc.postMessage({
+              type: 'ORDER_APPROVED',
+              orderId: data.order?.orderId || orderId,
+              transferCode: data.order?.transferCode || transferCode,
+              licenseKey: data.licenseKey,
+              order: data.order
+            });
+            setTimeout(() => { try { bc.close(); } catch {} }, 2000);
+          }
+          localStorage.setItem('fpt_latest_approved_order', JSON.stringify({
+            orderId: data.order?.orderId || orderId,
+            transferCode: data.order?.transferCode || transferCode,
+            licenseKey: data.licenseKey,
+            order: data.order,
+            t: Date.now()
+          }));
+        } catch {}
+
+        await fetchOrders();
+        alert(`✓ Đã duyệt và cấp Key thành công cho đơn ${orderId || transferCode}! Màn hình khách hàng sẽ tự động nhận Bookmarklet.`);
+      } else {
+        alert('Duyệt đơn không thành công: ' + (data.message || 'Lỗi server'));
+      }
+    } catch (e: any) {
+      alert('Lỗi duyệt đơn: ' + e.message);
+    } finally {
+      setApprovingOrderId(null);
+    }
+  };
+
+  // Quick Approve by Transfer Code (e.g. PR7874)
+  const handleQuickApproveSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    let code = quickCode.trim().toUpperCase();
+    if (!code) return;
+    if (/^\d{4}$/.test(code)) code = 'PR' + code;
+
+    setIsQuickApproving(true);
+    try {
+      await handleApproveOrder('', code);
+      setQuickCode('');
+    } finally {
+      setIsQuickApproving(false);
+    }
+  };
+
+  // Extend active license key
+  const handleExtendOrder = async (orderId: string, addDays: number) => {
+    setExtendingOrderId(orderId);
+    try {
+      const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          orderId,
+          action: 'extend',
+          addDays,
+          apiKey: masterApiKey.trim()
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchOrders();
+        alert(`✓ Đã gia hạn thành công thêm +${addDays} ngày cho đơn ${orderId}!`);
+      } else {
+        alert('Gia hạn không thành công: ' + (data.message || 'Lỗi server'));
+      }
+    } catch (e: any) {
+      alert('Lỗi: ' + e.message);
+    } finally {
+      setExtendingOrderId(null);
+    }
+  };
+
+  // Revoke active license key
+  const handleRevokeOrder = async (orderId: string) => {
+    if (!confirm(`Bạn có chắc muốn khóa / thu hồi bản quyền của đơn ${orderId} này? Khách hàng sẽ không thể tiếp tục sử dụng.`)) return;
+    try {
+      const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          orderId,
+          action: 'revoke'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchOrders();
+        alert(`✓ Đã thu hồi quyền sử dụng của đơn ${orderId}.`);
+      } else {
+        alert('Lỗi: ' + (data.message || 'Không thể thu hồi'));
+      }
+    } catch (e: any) {
+      alert('Lỗi: ' + e.message);
+    }
+  };
+
+  // Manual Key Generator
+  const handleGenerateKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const days = parseInt(durationDays, 10);
+    let planLabel = '1 Tuần';
+    let safePlan = '1 Tuan';
+    if (days === 30) { planLabel = '1 Tháng'; safePlan = '1 Thang'; }
+    if (days === 120) { planLabel = '1 Kỳ Học (4 Tháng)'; safePlan = '1 Ky Hoc (4 Thang)'; }
+
+    // Try server license issuance first
+    let generatedLicense = '';
+    try {
+      const srvRes = await fetch('/api/v1/admin/licenses', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ days })
+      });
+      const srvData = await srvRes.json();
+      if (srvData.success && srvData.licenseKey) {
+        generatedLicense = srvData.licenseKey;
+      }
+    } catch {}
+
+    let rawKey = customApiKey.trim() || masterApiKey.trim();
+    if (rawKey.startsWith('ENC_AI_')) {
+      const unwrapped = extractInnerKey(rawKey);
+      if (unwrapped && (unwrapped.startsWith('AIza') || unwrapped.startsWith('AQ.'))) {
+        rawKey = unwrapped;
+      }
+    }
+    const expiresAt = Date.now() + days * 24 * 3600 * 1000;
+    const payload = `EXP|${expiresAt}|${safePlan}|${rawKey}`;
+    const salt = 'ENX_SEC_2026_FLASH_LITE';
+
+    let hex = '';
+    for (let i = 0; i < payload.length; i++) {
+      const c = payload.charCodeAt(i) ^ salt.charCodeAt(i % salt.length);
+      hex += c.toString(16).padStart(2, '0');
+    }
+    const b64 = btoa(hex);
+    const encKey = generatedLicense || `ENC_AI_${b64}`;
+    const expDateStr = new Date(expiresAt).toLocaleDateString('vi-VN') + ' ' + new Date(expiresAt).toLocaleTimeString('vi-VN');
+
+    let bmCode = '';
+    if (generatedLicense?.startsWith('FPT1.')) {
+      bmCode = generateBookmarkletCode(generatedLicense, typeof window !== 'undefined' ? window.location.origin : '');
+    }
+
+    setLastGenerated({
+      key: encKey,
+      bookmarklet: bmCode,
+      planLabel,
+      expDate: expDateStr,
+      days
+    });
+    await fetchOrders();
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(text);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const licenseRows = orders.filter(o => o.status === 'approved' || o.status === 'paid').map(ord => {
+    const info = parseClientLicense(ord.licenseKey, ord.expiresAt);
+    return {
+      order: ord,
+      info
+    };
+  });
+
+  const activeCount = licenseRows.filter(r => r.info && !r.info.expired && !r.info.isNearExpiry).length;
+  const warningCount = licenseRows.filter(r => r.info && r.info.isNearExpiry).length;
+  const expiredCount = licenseRows.filter(r => r.info && r.info.expired).length;
+
+  const filteredLicenseRows = licenseRows.filter(r => {
+    if (keyFilter === 'warning') return r.info?.isNearExpiry;
+    if (keyFilter === 'active') return r.info && !r.info.expired && !r.info.isNearExpiry;
+    if (keyFilter === 'expired') return r.info?.expired;
+    return true;
+  });
+
+  // If not logged in, show clean login form
+  if (!token) {
+    return (
+      <main className="min-h-screen grid place-items-center bg-slate-950 p-6 text-slate-100">
+        <form 
+          className="w-full max-w-md space-y-6 rounded-2xl border border-slate-800 bg-slate-900/90 p-8 shadow-2xl backdrop-blur"
+          onSubmit={e => { e.preventDefault(); handleLogin(); }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl font-extrabold text-white">Quản trị FPT Study Hub</h1>
+              <Badge variant="emerald" size="sm">v10.2.50 PRO</Badge>
+            </div>
+          </div>
+
+          <div>
+            <label className="block mb-1.5 text-xs font-semibold text-slate-300" htmlFor="admin-token">
+              Mã truy cập quản trị
+            </label>
+            <input 
+              id="admin-token" 
+              type="password" 
+              autoComplete="current-password" 
+              required 
+              value={passwordInput} 
+              onChange={e => setPasswordInput(e.target.value)} 
+              placeholder="Nhập mật mã quản trị (VD: admin123)" 
+              className="w-full rounded-xl bg-slate-950 p-3 border border-slate-700 text-white font-mono text-sm focus:outline-none focus:border-emerald-500" 
+            />
+            <p className="text-[11px] text-slate-400 mt-2 flex items-center justify-between">
+              <span>Mặc định: <strong className="text-emerald-400 font-mono">admin123</strong></span>
+              <button 
+                type="button" 
+                onClick={() => handleLogin('admin123')} 
+                className="text-xs text-indigo-400 hover:text-indigo-300 underline font-semibold cursor-pointer"
+              >
+                👉 Vào nhanh với admin123
+              </button>
+            </p>
+          </div>
+
+          <Button disabled={isLoggingIn} type="submit" variant="primary" className="w-full justify-center">
+            {isLoggingIn ? 'Đang xác thực...' : 'Đăng nhập trang quản trị'}
+          </Button>
+
+          {loginError && (
+            <p role="alert" className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 p-2.5 rounded-lg font-medium">
+              ⚠ {loginError}
+            </p>
+          )}
+
+          <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
+            <Link href="/" className="text-slate-400 hover:text-white transition-colors">
+              ← Về trang chủ
+            </Link>
+            <Link href="/keo_bookmark.html" className="text-emerald-400 hover:underline">
+              Trang kéo Bookmarklet ➔
+            </Link>
+          </div>
+        </form>
+      </main>
+    );
+  }
+
+  // Logged-in: Render full rich management dashboard
   return (
-    <main className="min-h-screen bg-slate-950 p-4 md:p-8"><div className="max-w-7xl mx-auto space-y-6">
-      <header className="flex justify-between items-center gap-4"><h1 className="text-2xl font-bold">Quản lý đơn & license · v10.2.50</h1><Button onClick={() => { setToken(''); setOrders([]); setGenerated(''); }}>Đăng xuất</Button></header>
-      <p className="rounded-xl border border-emerald-800 bg-emerald-950/30 p-4">API key chỉ được cấu hình trên máy chủ. License khách hàng không chứa API key.</p>
-      <p role="status" className="text-amber-300">{message}</p>
-      <div className="grid md:grid-cols-3 gap-4">
-        <div className="rounded-xl bg-slate-900 p-5">Đơn chờ duyệt: <strong>{orders.filter(o => o.status === 'waiting_approval').length}</strong></div>
-        <div className="rounded-xl bg-slate-900 p-5">Đã duyệt: <strong>{orders.filter(o => o.status === 'approved').length}</strong></div>
-        <div className="rounded-xl bg-slate-900 p-5">Doanh thu: <strong>{formatVND(orders.filter(o => ['approved', 'paid'].includes(o.status)).reduce((s,o) => s + o.amount, 0))}</strong></div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+          <div>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Quay lại trang chủ FPT Study Hub</span>
+            </Link>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                Web Quản Trị & Duyệt Cấp Key Bản Quyền
+              </h1>
+              <Badge variant="emerald" size="sm">v10.2.50 PRO</Badge>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/keo_bookmark.html"
+              target="_blank"
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold hover:bg-emerald-500/20 transition-all"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Trang Kéo Bookmarklet</span>
+            </Link>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={async () => {
+                if (confirm('Bạn có chắc chắn muốn XÓA TRẮNG toàn bộ danh sách đơn hàng để bắt đầu lại từ đầu?')) {
+                  try {
+                    await fetch('/api/v1/orders', { method: 'DELETE', headers: authHeaders() });
+                    await fetchOrders();
+                    alert('✓ Đã xóa sạch danh sách đơn hàng (trắng tinh)!');
+                  } catch(e: any) {
+                    alert('Lỗi: ' + e.message);
+                  }
+                }
+              }}
+              className="gap-1.5 cursor-pointer text-red-400 hover:text-red-300 border-red-500/30 hover:border-red-500/60"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Xóa Trắng Đơn Hàng</span>
+            </Button>
+            <Button size="sm" variant="outline" onClick={fetchOrders} className="gap-1.5 cursor-pointer">
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isLoadingOrders ? 'animate-spin' : ''}`} />
+              <span>Làm mới danh sách</span>
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleLogout} className="gap-1.5 cursor-pointer text-slate-400 hover:text-white">
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Đăng xuất</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Master Gemini API Key Config Box */}
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-indigo-950/30 border border-emerald-500/30 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-sm font-bold text-white">
+                  Master Google Gemini API Key (Duyệt Cấp Bản Quyền)
+                </h3>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${masterApiKey ? (masterApiKey.startsWith('ENC_AI_') ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30') : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'}`}>
+                  {masterApiKey ? (masterApiKey.startsWith('ENC_AI_') ? '✓ Key Bản Quyền (ENC_AI)' : '✓ Đã Lưu Key Master') : '⚡ Cloud AI Server (Mặc Định)'}
+                </span>
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-sm flex items-center gap-1"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>+ Lấy Key Miễn Phí (Google Studio)</span>
+                </a>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Key này được đóng gói và mã hóa trực tiếp vào Key bản quyền khi Admin bấm <strong className="text-emerald-400">[Duyệt & Cấp Key]</strong>. Hỗ trợ mọi định dạng: <code>AIzaSy...</code>, <code>AQ....</code>, hoặc mã hóa <code>ENC_AI_...</code>.
+              </p>
+            </div>
+            <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Lưu an toàn trên máy Admin</span>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="password"
+              value={masterApiKey}
+              onChange={(e) => handleMasterKeyChange(e.target.value)}
+              placeholder="Nhập Master Gemini API Key của Admin (AIzaSy..., AQ..., hoặc ENC_AI_...)"
+              className="flex-1 px-4 py-2 text-xs rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 font-mono focus:outline-none focus:border-emerald-500"
+            />
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => {
+                handleMasterKeyChange(masterApiKey.trim());
+                alert('✓ Đã lưu Master API Key vào trình duyệt Admin!');
+              }}
+              className="shrink-0 cursor-pointer"
+            >
+              Lưu Key Master
+            </Button>
+          </div>
+        </div>
+
+        {/* Overview Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-xs">
+              <span>Tổng Doanh Thu</span>
+              <DollarSign className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="text-2xl font-black text-emerald-400 font-mono">
+              {formatVND(totalRevenue)}
+            </div>
+            <p className="text-[11px] text-slate-500">Từ {totalCustomers} đơn đã duyệt</p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-xs">
+              <span>Tổng Khách Hàng (Đã Duyệt)</span>
+              <Users className="w-4 h-4 text-cyan-400" />
+            </div>
+            <div className="text-2xl font-black text-white font-mono">
+              {totalCustomers}
+            </div>
+            <p className="text-[11px] text-slate-500">Đang có bản quyền hoạt động</p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-xs">
+              <span>Đơn Chờ Duyệt (Cần Check Bank)</span>
+              <Clock className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="text-2xl font-black text-amber-400 font-mono flex items-center gap-2">
+              <span>{pendingOrders.length}</span>
+              {pendingOrders.length > 0 && (
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-500">Khách đã bấm "Tôi Đã Chuyển Khoản"</p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-xs">
+              <span>Key Sắp Hết Hạn (≤ 5 ngày)</span>
+              <Timer className="w-4 h-4 text-rose-400" />
+            </div>
+            <div className="text-2xl font-black text-rose-400 font-mono">
+              {warningCount}
+            </div>
+            <p className="text-[11px] text-slate-500">{expiredCount} key đã tự hủy</p>
+          </div>
+        </div>
+
+        {/* Section 1: LIVE ORDERS APPROVAL TABLE */}
+        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <span>Bảng Duyệt Đơn Trực Tiếp & Cấp Key Bản Quyền</span>
+                {pendingOrders.length > 0 && (
+                  <span className="px-2 py-0.5 text-[11px] rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">
+                    {pendingOrders.length} đơn mới
+                  </span>
+                )}
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Khi sinh viên chuyển khoản, đơn sẽ hiện tại đây. Bấm <strong>[Duyệt & Cấp Key]</strong> để mở khóa cho khách hàng ngay lập tức.
+              </p>
+            </div>
+
+            {/* Quick Approve Box by Transfer Code (e.g. PR7874) */}
+            <form onSubmit={handleQuickApproveSubmit} className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Nhập mã CK (VD: PR1234)"
+                value={quickCode}
+                onChange={(e) => setQuickCode(e.target.value)}
+                className="w-44 px-3 py-1.5 text-xs rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 font-mono uppercase focus:outline-none focus:border-emerald-500"
+              />
+              <Button
+                type="submit"
+                size="sm"
+                variant="primary"
+                disabled={isQuickApproving || !quickCode.trim()}
+                className="cursor-pointer text-xs"
+              >
+                {isQuickApproving ? 'Đang duyệt...' : 'Duyệt Đơn Nhanh'}
+              </Button>
+            </form>
+          </div>
+
+          {orders.length === 0 ? (
+            <div className="p-12 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl space-y-2">
+              <div className="text-2xl">⏳</div>
+              <p className="font-semibold text-slate-400">Chưa có đơn hàng nào trong hệ thống.</p>
+              <p className="text-slate-600">Khi khách hàng đặt dịch vụ trên trang chủ, đơn hàng sẽ hiển thị tại đây theo thời gian thực.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-3">Mã Đơn / Nội Dung CK</th>
+                    <th className="py-3 px-3">Gói Dịch Vụ</th>
+                    <th className="py-3 px-3">Số Tiền</th>
+                    <th className="py-3 px-3">Trạng Thái</th>
+                    <th className="py-3 px-3">Thời Điểm</th>
+                    <th className="py-3 px-3 text-right">Hành Động Admin</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-mono">
+                  {orders.map((ord) => {
+                    const isApproved = ord.status === 'approved' || ord.status === 'paid';
+                    const isWaiting = ord.status === 'waiting_approval';
+                    const isPending = ord.status === 'pending';
+                    const isApproving = approvingOrderId === ord.orderId || approvingOrderId === ord.transferCode;
+
+                    return (
+                      <tr 
+                        key={ord.orderId} 
+                        className={`hover:bg-slate-800/40 transition-colors ${isWaiting ? 'bg-amber-500/5' : ''}`}
+                      >
+                        <td className="py-3 px-3">
+                          <div className="text-white font-bold">{ord.orderId}</div>
+                          <div className="text-amber-300 text-[11px] font-bold mt-0.5">
+                            Nội dung: <span className="bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-500/30">{ord.transferCode}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 font-sans">
+                          <div className="text-slate-200 font-semibold">{ord.serviceName}</div>
+                          <div className="text-slate-400 text-[11px]">{ord.durationLabel}</div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="text-emerald-400 font-bold">{formatVND(ord.amount)}</span>
+                        </td>
+                        <td className="py-3 px-3 font-sans">
+                          {isApproved && (
+                            <Badge variant="emerald" size="sm">
+                              ✓ Đã Duyệt & Cấp Key
+                            </Badge>
+                          )}
+                          {isWaiting && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                              <span>Chờ Check Bank</span>
+                            </span>
+                          )}
+                          {isPending && (
+                            <Badge variant="secondary" size="sm">
+                              Chờ Chuyển Khoản
+                            </Badge>
+                          )}
+                          {ord.status === 'cancelled' && (
+                            <Badge variant="rose" size="sm">
+                              Đã Thu Hồi
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-slate-400 text-[11px] font-sans">
+                          <div>Tạo: {new Date(ord.createdAt).toLocaleTimeString('vi-VN')} {new Date(ord.createdAt).toLocaleDateString('vi-VN')}</div>
+                          {ord.paidAt && (
+                            <div className="text-emerald-400/80">Duyệt: {new Date(ord.paidAt).toLocaleTimeString('vi-VN')}</div>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-right font-sans">
+                          <div className="inline-flex items-center gap-1.5">
+                            {!isApproved && (
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                disabled={isApproving}
+                                onClick={() => handleApproveOrder(ord.orderId, ord.transferCode)}
+                                className="text-xs px-2.5 py-1 h-auto cursor-pointer"
+                              >
+                                {isApproving ? 'Đang cấp...' : '✓ Duyệt & Cấp Key'}
+                              </Button>
+                            )}
+
+                            {isApproved && ord.licenseKey && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCopy(ord.licenseKey || '')}
+                                  className="text-[11px] px-2 py-1 h-auto cursor-pointer"
+                                  title="Sao chép Key"
+                                >
+                                  {copiedKey === ord.licenseKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                  <span>{copiedKey === ord.licenseKey ? 'Đã chép' : 'Copy Key'}</span>
+                                </Button>
+                                {ord.licenseKey.startsWith('FPT1.') && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleCopy(generateBookmarkletCode(ord.licenseKey, window.location.origin))}
+                                    className="text-[11px] px-2 py-1 h-auto cursor-pointer text-emerald-400 border-emerald-500/40"
+                                    title="Sao chép mã Bookmarklet"
+                                  >
+                                    <span>Copy Bookmarklet</span>
+                                  </Button>
+                                )}
+                              </>
+                            )}
+
+                            {isApproved && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={extendingOrderId === ord.orderId}
+                                onClick={() => handleExtendOrder(ord.orderId, 7)}
+                                className="text-[11px] px-2 py-1 h-auto cursor-pointer text-cyan-400 hover:text-cyan-300 border-cyan-500/40"
+                                title="Gia hạn thêm 7 ngày"
+                              >
+                                +7 Ngày
+                              </Button>
+                            )}
+
+                            {isApproved && (
+                              <button
+                                type="button"
+                                onClick={() => handleRevokeOrder(ord.orderId)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                title="Thu hồi / Khóa key"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Section 2: LICENSE EXPIRATION & WARNING MONITORING DASHBOARD */}
+        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Timer className="w-5 h-5 text-amber-400" />
+                <span>Bảng Quản Lý Thời Hạn & Cảnh Báo Key Gần Hết Hạn</span>
+                {warningCount > 0 && (
+                  <span className="px-2 py-0.5 text-[11px] rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 animate-pulse">
+                    ⚠ {warningCount} Key Cần Gia Hạn
+                  </span>
+                )}
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Theo dõi thời gian sử dụng thực tế của khách hàng. Khi hết hạn, key trên máy khách sẽ tự hủy hoàn toàn. Admin có thể bấm gia hạn nhanh +7 ngày hoặc +30 ngày.
+              </p>
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+              <button
+                type="button"
+                onClick={() => setKeyFilter('all')}
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
+                  keyFilter === 'all'
+                    ? 'bg-slate-800 text-white border border-slate-700'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Tất Cả ({licenseRows.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setKeyFilter('warning')}
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  keyFilter === 'warning'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    : 'text-amber-400/80 hover:text-amber-300'
+                }`}
+              >
+                <AlertTriangle className="w-3 h-3" />
+                <span>Sắp Hết Hạn ({warningCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setKeyFilter('active')}
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
+                  keyFilter === 'active'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'text-emerald-400/80 hover:text-emerald-300'
+                }`}
+              >
+                Còn Hạn ({activeCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setKeyFilter('expired')}
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
+                  keyFilter === 'expired'
+                    ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+                    : 'text-red-400/80 hover:text-red-300'
+                }`}
+              >
+                Đã Tự Hủy ({expiredCount})
+              </button>
+            </div>
+          </div>
+
+          {filteredLicenseRows.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">
+              {keyFilter === 'warning'
+                ? 'Không có Key nào sắp hết hạn trong 5 ngày tới. Tất cả khách hàng đều an toàn!'
+                : 'Chưa có bản ghi bản quyền nào phù hợp với bộ lọc.'}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-3">Khách Hàng / Mã Đơn</th>
+                    <th className="py-3 px-3">Gói Bản Quyền</th>
+                    <th className="py-3 px-3">Thời Điểm Hết Hạn</th>
+                    <th className="py-3 px-3">Thời Gian Còn Lại</th>
+                    <th className="py-3 px-3">Trạng Thái Key</th>
+                    <th className="py-3 px-3 text-right">Gia Hạn Nhanh</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-mono">
+                  {filteredLicenseRows.map(({ order: ord, info }) => {
+                    const isExp = info?.expired;
+                    const isWarn = info?.isNearExpiry;
+                    const isOk = info && !info.expired && !info.isNearExpiry;
+
+                    return (
+                      <tr key={ord.orderId} className={`hover:bg-slate-800/30 transition-colors ${isWarn ? 'bg-amber-500/5' : ''}`}>
+                        <td className="py-3 px-3">
+                          <div className="text-white font-bold">{ord.orderId}</div>
+                          <div className="text-amber-300 text-[11px] font-bold">Mã CK: {ord.transferCode}</div>
+                        </td>
+                        <td className="py-3 px-3 font-sans">
+                          <div className="text-slate-200 font-semibold">{ord.durationLabel || info?.plan || '1 Tuần'}</div>
+                          <div className="text-emerald-400 text-[11px] font-mono">{formatVND(ord.amount)}</div>
+                        </td>
+                        <td className="py-3 px-3 text-slate-300">
+                          {info ? (
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{info.expDateStr}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-600 italic font-sans">Chưa xác định</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 font-sans">
+                          {info ? (
+                            <div>
+                              {isExp && (
+                                <Badge variant="rose" size="sm">
+                                  {info.remainingFormatted}
+                                </Badge>
+                              )}
+                              {isWarn && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                  <AlertTriangle className="w-3 h-3 text-amber-400" />
+                                  <span>{info.remainingFormatted}</span>
+                                </span>
+                              )}
+                              {isOk && (
+                                <Badge variant="emerald" size="sm">
+                                  {info.remainingFormatted}
+                                </Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-600 italic">Không có mốc</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 font-sans">
+                          {isExp ? (
+                            <span className="text-red-400 text-xs font-bold flex items-center gap-1">
+                              <span className="inline-block w-2 h-2 rounded-full bg-red-500"></span>
+                              <span>Đã Tự Hủy</span>
+                            </span>
+                          ) : isWarn ? (
+                            <span className="text-amber-300 text-xs font-bold flex items-center gap-1">
+                              <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                              <span>Sắp Hết Hạn</span>
+                            </span>
+                          ) : (
+                            <span className="text-emerald-400 text-xs font-semibold flex items-center gap-1">
+                              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+                              <span>Đang Hoạt Động</span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-right font-sans">
+                          <div className="inline-flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={extendingOrderId === ord.orderId}
+                              onClick={() => handleExtendOrder(ord.orderId, 7)}
+                              className="text-[11px] px-2 py-1 h-auto cursor-pointer hover:border-emerald-500 hover:text-emerald-300"
+                              title="Gia hạn thêm 7 ngày"
+                            >
+                              +7 Ngày
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={extendingOrderId === ord.orderId}
+                              onClick={() => handleExtendOrder(ord.orderId, 30)}
+                              className="text-[11px] px-2 py-1 h-auto cursor-pointer hover:border-cyan-500 hover:text-cyan-300"
+                              title="Gia hạn thêm 30 ngày (1 Tháng)"
+                            >
+                              +30 Ngày
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={extendingOrderId === ord.orderId}
+                              onClick={() => handleExtendOrder(ord.orderId, 120)}
+                              className="text-[11px] px-2 py-1 h-auto cursor-pointer hover:border-indigo-500 hover:text-indigo-300"
+                              title="Gia hạn thêm 120 ngày (1 Kỳ)"
+                            >
+                              +1 Kỳ
+                            </Button>
+                            <button
+                              type="button"
+                              onClick={() => handleRevokeOrder(ord.orderId)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              title="Thu hồi / Khóa key"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Section 3: LICENSE KEY GENERATOR (WITH EXPIRATION) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Generator Form */}
+          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Plus className="w-4 h-4 text-emerald-400" />
+              <span>Tạo Key & Bookmarklet Thủ Công</span>
+            </h3>
+
+            <form onSubmit={handleGenerateKey} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
+                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4" />
+                  <span>FPT EduNext AI Assistant Pro (v10.2.50)</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-medium">Chọn Thời Hạn Bản Quyền:</label>
+                <select
+                  value={durationDays}
+                  onChange={(e) => setDurationDays(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-emerald-500 font-medium"
+                >
+                  <option value="7">1 Tuần (7 Ngày) — Gói 30.000₫</option>
+                  <option value="30">1 Tháng (30 Ngày) — Gói 69.000₫</option>
+                  <option value="120">1 Kỳ Học (4 Tháng / 120 Ngày) — Gói 220.000₫</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-medium">API Key Gemini nạp vào (Tùy chọn):</label>
+                <input
+                  type="text"
+                  placeholder="Mặc định dùng key hệ thống hoặc nhập AIza..."
+                  value={customApiKey}
+                  onChange={(e) => setCustomApiKey(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-emerald-500 font-mono"
+                />
+              </div>
+
+              <Button type="submit" variant="primary" className="w-full justify-center gap-2 mt-2">
+                <Sparkles className="w-4 h-4" />
+                <span>Sinh Mã Key Bản Quyền Ngay</span>
+              </Button>
+            </form>
+          </div>
+
+          {/* Key Output Details */}
+          <div className="lg:col-span-2 p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+            <div>
+              <h3 className="text-base font-bold text-white mb-3 flex items-center gap-2">
+                <Key className="w-4 h-4 text-amber-400" />
+                <span>Kết Quả Mã Hóa Key Bản Quyền</span>
+              </h3>
+
+              {lastGenerated ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-slate-950 border border-emerald-500/50 space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Gói bản quyền:</span>
+                      <span className="font-bold text-emerald-400">{lastGenerated.planLabel}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Thời điểm hết hạn:</span>
+                      <span className="font-bold text-amber-300 font-mono">{lastGenerated.expDate}</span>
+                    </div>
+                    <div className="pt-2 border-t border-slate-800 space-y-2">
+                      <span className="text-[11px] text-slate-400 block">Mã Key Bản Quyền (Cung cấp cho sinh viên):</span>
+                      <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 font-mono text-xs text-emerald-300 break-all select-all flex items-center justify-between gap-2">
+                        <span>{lastGenerated.key}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCopy(lastGenerated.key)}
+                          className="shrink-0"
+                        >
+                          {copiedKey === lastGenerated.key ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedKey === lastGenerated.key ? 'Đã sao chép' : 'Sao chép Key'}</span>
+                        </Button>
+                      </div>
+
+                      {lastGenerated.bookmarklet && (
+                        <div>
+                          <span className="text-[11px] text-slate-400 block mt-2 mb-1">Mã Bookmarklet Trực Tiếp:</span>
+                          <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 font-mono text-xs text-cyan-300 break-all select-all flex items-center justify-between gap-2">
+                            <span className="line-clamp-2">{lastGenerated.bookmarklet}</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCopy(lastGenerated.bookmarklet || '')}
+                              className="shrink-0 text-cyan-400 border-cyan-500/40"
+                            >
+                              {copiedKey === lastGenerated.bookmarklet ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <Copy className="w-3.5 h-3.5" />}
+                              <span>{copiedKey === lastGenerated.bookmarklet ? 'Đã sao chép' : 'Copy Bookmarklet'}</span>
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-slate-500 text-xs">
+                  Chọn thời hạn và bấm "Sinh Mã Key Bản Quyền Ngay" để tạo key.
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+              <span>Định dạng: <strong className="font-mono text-emerald-400">FPT1 / ENC_AI_</strong></span>
+              <span className="text-slate-500">Tự động hủy khi quá hạn</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <form className="flex flex-wrap gap-3 items-center" onSubmit={e => { e.preventDefault(); void act('approve', undefined, code.trim().toUpperCase()); }}>
-        <label htmlFor="transfer-code">Duyệt theo mã chuyển khoản</label><input id="transfer-code" required value={code} onChange={e => setCode(e.target.value)} className="bg-slate-900 rounded-lg p-2 border border-slate-700" /><Button disabled={Boolean(busy)}>Duyệt đơn</Button>
-      </form>
-      <label className="flex gap-3 items-center">Số ngày gia hạn / cấp thủ công <input type="number" min="1" max="365" value={days} onChange={e => setDays(Number(e.target.value))} className="w-24 bg-slate-900 rounded-lg p-2" /></label>
-      <Button disabled={Boolean(busy)} onClick={async () => {
-        setBusy('generate'); setMessage('');
-        try { const data = await request('/api/v1/admin/licenses', { method: 'POST', body: JSON.stringify({ days }) }); setGenerated(data.licenseKey); await refresh(); }
-        catch (error) { setMessage(error instanceof Error ? error.message : 'Không thể cấp license'); }
-        finally { setBusy(''); }
-      }}>Cấp license thủ công</Button>
-      {generated && <div className="space-y-2 rounded-xl p-4 bg-slate-900"><p>License vừa cấp</p><code className="break-all text-xs">{generated}</code><Button onClick={() => navigator.clipboard.writeText(generated)}>Sao chép license</Button></div>}
-      <div className="overflow-x-auto rounded-xl border border-slate-800"><table className="w-full text-sm text-left"><thead className="bg-slate-900"><tr>{['Mã đơn / CK', 'Gói / Số tiền', 'Trạng thái', 'Hết hạn', 'Thao tác'].map(t => <th key={t} className="p-4">{t}</th>)}</tr></thead><tbody>
-        {orders.map(order => <tr key={order.orderId} className="border-t border-slate-800">
-          <td className="p-4"><div className="font-mono text-xs break-all">{order.orderId}</div><strong>{order.transferCode}</strong></td>
-          <td className="p-4">{order.durationLabel}<br />{formatVND(order.amount)}</td><td className="p-4">{order.status}</td><td className="p-4">{order.expiresAt ? new Date(order.expiresAt).toLocaleString('vi-VN') : '—'}</td>
-          <td className="p-4"><div className="flex flex-wrap gap-2">
-            {['pending', 'waiting_approval'].includes(order.status) && <Button disabled={Boolean(busy)} onClick={() => act('approve', order.orderId)}>Duyệt & cấp</Button>}
-            {['approved', 'paid'].includes(order.status) && <><Button disabled={Boolean(busy)} onClick={() => act('extend', order.orderId)}>Gia hạn</Button><Button disabled={Boolean(busy)} variant="danger" onClick={() => act('revoke', order.orderId)}>Thu hồi</Button><Button onClick={() => navigator.clipboard.writeText(order.licenseKey || '')}>Copy license</Button><Button onClick={() => navigator.clipboard.writeText(generateBookmarkletCode(order.licenseKey, window.location.origin))}>Copy bookmarklet</Button></>}
-          </div></td>
-        </tr>)}
-      </tbody></table></div>
-    </div></main>
+    </div>
   );
 }

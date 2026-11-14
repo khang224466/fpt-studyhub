@@ -86,3 +86,16 @@ export async function changeOrder(id: string, change: (current: OrderItem | null
   }
   throw new Error('Order changed concurrently; please retry');
 }
+
+export async function clearOrders(): Promise<void> {
+  memoryStore.clear();
+  if (!useRedis()) {
+    try {
+      await writeFile(localFile, JSON.stringify({}), 'utf8');
+    } catch {}
+    return;
+  }
+  try {
+    await redis(['DEL', hash]);
+  } catch {}
+}

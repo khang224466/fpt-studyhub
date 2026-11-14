@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { SERVICES_CATALOG, BANK_CONFIG } from '@/data/servicesCatalog';
-import { changeOrder, getOrder, listOrders } from '@/lib/orderRepository';
+import { changeOrder, getOrder, listOrders, clearOrders } from '@/lib/orderRepository';
 import { isAdmin, issueLicense } from '@/lib/serverLicense';
 import type { OrderItem } from '@/types/rental';
 
@@ -81,5 +81,13 @@ export async function PUT(req: NextRequest) {
       return updated;
     });
     return reply({ success: true, order, licenseKey: order.licenseKey, expiresAt: order.expiresAt });
+  } catch { return failed(); }
+}
+
+export async function DELETE(req: NextRequest) {
+  if (!isAdmin(req)) return denied();
+  try {
+    await clearOrders();
+    return reply({ success: true, message: 'Đã xóa trắng danh sách đơn hàng!' });
   } catch { return failed(); }
 }
