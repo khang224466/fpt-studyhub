@@ -4,7 +4,7 @@ import { verifyLicense } from '@/lib/licenseStore';
 const headers = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
 const reply = (body: unknown, status = 200) => NextResponse.json(body, { status, headers });
 const SYSTEM_PROMPT = `
-Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.59 PRO) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
+Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.60 PRO) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
 
 [QUY TẮC BẮT BUỘC]:
 1. ĐỊNH DẠNG TRẢ LỜI MẪU (RẤT QUAN TRỌNG):

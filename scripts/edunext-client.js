@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.59";
+        var t = "v10.2.60";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -119,13 +119,29 @@ function e(e, serverOrigin) {
         }
         !function() {
             try {
+                function parseWaitSeconds(str) {
+                    if (!str || typeof str !== 'string') return 35;
+                    var m = str.match(/after\s*(\d+)\s*seconds/i) || str.match(/(\d+)\s*giây/i) || str.match(/retry\s*in\s*(\d+)/i);
+                    return m ? Math.min(600, parseInt(m[1], 10) + 5) : 35;
+                }
                 if (window.fetch && !window.__enx_fetch_hooked) {
                     var e = window.fetch;
                     window.fetch = async function(...t) {
                         try {
                             var n = await e.apply(this, t);
-                            return n && 429 === n.status && (h = Date.now() + 25e3, P("warn", "EduNext 429 Too Many Requests -> Tự động hoãn 25s bảo vệ nick")), 
-                            n;
+                            if (n && 429 === n.status) {
+                                var waitSec = 35;
+                                try {
+                                    var clone = n.clone();
+                                    var bodyText = await clone.text();
+                                    waitSec = parseWaitSeconds(bodyText);
+                                } catch (_) {}
+                                h = Date.now() + (waitSec * 1000);
+                                remaining = waitSec;
+                                updateCountdownUI();
+                                P("warn", "EduNext 429 Too Many Requests -> Tự động hoãn " + waitSec + "s bảo vệ nick");
+                            }
+                            return n;
                         } catch (n) {
                             throw n;
                         }
@@ -135,7 +151,13 @@ function e(e, serverOrigin) {
                     var t = XMLHttpRequest.prototype.send;
                     XMLHttpRequest.prototype.send = function(...e) {
                         return this.addEventListener("load", (function() {
-                            429 === this.status && (h = Date.now() + 25e3, P("warn", "EduNext 429 Too Many Requests (XHR) -> Tự động hoãn 25s"));
+                            if (429 === this.status) {
+                                var waitSec = parseWaitSeconds(this.responseText || "");
+                                h = Date.now() + (waitSec * 1000);
+                                remaining = waitSec;
+                                updateCountdownUI();
+                                P("warn", "EduNext 429 Too Many Requests (XHR) -> Tự động hoãn " + waitSec + "s");
+                            }
                         })), t.apply(this, e);
                     }, window.__enx_xhr_hooked = !0;
                 }
@@ -783,51 +805,74 @@ function e(e, serverOrigin) {
                         } else {
                             var i = n.lastTeacherMsg || "";
 
-                            // 1. Ready & Transition Check (Supports English "Are you ready...", "Yes", and Vietnamese "Sẵn sàng")
-                            var cleanMsg = ((n.questionBlockText || "") + " " + (i || "") + " " + (document.body ? (document.body.innerText || "") : "")).slice(-3000).toLowerCase();
-                            var isEnglishReady = 
-                                /are\s*you\s*ready/i.test(cleanMsg) ||
-                                /ready\s*to\s*(?:move|start|begin|practice|continue|go)/i.test(cleanMsg) ||
-                                /ready\s*\?/i.test(cleanMsg) ||
-                                /shall\s*we\s*(?:start|begin|practice|continue|move)/i.test(cleanMsg) ||
-                                /do\s*you\s*want\s*to\s*(?:start|begin|continue|move|practice)/i.test(cleanMsg) ||
-                                /can\s*we\s*(?:start|begin|continue)/i.test(cleanMsg) ||
-                                /would\s*you\s*like\s*to\s*(?:start|begin|practice)/i.test(cleanMsg) ||
-                                /(?:type|reply|answer|say)\s*["']?yes["']?\s*to\s*(?:start|begin|continue)/i.test(cleanMsg);
+                            // 1. Ready & Transition Check - STRICT ANTI-"YES" FIREWALL FOR EXERCISES
+                            var hasActualExercise = (function() {
+                                var combined = (n.questionBlockText || "") + " " + (i || "");
+                                if (/(?:câu\s*hỏi|question|bài\s*sau|đề\s*bài|exercise|please\s*try\s*the\s*exercise|write\s*your\s*answer|answer\s*:\s*\[|fill\s*in|choose\s*the|what\s+is|what\s+does|how\s+does|which\s+modal)/i.test(combined)) return true;
+                                if (document.querySelector('.exercise-question-block, [class*="exercise-question"], [class*="question-content"], [class*="question-box"]')) return true;
+                                return false;
+                            })();
 
-                            var isVietnameseReady =
-                                /bạn\s*đã\s*sẵn\s*sàng/i.test(cleanMsg) ||
-                                /sẵn\s*sàng\s*(?:chưa|bắt\s*đầu|chuyển|tiếp\s*tục)/i.test(cleanMsg) ||
-                                /đã\s*sẵn\s*sàng\s*chưa/i.test(cleanMsg);
-
-                            var readyBtn = (function(studentAnchor) {
-                                try {
-                                    var btns = Array.from(document.querySelectorAll('button, [role="button"], .quick-reply, .chat-chip, .suggestion-item, [class*="chip"], [class*="quick"], [class*="suggestion"], .quick-insert-btn'));
-                                    for (var idx = 0; idx < btns.length; idx++) {
-                                        var btn = btns[idx];
-                                        if (!btn.closest('#enx-pro-hud') && !(btn.disabled || btn.offsetParent === null || studentAnchor && btn.compareDocumentPosition(studentAnchor) & Node.DOCUMENT_POSITION_FOLLOWING)) {
-                                            var btnText = (btn.innerText || btn.textContent || '').replace(/\s+/g, ' ').trim();
-                                            if (/^(?:yes|ready|sẵn\s*sàng|i'm\s*ready|im\s*ready|ok|sure)[!.]?$/i.test(btnText)) return btn;
-                                        }
-                                    }
-                                } catch (_) {}
-                                return null;
-                            })(n.lastStudentBadge);
-
-                            if (isEnglishReady || isVietnameseReady || readyBtn) {
-                                var readyWord = isEnglishReady ? "Yes" : (isVietnameseReady ? "Sẵn sàng" : (readyBtn ? (readyBtn.innerText || "").trim() : "Yes"));
-                                P("info", "🎯 Bắt được câu hỏi bắt đầu (" + (readyWord === "Yes" ? "Tiếng Anh: Yes" : readyWord) + ") -> Tự động trả lời!");
-                                L('🎯 Tự động trả lời "' + readyWord + '" chuyển phần...', "#10b981");
-                                if (readyBtn) {
-                                    try { U(readyBtn); } catch (_) {}
-                                }
-                                await z(readyWord);
-                                remaining = 35;
+                            // Check on-screen 429 message
+                            var bodyTxt = document.body ? document.body.innerText : "";
+                            var tooManyMatch = bodyTxt.match(/Too\s*many\s*requests.*?after\s*(\d+)\s*seconds/i);
+                            if (tooManyMatch) {
+                                var sWait = parseInt(tooManyMatch[1], 10) + 5;
+                                h = Math.max(h, Date.now() + (sWait * 1000));
+                                L("⏳ Chờ hồi phục Rate Limit 429 (" + Math.ceil((h - Date.now()) / 1e3) + "s)...", "#f59e0b");
+                                remaining = sWait;
                                 updateCountdownUI();
-                                return void L("👀 Đang chờ câu hỏi tiếp theo hiện lên...", "#38bdf8");
+                                return;
                             }
 
-                            // 2. Check Actual Lesson Completion (ONLY if NO active input box and NOT a question)
+                            // If Rate Limit cooldown has passed, click Try again button if present
+                            if (Date.now() >= h) {
+                                var tryAgainBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
+                                    return !b.closest('#enx-pro-hud') && /try\s*again|thử\s*lại/i.test((b.innerText || b.textContent || '').trim());
+                                });
+                                if (tryAgainBtn) {
+                                    try { tryAgainBtn.click(); } catch (_) {}
+                                }
+                            }
+
+                            // ONLY attempt transition if there is NO active exercise on screen!
+                            if (!hasActualExercise) {
+                                var readyBtn = (function(studentAnchor) {
+                                    try {
+                                        var btns = Array.from(document.querySelectorAll('button, [role="button"], .quick-reply, .chat-chip, .suggestion-item, [class*="chip"], [class*="quick"], [class*="suggestion"], .quick-insert-btn'));
+                                        for (var idx = 0; idx < btns.length; idx++) {
+                                            var btn = btns[idx];
+                                            if (!btn.closest('#enx-pro-hud') && !(btn.disabled || btn.offsetParent === null || studentAnchor && btn.compareDocumentPosition(studentAnchor) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+                                                var btnText = (btn.innerText || btn.textContent || '').replace(/\s+/g, ' ').trim();
+                                                if (/^(?:yes|ready|sẵn\s*sàng|i'm\s*ready|im\s*ready|ok|sure)[!.]?$/i.test(btnText)) return btn;
+                                            }
+                                        }
+                                    } catch (_) {}
+                                    return null;
+                                })(n.lastStudentBadge);
+
+                                var isPureTransitionPrompt = (function(msg) {
+                                    if (!msg) return false;
+                                    var m = msg.toLowerCase();
+                                    if (m.includes('câu hỏi') || m.includes('question') || m.includes('exercise') || m.includes('answer:') || m.includes('write your answer')) return false;
+                                    return /are\s*you\s*ready\s*to\s*(?:move|start|begin)/i.test(m) || /bạn\s*đã\s*sẵn\s*sàng\s*(?:chưa|chuyển)/i.test(m);
+                                })(i);
+
+                                if (readyBtn || isPureTransitionPrompt) {
+                                    var readyWord = isPureTransitionPrompt && /are\s*you\s*ready/i.test(i) ? "Yes" : (readyBtn ? (readyBtn.innerText || "").trim() : "Yes");
+                                    P("info", "🎯 Bắt được câu hỏi chuyển phần (" + readyWord + ") -> Tự động chuyển tiếp!");
+                                    L('🎯 Tự động trả lời "' + readyWord + '" chuyển phần...', "#10b981");
+                                    if (readyBtn) {
+                                        try { U(readyBtn); } catch (_) {}
+                                    }
+                                    await z(readyWord);
+                                    remaining = 35;
+                                    updateCountdownUI();
+                                    return void L("👀 Đang chờ câu hỏi tiếp theo hiện lên...", "#38bdf8");
+                                }
+                            }
+
+                        // 2. Check Actual Lesson Completion (ONLY if NO active input box and NOT a question)
                             var isActuallyComplete = !activeInput && (function(msg) {
                                 if (!msg) return false;
                                 var t = msg.toLowerCase();
@@ -936,6 +981,11 @@ function e(e, serverOrigin) {
                                             }
                                             return finalAnswer;
                                         })(S, T ? T.image : null);
+
+                                        if (hasActualExercise && /^(?:yes|sẵn\\s*sàng|ready)[!.]?$/i.test(A.trim())) {
+                                            P("warn", "⚠️ AI trả lời nhầm 'Yes' cho bài tập, yêu cầu giải lại bài tập chuyên môn...");
+                                            return void (s = !1);
+                                        }
 
                                         if (!A || /_{0,2}\s*NO_QUESTION\s*_{0,2}/i.test(A)) {
                                             L("👀 Đang theo dõi khi nào câu hỏi hiện lên...", "#94a3b8");
