@@ -58,12 +58,28 @@ export default function AdminPage() {
     }
   }, []);
 
+  const getAdminHeaders = (extra: Record<string, string> = {}) => {
+    let pin = 'FPTADMIN2026';
+    try {
+      if (typeof window !== 'undefined') {
+        pin = sessionStorage.getItem('fpt_admin_pin') || adminPin || 'FPTADMIN2026';
+      }
+    } catch (_) {}
+    return {
+      'x-admin-token': pin,
+      'Authorization': `Bearer ${pin}`,
+      'Cache-Control': 'no-cache, no-store',
+      ...extra
+    };
+  };
+
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPin = adminPin.trim();
     if (cleanPin === 'FPTADMIN2026' || cleanPin === 'fptadmin2026' || cleanPin === '888713971161505832' || cleanPin === '858709070') {
       setIsAuthenticated(true);
       sessionStorage.setItem('fpt_admin_auth', 'true');
+      sessionStorage.setItem('fpt_admin_pin', cleanPin);
       setPinError('');
     } else {
       setPinError('Mã PIN bảo mật không chính xác. Vui lòng kiểm tra lại!');
@@ -132,7 +148,7 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
         cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache, no-store' }
+        headers: getAdminHeaders()
       });
       const data = await res.json();
       if (data.success && Array.isArray(data.orders)) {
@@ -178,7 +194,7 @@ export default function AdminPage() {
           if (data.orders.length < merged.length) {
             fetch('/api/v1/orders', {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
+              headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
               body: JSON.stringify({ action: 'sync_bulk', orders: merged })
             }).catch(() => {});
           }
@@ -282,7 +298,7 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           orderId,
           transferCode,
@@ -357,7 +373,7 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           orderId,
           action: 'extend',
@@ -418,7 +434,8 @@ export default function AdminPage() {
 
       // 4. Call server DELETE API
       await fetch(`/api/v1/orders?orderId=${encodeURIComponent(orderId)}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAdminHeaders()
       });
     } catch (e: any) {
       alert('Lỗi khi xóa đơn: ' + (e.message || e));
@@ -454,7 +471,10 @@ export default function AdminPage() {
       } catch {}
 
       setOrders(prev => prev.filter(o => !pendingIds.includes(o.orderId)));
-      await fetch('/api/v1/orders?action=delete_pending', { method: 'DELETE' });
+      await fetch('/api/v1/orders?action=delete_pending', {
+        method: 'DELETE',
+        headers: getAdminHeaders()
+      });
     } catch (e: any) {
       alert('Lỗi: ' + (e.message || e));
     }
@@ -466,7 +486,7 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           orderId,
           action: 'revoke'
@@ -657,7 +677,10 @@ export default function AdminPage() {
                   try {
                     localStorage.removeItem('fpt_admin_persisted_orders_v10');
                     setOrders([]);
-                    await fetch('/api/v1/orders', { method: 'DELETE' });
+                    await fetch('/api/v1/orders', {
+                      method: 'DELETE',
+                      headers: getAdminHeaders()
+                    });
                     alert('✓ Đã xóa sạch danh sách đơn hàng (trắng tinh)!');
                   } catch(e: any) {
                     alert('Lỗi: ' + e.message);

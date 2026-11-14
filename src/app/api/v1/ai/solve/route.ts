@@ -3,6 +3,21 @@ import { verifyLicense } from '@/lib/licenseStore';
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
 const reply = (body: unknown, status = 200) => NextResponse.json(body, { status, headers });
+
+// Anti-flood / DoS Rate Limiter for AI Solving (Max 30 calls/minute per IP)
+const solveHits = new Map<string, { count: number; resetAt: number }>();
+function checkSolveRateLimit(key: string, limit = 30, windowMs = 60000): boolean {
+  const now = Date.now();
+  const rec = solveHits.get(key);
+  if (!rec || now > rec.resetAt) {
+    solveHits.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (rec.count >= limit) return false;
+  rec.count++;
+  return true;
+}
+
 const SYSTEM_PROMPT = `
 Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.62 PRO) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
 
@@ -41,6 +56,12 @@ Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.62 PRO) - Hệ thống
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+               req.headers.get('x-real-ip')?.trim() ||
+               '127.0.0.1';
+    if (!checkSolveRateLimit(`ai:solve:${ip}`, 30, 60000)) {
+      return reply({ success: false, message: 'Bạn đang gửi quá nhiều yêu cầu giải cùng lúc. Vui lòng thử lại sau ít giây.' }, 429);
+    }
     const text = await req.text();
     if (text.length > 3500000) return reply({ success: false, message: 'Ảnh quá lớn.' }, 413);
     let body;

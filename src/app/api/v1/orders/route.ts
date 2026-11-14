@@ -7,11 +7,35 @@ import type { OrderItem } from '@/types/rental';
 
 const headers = { 'Cache-Control': 'no-store' };
 const reply = (body: unknown, status = 200) => NextResponse.json(body, { status, headers });
-const denied = () => reply({ success: false, message: 'Cần xác thực quản trị viên.' }, 401);
+const denied = () => reply({ success: false, message: 'Cần xác thực quản trị viên (Thiếu hoặc sai x-admin-token).' }, 401);
 const failed = () => reply({ success: false, message: 'Không thể lưu đơn hàng. Kiểm tra cấu hình kho dữ liệu riêng và khóa ký license.' }, 503);
 const validId = (id: unknown): id is string => typeof id === 'string' && /^ORD-[\w-]{4,50}$/i.test(id);
 
+// Anti-flood / DoS Rate Limiter (In-Memory IP Bucket)
+const ipHits = new Map<string, { count: number; resetAt: number }>();
+function checkRateLimit(key: string, limit: number, windowMs: number): boolean {
+  const now = Date.now();
+  const record = ipHits.get(key);
+  if (!record || now > record.resetAt) {
+    ipHits.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (record.count >= limit) return false;
+  record.count++;
+  return true;
+}
+
+function getClientIp(req: NextRequest): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+         req.headers.get('x-real-ip')?.trim() ||
+         '127.0.0.1';
+}
+
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  if (!checkRateLimit(`order:create:${ip}`, 5, 60000)) {
+    return reply({ success: false, message: 'Bạn đang tạo quá nhiều đơn hàng cùng lúc. Vui lòng thử lại sau 1 phút.' }, 429);
+  }
   let body;
   try { body = await req.json(); } catch { return reply({ success: false }, 400); }
   if (!body || typeof body !== 'object') return reply({ success: false }, 400);
@@ -42,6 +66,8 @@ export async function GET(req: NextRequest) {
   }
   try {
     if (!id) {
+      // Must be authenticated Admin with valid x-admin-token to view all orders & customer keys
+      if (!isAdmin(req)) return denied();
       const orders = (await listOrders()).sort((a,b) => b.createdAt - a.createdAt);
       return reply({ success: true, orders, total: orders.length });
     }
@@ -55,6 +81,13 @@ export async function PUT(req: NextRequest) {
   try { body = await req.json(); } catch { return reply({ success: false }, 400); }
   if (!body || typeof body !== 'object') return reply({ success: false }, 400);
   const action = body.action;
+
+  // Customers are ONLY permitted to confirm their transfer.
+  // Critical operations (approve, extend, revoke, sync_bulk) STRICTLY REQUIRE ADMIN!
+  if (action !== 'confirm_transfer') {
+    if (!isAdmin(req)) return denied();
+  }
+
   if (action === 'sync_bulk' && Array.isArray(body.orders)) {
     const { upsertBulkOrders } = await import('@/lib/orderRepository');
     const updatedList = await upsertBulkOrders(body.orders);
@@ -106,6 +139,8 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  // ANY delete or wipe operation STRICTLY REQUIRES ADMIN!
+  if (!isAdmin(req)) return denied();
   try {
     let orderId = req.nextUrl.searchParams.get('orderId');
     let action = req.nextUrl.searchParams.get('action');
