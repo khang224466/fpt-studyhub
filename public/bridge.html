@@ -154,7 +154,7 @@
       <div class="title-box">
         <div class="icon">⚡</div>
         <div>
-          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.60 PRO</span></h1>
+          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.61 PRO</span></h1>
           <div class="sub">Vượt CSP Cloudflare 100% • Đồng Bộ Realtime 2 Chiều</div>
         </div>
       </div>
@@ -172,17 +172,6 @@
       </div>
     </div>
 
-    <div class="key-box">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <span style="font-size:11px;color:#94a3b8;font-weight:600;">🔑 Google Gemini API Key:</span>
-        <span id="key-badge" style="font-size:9.5px;color:#10b981;font-weight:700;">✓ Đã sẵn sàng</span>
-      </div>
-      <div style="display:flex;gap:6px;">
-        <input id="custom-key-input" type="text" placeholder="AQ.Ab8... hoặc AIzaSy..." style="flex:1;background:#0b0f19;border:1px solid #334155;color:#38bdf8;font-family:monospace;font-size:10px;padding:5px 8px;border-radius:6px;outline:none;" />
-        <button id="save-key-btn" style="background:#059669;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;font-weight:700;cursor:pointer;">Lưu Key</button>
-      </div>
-    </div>
-
     <div class="logs-title">Nhật Ký Kết Nối Realtime:</div>
     <div id="logs" class="logs-box"></div>
   </div>
@@ -190,12 +179,21 @@
   <script>
     const logsEl = document.getElementById('logs');
     const statusEl = document.getElementById('bridge-status');
-    const keyInput = document.getElementById('custom-key-input');
-    const saveKeyBtn = document.getElementById('save-key-btn');
-    const keyBadge = document.getElementById('key-badge');
 
     const SALT = 'ENX_SEC_2026_FLASH_LITE';
     const ENCRYPTED_DEFAULT_TOKEN = 'ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl';
+
+    function isRevoked(token) {
+      if (!token) return false;
+      try {
+        const raw = localStorage.getItem('fpt_admin_deleted_orders_v10') || localStorage.getItem('fpt_revoked_keys_v10') || '[]';
+        const list = JSON.parse(raw);
+        if (Array.isArray(list) && list.some(item => item && (token === item || token.includes(item) || item.includes(token)))) {
+          return true;
+        }
+      } catch(_) {}
+      return false;
+    }
 
     function extractTrueGeminiKey(keyStr) {
       let cur = (keyStr || '').trim();
@@ -239,9 +237,9 @@
       logsEl.scrollTop = logsEl.scrollHeight;
     }
 
-    log('success', '✓ Khởi tạo AI Bridge v10.2.60 PRO thành công!');
+    log('success', '✓ Khởi tạo AI Bridge v10.2.61 PRO thành công!');
 
-    // Initialize Key UI with auto-decrypted clean key
+    // Initialize clean key in background
     let activeSavedKey = '';
     try {
       const stored = localStorage.getItem('enx_bridge_gemini_key');
@@ -251,23 +249,6 @@
       }
     } catch(_) {
       activeSavedKey = extractTrueGeminiKey(ENCRYPTED_DEFAULT_TOKEN);
-    }
-    if (keyInput) keyInput.value = activeSavedKey;
-
-    if (saveKeyBtn) {
-      saveKeyBtn.onclick = function() {
-        const val = (keyInput.value || '').trim();
-        if (val) {
-          const cleanKey = extractTrueGeminiKey(val) || val;
-          try {
-            localStorage.setItem('enx_bridge_gemini_key', cleanKey);
-            activeSavedKey = cleanKey;
-            keyInput.value = cleanKey;
-            log('success', '✓ Đã lưu Google Gemini API Key mới thành công!');
-            if (keyBadge) keyBadge.textContent = '✓ Đã lưu';
-          } catch(e) {}
-        }
-      };
     }
 
     // 1. HANDSHAKE & HEARTBEAT VỚI CỬA SỔ EDUNEXT
@@ -387,21 +368,25 @@
         const imageBase64 = data.imageBase64 || (data.payload?.images && data.payload.images[0]) || null;
         const targetWin = e.source || edunextWindow || window.opener;
 
-        if (isBridgeSolving) {
-          log('info', 'Đang xử lý câu hỏi trước đó, tạm hoãn yêu cầu lặp...');
+        if (isRevoked(rawKey)) {
+          log('err', '⛔ Key bản quyền đã bị xóa / thu hồi vĩnh viễn bởi Quản trị viên!');
+          if (targetWin) {
+            targetWin.postMessage({
+              type: 'ENX_SOLVE_RES',
+              requestId,
+              success: false,
+              revoked: true,
+              error: 'Key bản quyền đã bị xóa / thu hồi vĩnh viễn bởi Quản trị viên!'
+            }, '*');
+          }
           return;
         }
 
-        // ĐIỀU TIẾT NHỊP: Giữ khoảng cách tối thiểu 4 giây giữa các lần gọi để không bị Google 429
-        const now = Date.now();
-        if (now - lastBridgeReqTime < 4000) {
-          const waitMs = 4000 - (now - lastBridgeReqTime);
-          log('info', `Giữ nhịp an toàn (chờ ${(waitMs / 1000).toFixed(1)}s tránh lỗi 429)...`);
-          await new Promise(r => setTimeout(r, waitMs));
+        if (isBridgeSolving) {
+          log('info', 'Đang xử lý bài trước, chuyển tiếp xử lý bài mới ngay...');
         }
-        lastBridgeReqTime = Date.now();
-
         isBridgeSolving = true;
+
         statusEl.innerHTML = '<span class="dot" style="background:#38bdf8"></span> ⚡ Đang giải bài tập từ ảnh...';
         log('info', `Nhận yêu cầu: ${imageBase64 ? '📸 Ảnh Vision + ' : ''}"${(promptText || '').slice(0, 35)}..."`);
 

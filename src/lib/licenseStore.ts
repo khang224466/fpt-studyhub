@@ -1,8 +1,9 @@
 import { readLicense } from '@/lib/serverLicense';
-import { getOrder } from '@/lib/orderRepository';
+import { getOrder, isLicenseRevoked } from '@/lib/orderRepository';
 
 export async function verifyLicense(licenseKey: unknown) {
   const invalid = { valid: false, reason: 'License không hợp lệ, hết hạn hoặc đã bị thu hồi. Vui lòng liên hệ admin cấp lại.', remainingMs: 0, formattedRemaining: '0 phút', record: undefined as { serviceId: string; expiresAt: number; isTrial: boolean; activeRequestsCount: number } | undefined };
+  if (typeof licenseKey === 'string' && isLicenseRevoked(licenseKey)) return invalid;
   const claims = readLicense(licenseKey);
   if (!claims) return invalid;
   const order = await getOrder(claims.orderId);

@@ -170,7 +170,18 @@ export async function upsertBulkOrders(items: OrderItem[]): Promise<OrderItem[]>
   return Object.values(orders).filter(ord => ord && ord.orderId && !deletedOrderIds.has(ord.orderId));
 }
 
+export const revokedLicenseKeys = new Set<string>();
+
+export function isLicenseRevoked(key: string): boolean {
+  if (!key) return false;
+  return revokedLicenseKeys.has(key);
+}
+
 export async function deleteOrder(id: string): Promise<boolean> {
+  const existing = memoryStore.get(id);
+  if (existing && existing.licenseKey) {
+    revokedLicenseKeys.add(existing.licenseKey);
+  }
   deletedOrderIds.add(id);
   memoryStore.delete(id);
   if (!useRedis()) {

@@ -53,17 +53,7 @@ function readEduNextTurn(doc) {
         return { element: best, text: text(best) };
       }
 
-      // B. Transition / Ready prompts ("Are you ready to move on...", "Bạn đã sẵn sàng...")
-      const readyPrompts = candidates.filter(el => {
-        const t = text(el);
-        return /are\s*you\s*ready/i.test(t) || /ready\s*to\s*(?:move|start|begin)/i.test(t) || /đã\s*sẵn\s*sàng\s*(?:chưa|chuyển)/i.test(t);
-      });
-      if (readyPrompts.length > 0) {
-        const r = readyPrompts[readyPrompts.length - 1];
-        return { element: r, text: text(r) };
-      }
-
-      // C. Element with "Please answer using this format:" or "Answer: [your answer]" or "Trả lời: [đáp án của bạn]"
+      // B. Element with "Please answer using this format:" or "Answer: [your answer]" or "Trả lời: [đáp án của bạn]"
       const formats = candidates.filter(el => {
         const t = text(el);
         return /(?:please\s*answer\s*using\s*this\s*format|answer\s*:\s*\[|trả\s*lời\s*:\s*\[)/i.test(t);
@@ -83,17 +73,17 @@ function readEduNextTurn(doc) {
         return { element: best, text: text(best) };
       }
 
-      // D. Class-based fallback
+      // C. Class-based fallback
       const qBoxes = candidates.filter(el => el.matches && el.matches('.exercise-question-block, [class*="exercise-question"], [class*="question-content"], .question-title, [class*="question-box"]'));
       if (qBoxes.length > 0) {
         const lastQ = qBoxes[qBoxes.length - 1];
         return { element: lastQ, text: text(lastQ) };
       }
 
-      // E. General question text ending with '?'
+      // D. General question text ending with '?' or containing question phrases
       const questionTextEls = candidates.filter(el => {
         const t = text(el);
-        return t.length > 25 && t.length < 1500 && (t.includes('?') || /modal\s*verb|obligation|generation\s*gap/i.test(t));
+        return t.length > 25 && t.length < 1500 && (t.includes('?') || /modal\s*verb|obligation|generation\s*gap|which\s+term|describes/i.test(t));
       });
       if (questionTextEls.length > 0) {
         const lastQ = questionTextEls[questionTextEls.length - 1];
@@ -116,12 +106,12 @@ function readEduNextTurn(doc) {
 
   // 5. State classification
   let state = 'idle';
-  if (questionBlockText && (questionBlockText.includes('?') || /câu\s*hỏi|question|answer\s*:|ready/i.test(questionBlockText))) {
+  if (activeInput && !activeInput.disabled) {
+    // If the input box is active and enabled, student is allowed to type!
+    state = 'student_turn';
+  } else if (questionBlockText && (questionBlockText.includes('?') || /câu\s*hỏi|question|answer\s*:|which|what|select|choose/i.test(questionBlockText))) {
     state = 'student_turn';
   } else if (hasTeacherResponse) {
-    state = 'student_turn';
-  } else if (activeInput && !activeInput.disabled) {
-    // If the input box is active and enabled, student is allowed to type!
     state = 'student_turn';
   } else if (studentBadge && !hasTeacherResponse) {
     state = 'waiting_teacher';

@@ -355,16 +355,26 @@ export default function AdminPage() {
 
   // Delete single order permanently
   const handleDeleteOrder = async (orderId: string) => {
-    if (!confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN đơn hàng [${orderId}] không?\nThao tác này sẽ xóa đơn khỏi hệ thống và không thể hoàn tác.`)) return;
+    const targetOrder = orders.find(o => o.orderId === orderId);
+    if (!confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN đơn hàng [${orderId}] không?\nKey này sẽ bị dừng hoạt động NGAY LẬP TỨC trên mọi máy khách.`)) return;
     setDeletingOrderId(orderId);
     try {
-      // 1. Mark as deleted in localStorage blacklist
+      // 1. Mark as deleted in localStorage blacklist & revoked keys list
       try {
         const rawDel = localStorage.getItem('fpt_admin_deleted_orders_v10');
         const delList = rawDel ? JSON.parse(rawDel) : [];
         if (!delList.includes(orderId)) {
           delList.push(orderId);
           localStorage.setItem('fpt_admin_deleted_orders_v10', JSON.stringify(delList));
+        }
+
+        if (targetOrder?.licenseKey) {
+          const rawRevoked = localStorage.getItem('fpt_revoked_keys_v10');
+          const revokedList = rawRevoked ? JSON.parse(rawRevoked) : [];
+          if (!revokedList.includes(targetOrder.licenseKey)) {
+            revokedList.push(targetOrder.licenseKey);
+            localStorage.setItem('fpt_revoked_keys_v10', JSON.stringify(revokedList));
+          }
         }
       } catch {}
 

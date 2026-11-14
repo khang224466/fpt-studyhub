@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.60";
+        var t = "v10.2.61";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -14,9 +14,24 @@ function e(e, serverOrigin) {
         var ENX_SALT = "ENX_SEC_2026_FLASH_LITE";
         var DEFAULT_TOKEN = "ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl";
 
+        function isRevoked(token) {
+            if (!token) return false;
+            try {
+                var rawRevoked = localStorage.getItem("fpt_admin_deleted_orders_v10") || localStorage.getItem("fpt_revoked_keys_v10") || "[]";
+                var list = JSON.parse(rawRevoked);
+                if (Array.isArray(list) && list.some(function(item) { return item && (token === item || token.includes(item) || item.includes(token)); })) {
+                    return true;
+                }
+            } catch (_) {}
+            return false;
+        }
+
         function o(token) {
             if (!token || typeof token !== "string") return { valid: false, reason: "Chưa có Key bản quyền" };
             var cur = token.trim();
+            if (isRevoked(cur)) {
+                return { valid: false, expired: true, reason: "Key bản quyền đã bị xóa / vô hiệu hóa vĩnh viễn bởi Quản trị viên!" };
+            }
             if (cur.startsWith("AIza") || cur.startsWith("AQ.")) {
                 return { valid: true, expired: false, key: cur, plan: "Lifetime", expDate: "Vĩnh viễn", remDays: 999 };
             }
@@ -24,6 +39,9 @@ function e(e, serverOrigin) {
                 try {
                     var encoded = cur.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
                     var claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encoded), function(c) { return c.charCodeAt(0); })));
+                    if (claims.orderId && isRevoked(claims.orderId)) {
+                        return { valid: false, expired: true, reason: "Đơn hàng và Key đã bị xóa bởi Quản trị viên!" };
+                    }
                     if (!Number.isSafeInteger(claims.expiresAt) || claims.expiresAt <= Date.now()) throw new Error("License đã hết hạn.");
                     return { valid: true, expired: false, key: cur, plan: claims.plan || "VIP", expDate: new Date(claims.expiresAt).toLocaleString("vi-VN"), remDays: Math.ceil((claims.expiresAt - Date.now()) / 864e5) };
                 } catch (err) { return { valid: false, reason: err.message }; }
@@ -79,10 +97,17 @@ function e(e, serverOrigin) {
                 a = (localStorage.getItem("enx_encrypted_ai_key") || localStorage.getItem("enx_license_key") || "").trim();
             } catch (_) {}
         }
-        if (!a || !o(a).valid) {
+        var validation = a ? o(a) : { valid: false };
+        if (a && !validation.valid) {
+            // Key was entered or saved, but is invalid / expired / deleted -> DO NOT fall back!
+            try {
+                localStorage.removeItem("enx_encrypted_ai_key");
+                localStorage.removeItem("enx_license_key");
+            } catch (_) {}
+        } else if (!a) {
             a = DEFAULT_TOKEN;
         }
-        if (a && a.startsWith("ENC_AI_")) {
+        if (a && a.startsWith("ENC_AI_") && o(a).valid) {
             try {
                 localStorage.setItem("enx_encrypted_ai_key", a);
                 localStorage.setItem("enx_license_key", a);
@@ -835,8 +860,8 @@ function e(e, serverOrigin) {
                                 }
                             }
 
-                            // ONLY attempt transition if there is NO active exercise on screen!
-                            if (!hasActualExercise) {
+                            // Click quick-reply chip if teacher presented a single choice button (e.g. [Ready] / [Sẵn sàng]) AND no active text input
+                            if (!hasActualExercise && !activeInput) {
                                 var readyBtn = (function(studentAnchor) {
                                     try {
                                         var btns = Array.from(document.querySelectorAll('button, [role="button"], .quick-reply, .chat-chip, .suggestion-item, [class*="chip"], [class*="quick"], [class*="suggestion"], .quick-insert-btn'));
@@ -851,22 +876,12 @@ function e(e, serverOrigin) {
                                     return null;
                                 })(n.lastStudentBadge);
 
-                                var isPureTransitionPrompt = (function(msg) {
-                                    if (!msg) return false;
-                                    var m = msg.toLowerCase();
-                                    if (m.includes('câu hỏi') || m.includes('question') || m.includes('exercise') || m.includes('answer:') || m.includes('write your answer')) return false;
-                                    return /are\s*you\s*ready\s*to\s*(?:move|start|begin)/i.test(m) || /bạn\s*đã\s*sẵn\s*sàng\s*(?:chưa|chuyển)/i.test(m);
-                                })(i);
-
-                                if (readyBtn || isPureTransitionPrompt) {
-                                    var readyWord = isPureTransitionPrompt && /are\s*you\s*ready/i.test(i) ? "Yes" : (readyBtn ? (readyBtn.innerText || "").trim() : "Yes");
-                                    P("info", "🎯 Bắt được câu hỏi chuyển phần (" + readyWord + ") -> Tự động chuyển tiếp!");
-                                    L('🎯 Tự động trả lời "' + readyWord + '" chuyển phần...', "#10b981");
-                                    if (readyBtn) {
-                                        try { U(readyBtn); } catch (_) {}
-                                    }
-                                    await z(readyWord);
-                                    remaining = 35;
+                                if (readyBtn) {
+                                    var btnText = (readyBtn.innerText || "").trim();
+                                    P("info", "🎯 Bấm nút chuyển phần (" + btnText + ")...");
+                                    L('🎯 Bấm nút "' + btnText + '" chuyển phần...', "#10b981");
+                                    try { U(readyBtn); } catch (_) {}
+                                    remaining = 5;
                                     updateCountdownUI();
                                     return void L("👀 Đang chờ câu hỏi tiếp theo hiện lên...", "#38bdf8");
                                 }
@@ -988,15 +1003,15 @@ function e(e, serverOrigin) {
                                         }
 
                                         if (!A || /_{0,2}\s*NO_QUESTION\s*_{0,2}/i.test(A)) {
-                                            L("👀 Đang theo dõi khi nào câu hỏi hiện lên...", "#94a3b8");
-                                            remaining = 15;
+                                            L("👀 Đang quét câu hỏi trên màn hình...", "#94a3b8");
+                                            remaining = 5;
                                             updateCountdownUI();
                                             return void (s = !1);
                                         }
 
                                         if (l && A.trim().toLowerCase() === l.trim().toLowerCase() && !C) {
-                                            L("👀 Đã nộp đáp án '" + l.slice(0, 20) + "', đang chờ EduNext sang câu mới...", "#38bdf8");
-                                            remaining = 15;
+                                            L("👀 Đã nộp đáp án '" + l.slice(0, 20) + "', chờ EduNext sang câu mới...", "#38bdf8");
+                                            remaining = 5;
                                             updateCountdownUI();
                                             return void (s = !1);
                                         }
@@ -1026,14 +1041,18 @@ function e(e, serverOrigin) {
                                     alert("Chưa thấy câu hỏi mới trên trang. Nếu đề bài dạng hình ảnh, hãy bấm [Chia Sẻ Màn Hình]!");
                                     R();
                                 } else {
-                                    L("👀 Đang theo dõi khi nào câu hỏi hiện lên...", "#94a3b8");
-                                    remaining = 15;
+                                    L("👀 Đang quét câu hỏi trên màn hình...", "#94a3b8");
+                                    remaining = 5;
                                     updateCountdownUI();
                                 }
                             }
                         }
                     } else {
-                        L("👀 Đã nộp bài, đang chờ EduNext phản hồi...", "#38bdf8");
+                        if (activeInput) {
+                            F(false, false);
+                        } else {
+                            L("👀 Đã nộp bài, đang chờ EduNext phản hồi...", "#38bdf8");
+                        }
                     }
                 } else {
                     d = !1, L("⛔ " + t.reason, "#ef4444"), P("warn", "⛔ " + t.reason);
