@@ -95,68 +95,67 @@ export function ActivationSuccessModal({
             <Badge variant="emerald" size="sm">Tự Động 100%</Badge>
           </div>
           <p className="text-[11px] text-slate-300 leading-relaxed">
-            Mã bản quyền gói <strong className="text-emerald-400">{order.durationLabel}</strong> đã được hệ thống nhúng trực tiếp vào mã Bookmark bên dưới. Bạn <strong className="text-white">không cần sao chép hay nhập key thủ công</strong>!
+            Mã bản quyền gói <strong className="text-emerald-400">{order.durationLabel}</strong> đã được hệ thống nhúng trực tiếp vào nút Bookmark bên dưới. Bạn <strong className="text-white">không cần sao chép hay nhập key thủ công</strong> — chỉ cần kéo nút màu xanh lên thanh Bookmark và bấm chạy!
           </p>
         </div>
 
-        {/* HERO: 1-CLICK COPY & SETUP BOOKMARK */}
+        {/* HERO: THE BIG GLOWING DRAGGABLE BOOKMARKLET BUTTON (CẦM KÉO LÊN LÀ XONG) */}
         <div className="p-6 rounded-2xl bg-gradient-to-b from-emerald-950/80 via-slate-900 to-slate-950 border-2 border-emerald-500/70 shadow-2xl shadow-emerald-950/80 text-center space-y-4">
-          <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 text-left text-amber-200 text-xs leading-relaxed">
-            ⚠️ <strong>LƯU Ý QUAN TRỌNG TRÊN WINDOWS:</strong><br />
-            Trình duyệt Chrome / Edge trên Windows chặn kéo thả liên kết dài (hiển thị biểu tượng cấm 🚫).<br />
-            👉 <strong>ĐỪNG KÉO NỮA!</strong> Bạn chỉ cần bấm nút <strong>[Sao Chép Mã]</strong> bên dưới &rarr; Chuột phải lên thanh Bookmark chọn <strong>&quot;Thêm trang...&quot;</strong> &rarr; Dán mã vào ô URL là xong ngay trong 5 giây!
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+            <Zap className="w-4 h-4 animate-bounce text-emerald-400" />
+            <span>Chỉ Cần 1 Thao Tác Kéo Thả Duy Nhất (Không Cần Cài Đặt):</span>
           </div>
 
           <div className="py-2 flex justify-center">
-            <button
-              type="button"
-              onClick={copyBookmark}
-              className="inline-flex items-center justify-center gap-3 w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-base sm:text-lg shadow-xl shadow-emerald-950/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer border-2 border-emerald-300/50 select-none"
+            <a
+              href={bookmarkCode}
+              draggable="true"
+              onDragStart={(e) => {
+                try {
+                  e.dataTransfer.clearData();
+                  e.dataTransfer.setData('text/uri-list', bookmarkCode);
+                  e.dataTransfer.setData('URL', bookmarkCode);
+                  e.dataTransfer.setData('text/plain', bookmarkCode);
+                } catch (_) {}
+              }}
+              onClick={() => {
+                copyBookmark();
+              }}
+              className="inline-flex items-center justify-center gap-3 w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-base sm:text-lg shadow-xl shadow-emerald-950/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-grab active:cursor-grabbing border-2 border-emerald-300/50 select-none animate-pulse"
             >
-              {copiedBookmarkCode ? <Check className="w-6 h-6 text-white shrink-0" /> : <Copy className="w-6 h-6 shrink-0" />}
-              <span>{copiedBookmarkCode ? '✓ ĐÃ SAO CHÉP MÃ! HÃY CHUỘT PHẢI THANH BOOKMARK & DÁN' : '📋 BẤM VÀO ĐÂY ĐỂ SAO CHÉP MÃ v10.2.50'}</span>
-            </button>
+              <Bookmark className="w-6 h-6 fill-current shrink-0" />
+              <span>⚡ KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.50)</span>
+            </a>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800 text-xs text-slate-300 text-left space-y-2">
             <div className="font-bold text-white text-[11px] uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-              <span>👉 3 Bước Dễ Dàng (1 Lần Là Xong):</span>
+              <span>👉 3 Bước Dễ Dàng:</span>
             </div>
-            <ol className="list-decimal list-inside space-y-2 text-slate-300 text-xs">
-              <li>
-                Bấm nút to màu xanh ở trên để <strong>sao chép mã Bookmarklet</strong>.
-              </li>
-              <li>
-                Nhấn phím <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-emerald-400 font-mono text-[11px]">Ctrl + Shift + B</kbd> để hiển thị thanh Bookmark trình duyệt.
-              </li>
-              <li>
-                Nhấp <strong>Chuột Phải</strong> vào thanh Bookmark &rarr; Chọn <strong>Thêm trang...</strong> (Add page...):<br />
-                • Tên: <span className="text-emerald-400 font-semibold">EduNext Pro 35s</span><br />
-                • URL: Nhấn <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-emerald-400 font-mono text-[11px]">Ctrl + V</kbd> (Dán mã vừa sao chép) &rarr; Bấm <strong>Lưu</strong> (Save).
-              </li>
-              <li>
-                Mở tab EduNext: <strong className="text-emerald-400 underline">https://fsc-edunext.fpt.edu.vn/home</strong> &rarr; <strong>Bấm vào Bookmark vừa lưu</strong> là AI tự hiện lên và làm bài!
-              </li>
+            <ol className="list-decimal list-inside space-y-1.5 text-slate-300 text-xs">
+              <li>Nhấn phím <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-emerald-400 font-mono text-[11px]">Ctrl + Shift + B</kbd> để hiển thị thanh Bookmark trình duyệt.</li>
+              <li>Dùng chuột <strong>GIỮ VÀ KÉO NÚT MÀU XANH Ở TRÊN</strong> thả lên thanh Bookmark.</li>
+              <li>Mở trang bài tập EduNext: <strong className="text-emerald-400 underline">https://fsc-edunext.fpt.edu.vn/home</strong> 👉 <strong>Bấm vào Bookmark vừa kéo</strong> là AI tự hiện lên và làm bài!</li>
             </ol>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={copyBookmark}
+              className="text-xs font-semibold gap-1.5"
+            >
+              {copiedBookmarkCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedBookmarkCode ? '✓ Đã sao chép mã Bookmarklet!' : '📋 Sao Chép Mã Bookmarklet'}</span>
+            </Button>
             <a
               href={`/keo_bookmark.html?key=${encodeURIComponent(licenseKey)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold"
             >
-              <span>Mở Hướng Dẫn Kéo Thả Riêng</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-            <a
-              href="/edunext.user.js"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-950/60 hover:bg-sky-900/60 border border-sky-600/40 text-sky-300 text-xs font-semibold"
-            >
-              <span>Cài Qua Tampermonkey</span>
+              <span>Mở Trang Kéo Thả Riêng</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>

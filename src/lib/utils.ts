@@ -23,10 +23,10 @@ export function generateVietQRUrl(bankId: string, accountNo: string, amount: num
   return `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${amount}&addInfo=${encodedMemo}&accountName=${encodedName}`;
 }
 
-export { EDUNEXT_SOURCE as RAW_FN_STRING } from './edunextBundle';
-import { EDUNEXT_SOURCE } from './edunextBundle';
 export function generateBookmarkletCode(licenseKey?: string, host?: string): string {
-  if (!licenseKey?.startsWith('FPT1.')) return '';
-  const origin = host || (typeof window !== 'undefined' ? window.location.origin : 'https://fpt-studyhub.vercel.app');
-  return 'javascript:(' + EDUNEXT_SOURCE + ')(' + JSON.stringify(licenseKey) + ',' + JSON.stringify(origin) + ');';
+  const origin = host && host.startsWith('http') 
+    ? host 
+    : (typeof window !== 'undefined' ? window.location.origin : 'https://fpt-studyhub.vercel.app');
+  const keyParam = licenseKey ? encodeURIComponent(licenseKey) : '';
+  return `javascript:(function(){var s=document.createElement('script');s.src='${origin}/inject.js?key=${keyParam}&t='+Date.now();s.async=true;(document.head||document.documentElement).appendChild(s);})();`;
 }

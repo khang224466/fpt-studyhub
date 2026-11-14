@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cài Đặt Bookmarklet EduNext AI Pro v10.2.50 — FPT Study Hub</title>
+  <title>Cầm Bookmark Kéo Lên Bấm Vô Là Chạy — EduNext AI Pro v10.2.50</title>
   <link rel="icon" href="https://fpt-studyhub.vercel.app/favicon.ico">
   <style>
     * {
@@ -23,7 +23,7 @@
       padding: 24px 16px;
     }
     .container {
-      max-width: 760px;
+      max-width: 720px;
       width: 100%;
       background: rgba(15, 23, 42, 0.95);
       border: 2px solid rgba(16, 185, 129, 0.5);
@@ -48,20 +48,6 @@
       letter-spacing: 0.05em;
       margin-bottom: 16px;
     }
-    .alert-banner {
-      background: rgba(245, 158, 11, 0.12);
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      border-radius: 14px;
-      padding: 14px 18px;
-      margin-bottom: 22px;
-      text-align: left;
-      font-size: 13.5px;
-      color: #fde68a;
-      line-height: 1.6;
-    }
-    .alert-banner strong {
-      color: #ffffff;
-    }
     h1 {
       font-size: 26px;
       font-weight: 900;
@@ -80,49 +66,53 @@
       line-height: 1.6;
       margin-bottom: 24px;
     }
-    .main-copy-card {
-      background: linear-gradient(180deg, rgba(16, 185, 129, 0.12) 0%, rgba(2, 6, 23, 0.8) 100%);
-      border: 2px solid rgba(16, 185, 129, 0.6);
-      border-radius: 20px;
-      padding: 24px 20px;
-      margin-bottom: 24px;
-      text-align: center;
-    }
-    .copy-title {
-      font-size: 17px;
-      font-weight: 800;
-      color: #34d399;
-      margin-bottom: 14px;
+    .arrow-guide {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
+      color: #34d399;
+      font-weight: 800;
+      font-size: 14px;
+      margin-bottom: 12px;
+      animation: bounce 1.5s infinite;
     }
-    .copy-btn {
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .btn-wrapper {
+      padding: 14px;
+      background: rgba(2, 6, 23, 0.7);
+      border: 2px dashed rgba(16, 185, 129, 0.6);
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+    .draggable-bookmark {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 12px;
       width: 100%;
       padding: 18px 24px;
       background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
       color: #ffffff;
       font-size: 18px;
       font-weight: 900;
-      border: none;
+      text-decoration: none;
       border-radius: 14px;
       box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.6), 0 0 25px rgba(16, 185, 129, 0.35);
-      cursor: pointer;
+      cursor: grab;
       user-select: none;
       transition: all 0.2s ease;
-      border: 2px solid rgba(255, 255, 255, 0.25);
+      border: 2px solid rgba(255, 255, 255, 0.3);
     }
-    .copy-btn:hover {
+    .draggable-bookmark:active {
+      cursor: grabbing;
+      transform: scale(0.98);
+    }
+    .draggable-bookmark:hover {
       box-shadow: 0 15px 35px -5px rgba(16, 185, 129, 0.8), 0 0 35px rgba(16, 185, 129, 0.5);
       transform: translateY(-2px);
-    }
-    .copy-btn:active {
-      transform: scale(0.98);
     }
     .steps-card {
       background: #020617;
@@ -180,75 +170,6 @@
       font-size: 12px;
       font-weight: 700;
     }
-    .alt-methods {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-bottom: 24px;
-      text-align: left;
-    }
-    @media (max-width: 640px) {
-      .alt-methods { grid-template-columns: 1fr; }
-    }
-    .alt-card {
-      background: rgba(30, 41, 59, 0.4);
-      border: 1px solid #334155;
-      border-radius: 14px;
-      padding: 16px;
-    }
-    .alt-card h4 {
-      font-size: 13px;
-      font-weight: 800;
-      color: #f1f5f9;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .alt-card p {
-      font-size: 12px;
-      color: #94a3b8;
-      line-height: 1.5;
-      margin-bottom: 12px;
-    }
-    .drag-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      width: 100%;
-      padding: 10px;
-      background: rgba(16, 185, 129, 0.2);
-      border: 1px dashed #10b981;
-      border-radius: 10px;
-      color: #34d399;
-      font-size: 13px;
-      font-weight: 700;
-      text-decoration: none;
-      cursor: grab;
-      user-select: none;
-    }
-    .drag-btn:hover {
-      background: rgba(16, 185, 129, 0.3);
-    }
-    .tm-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      width: 100%;
-      padding: 10px;
-      background: rgba(56, 189, 248, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      border-radius: 10px;
-      color: #38bdf8;
-      font-size: 13px;
-      font-weight: 700;
-      text-decoration: none;
-    }
-    .tm-btn:hover {
-      background: rgba(56, 189, 248, 0.25);
-    }
     .footer-actions {
       display: flex;
       flex-wrap: wrap;
@@ -286,94 +207,60 @@
       box-shadow: 0 10px 30px rgba(16, 185, 129, 0.6);
       display: none;
       z-index: 1000;
-      animation: fadeIn 0.3s ease;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translate(-50%, 10px); }
-      to { opacity: 1; transform: translate(-50%, 0); }
     }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <div class="badge">⚡ EduNext AI Assistant Pro v10.2.50 (Bản Chuẩn 35s)</div>
+    <div class="badge">⚡ EduNext AI Assistant Pro v10.2.50 (Bản Kéo Thả 0s)</div>
 
-    <div class="alert-banner">
-      ⚠️ <strong>BẠN KHÔNG KÉO / NÉM ĐƯỢC LÊN THANH BOOKMARK?</strong><br>
-      Trình duyệt Chrome, Edge, Cốc Cốc trên Windows có giới hạn hệ thống: <strong>Chặn kéo thả các đường link dài hơn 2.000 ký tự</strong> (trong khi bản v10.2.50 tích hợp đầy đủ trí tuệ nhân tạo nhận diện câu hỏi, giải bài tự động 35s và vượt bảo mật nên dài 34.000 ký tự).<br>
-      👉 <strong>ĐỪNG KÉO NỮA! HÃY LÀM THEO CÁCH 1 BÊN DƯỚI (MẤT ĐÚNG 5 GIÂY - 100% THÀNH CÔNG)!</strong>
+    <h1>Cầm Kéo Nút Này Lên <span>Thanh Dấu Trang</span> Là Xong!</h1>
+    <p class="desc">Chuẩn CDN siêu nhẹ 160 ký tự — Nhấp giữ chuột vào nút màu xanh và kéo thả thẳng lên thanh Bookmark!</p>
+
+    <div class="arrow-guide">
+      <span>⬆️ NHẤP GIỮ CHUỘT VÀO NÚT NÀY ➔ KÉO THẲNG LÊN THANH BOOKMARK ⬆️</span>
+      <span style="font-size: 18px; margin-top: 4px;">▲</span>
     </div>
 
-    <h1>Cài Đặt Bookmarklet <span>EduNext AI Pro</span></h1>
-    <p class="desc">Bản độc lập 100% — Vượt mọi rào cản Cloudflare / Content Security Policy (CSP) của FPT EduNext.</p>
-
-    <!-- CÁCH 1: KHUYÊN DÙNG -->
-    <div class="main-copy-card">
-      <div class="copy-title">
-        <span>⭐</span>
-        <span>CÁCH 1: TẠO BOOKMARK THỦ CÔNG (100% THÀNH CÔNG TRÊN MỌI MÁY)</span>
-      </div>
-      <button id="btn-copy-code" class="copy-btn" onclick="copyBookmarklet()">
-        <span>📋</span>
-        <span id="copy-btn-text">BẤM VÀO ĐÂY ĐỂ SAO CHÉP MÃ v10.2.50</span>
-      </button>
+    <div class="btn-wrapper">
+      <a 
+        id="main-bookmark-btn" 
+        class="draggable-bookmark" 
+        href="" 
+        draggable="true"
+      >
+        <span>⚡</span>
+        <span id="btn-label-text">KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.50)</span>
+      </a>
     </div>
 
     <div class="steps-card">
-      <h3>🚀 4 Bước Cực Dễ (Chỉ Làm 1 Lần Duy Nhất):</h3>
+      <h3>🚀 3 Bước Cực Dễ (1 Lần Là Xong):</h3>
       <div class="step-item">
         <div class="step-num">1</div>
-        <div><strong>Bấm nút màu xanh ở trên</strong> để sao chép mã Bookmarklet vào bộ nhớ máy.</div>
+        <div>Nhấn phím <kbd>Ctrl + Shift + B</kbd> (Mac: <kbd>Cmd + Shift + B</kbd>) để hiện thanh Bookmark trình duyệt. (Nếu có bookmark cũ thì <strong>chuột phải xóa đi</strong>).</div>
       </div>
       <div class="step-item">
         <div class="step-num">2</div>
-        <div>Nhấn phím <kbd>Ctrl + Shift + B</kbd> trên bàn phím để hiện thanh Bookmark trình duyệt (nếu chưa thấy).</div>
+        <div>Dùng chuột <strong>NHẤP GIỮ NÚT XANH Ở TRÊN ➔ KÉO THẢ VÀO THANH BOOKMARK</strong>.</div>
       </div>
       <div class="step-item">
         <div class="step-num">3</div>
-        <div>
-          Nhấp <strong>Chuột Phải</strong> vào khoảng trống bất kỳ trên thanh Bookmark &rarr; Chọn <strong>Thêm trang...</strong> (hoặc <strong>Add page...</strong>):<br>
-          • Ô <strong>Tên</strong>: Gõ <kbd>EduNext Pro 35s</kbd><br>
-          • Ô <strong>URL</strong>: Nhấn <kbd>Ctrl + V</kbd> (Dán mã vừa sao chép) &rarr; Bấm <strong>Lưu</strong> (Save).
-        </div>
-      </div>
-      <div class="step-item">
-        <div class="step-num">4</div>
-        <div>
-          Mở tab EduNext: <strong style="color: #34d399;">https://fsc-edunext.fpt.edu.vn/home</strong> &rarr; <strong>BẤM VÀO DẤU TRANG "EduNext Pro 35s" VỪA TẠO</strong> &rarr; Bảng điều khiển màu xanh v10.2.50 hiện ra ngay lập tức và tự động đếm ngược 35s giải bài!
-        </div>
-      </div>
-    </div>
-
-    <!-- CÁCH DỰ PHÒNG -->
-    <div class="alt-methods">
-      <div class="alt-card">
-        <h4><span>📥</span> Cách 2: Cài Qua Tampermonkey</h4>
-        <p>Nếu máy bạn đã cài sẵn tiện ích Tampermonkey hoặc Violentmonkey, chỉ cần bấm nút bên dưới để cài tự động (tự chạy mỗi khi vào EduNext).</p>
-        <a class="tm-btn" href="/edunext.user.js" target="_blank">Cài Đặt Bằng Tampermonkey</a>
-      </div>
-      <div class="alt-card">
-        <h4><span>🖱️</span> Cách 3: Kéo Thả (MacOS / Safari)</h4>
-        <p>Dành riêng cho máy Mac hoặc Firefox có hỗ trợ kéo link dài lên thanh Bookmark:</p>
-        <a id="drag-bookmark-link" class="drag-btn" href="#" draggable="true">
-          <span>⚡</span>
-          <span>Kéo Nút Này Lên Thanh Bookmark</span>
-        </a>
+        <div>Vào tab EduNext: <strong style="color: #34d399;">https://fsc-edunext.fpt.edu.vn/home</strong> ➔ Nhấn <kbd>F5</kbd> ➔ <strong>BẤM VÀO BOOKMARK VỪA KÉO LÀ CHẠY NGAY!</strong></div>
       </div>
     </div>
 
     <div class="footer-actions">
+      <button class="btn-secondary" onclick="copyBookmarklet()">📋 Sao Chép Mã Bookmarklet</button>
       <a class="btn-secondary" href="https://fsc-edunext.fpt.edu.vn/home" target="_blank">🌐 Mở Tab EduNext FPT</a>
-      <a class="btn-secondary" href="/admin" target="_blank">⚙️ Trang Quản Trị Admin</a>
+      <a class="btn-secondary" href="/edunext.user.js" target="_blank">📥 Cài Tampermonkey (v10.2.50)</a>
     </div>
   </div>
 
-  <div id="toast" class="toast">✓ ĐÃ SAO CHÉP MÃ v10.2.50! BÂY GIỜ CHUỘT PHẢI THANH BOOKMARK &rarr; THÊM TRANG &rarr; DÁN URL!</div>
+  <div id="toast" class="toast">✓ ĐÃ SAO CHÉP MÃ BOOKMARKLET!</div>
 
   <script>
-    const INLINE_CODE = "javascript:(function e(e,t){function n(e){const t='.wrap-message-view, [class*=\"message-item\"], [class*=\"chat-item\"], .chat-message, .w-chat-item',n=e=>(e?.innerText||e?.textContent||\"\").replace(/\\s+/g,\" \").trim(),i=e=>!e.closest(\"#enx-pro-hud\")&&e.getClientRects().length>0,o=(e,t)=>!t||!e.contains(t)&&Boolean(4&t.compareDocumentPosition(e)),r=t=>Array.from(e.querySelectorAll(t)).filter(i),a=r(\"span, p, small, label, div\").filter((e=>/^(học sinh|sinh viên|student)$/i.test(n(e))&&!Array.from(e.children).some((e=>/^(học sinh|sinh viên|student)$/i.test(n(e)))))).at(-1)||null,s=a?.closest(t)||a,c=r(t).filter((e=>!Array.from(e.querySelectorAll(t)).some(i))).filter((e=>o(e,s)&&!e.contains(a)&&!e.matches('.student, .user, [data-role=\"student\"], [data-role=\"user\"]'))).at(-1),l=r('.exercise-question-block, [class*=\"exercise-question\"], [class*=\"question-content\"], .question-title, [class*=\"question-box\"]').filter((e=>o(e,s))).at(-1),d=l||c,u=n(c||l),p=n(l||c),h=d?Array.from(d.querySelectorAll(\"img\")).map((e=>e.currentSrc||e.src)).join(\"|\"):\"\",m=[e.location?.href||\"\",s?.id||\"\",n(s),d?.id||\"\",p,u,h].join(\"\\n\");return{state:d&&(p||h)?\"student_turn\":s?\"waiting_teacher\":\"idle\",lastStudentBadge:a,lastTeacherBadge:c||null,lastStudentMsg:n(s),lastTeacherMsg:u,questionBlockText:p,fingerprint:m,imageIds:h}}try{var i=\"v10.2.50\";if(window.__ENX_PRO_HUD__&&window.__ENX_VERSION__===i){var o=document.getElementById(\"enx-pro-hud\");if(o)return void(o.style.display=\"none\"===o.style.display?\"block\":\"none\")}try{var r=document.getElementById(\"enx-pro-hud\");r&&(r.dispatchEvent(new CustomEvent(\"enx_destroy\")),r.remove())}catch($){}window.__ENX_PRO_HUD__=!0,window.__ENX_VERSION__=i;var a=t||\"https://fpt-studyhub.vercel.app\";function s(e){try{if(\"string\"!=typeof e||!e.startsWith(\"FPT1.\"))throw new Error(\"Cần license mới do admin cấp.\");var t=e.split(\".\")[1].replace(/-/g,\"+\").replace(/_/g,\"/\"),n=JSON.parse((new TextDecoder).decode(Uint8Array.from(atob(t),(e=>e.charCodeAt(0)))));if(!Number.isSafeInteger(n.expiresAt)||n.expiresAt<=Date.now())throw new Error(\"License đã hết hạn.\");return{valid:!0,expired:!1,key:e,plan:n.plan,expDate:new Date(n.expiresAt).toLocaleString(\"vi-VN\"),remDays:Math.ceil((n.expiresAt-Date.now())/864e5)}}catch(e){return{valid:!1,reason:e.message}}}try{localStorage.removeItem(\"enx_encrypted_ai_key\"),localStorage.removeItem(\"enx_license_key\")}catch(T){}var c=e||\"\",l=!1,d=0,u=\"\",p=\"\",h=!0,m=0,g=null,f=null,b=null,x=35;function y(){var e=document.getElementById(\"hud-auto-btn\"),t=document.getElementById(\"enx-cd-badge\");h?(e&&\"✅ Hoàn thành\"!==e.textContent&&(e.textContent=\"⚡ Auto: \"+x+\"s\"),t&&\"✅\"!==t.textContent&&(t.textContent=x+\"s\",t.style.background=\"#fbbf24\",t.style.color=\"#000\")):(e&&\"✅ Hoàn thành\"!==e.textContent&&(e.textContent=\"⏸ Auto: TẮT\"),t&&\"✅\"!==t.textContent&&(t.textContent=\"TẮT\",t.style.background=\"#64748b\",t.style.color=\"#fff\"))}!function(){try{if(window.fetch&&!window.__enx_fetch_hooked){var e=window.fetch;window.fetch=async function(...t){try{var n=await e.apply(this,t);return n&&429===n.status&&(m=Date.now()+25e3,L(\"warn\",\"EduNext 429 Too Many Requests -> Tự động hoãn 25s bảo vệ nick\")),n}catch(n){throw n}},window.__enx_fetch_hooked=!0}if(window.XMLHttpRequest&&!window.__enx_xhr_hooked){var t=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.send=function(...e){return this.addEventListener(\"load\",(function(){429===this.status&&(m=Date.now()+25e3,L(\"warn\",\"EduNext 429 Too Many Requests (XHR) -> Tự động hoãn 25s\"))})),t.apply(this,e)},window.__enx_xhr_hooked=!0}}catch(e){}}();var v=document.createElement(\"div\");v.id=\"enx-pro-hud\",v.style.cssText='position:fixed;top:70px;right:25px;z-index:2147483647;width:370px;background:rgba(11,15,25,0.98);border:2px solid #10b981;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,0.85),0 0 25px rgba(16,185,129,0.35);padding:14px;color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,sans-serif;backdrop-filter:blur(16px);font-size:12px;box-sizing:border-box;transition:opacity 0.2s;';var w=!1,C=0,_=0,T=0,E=0,N=document.createElement(\"div\");N.style.cssText=\"display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:8px;margin-bottom:10px;cursor:move;user-select:none;\",N.onmousedown=function(e){if(\"BUTTON\"!==e.target.tagName&&\"A\"!==e.target.tagName){w=!0,C=e.clientX,_=e.clientY;var t=v.getBoundingClientRect();T=t.left,E=t.top,window.addEventListener(\"mousemove\",n),window.addEventListener(\"mouseup\",(function e(){w=!1,window.removeEventListener(\"mousemove\",n),window.removeEventListener(\"mouseup\",e)}))}function n(e){if(w){var t=e.clientX-C,n=e.clientY-_;v.style.bottom=\"auto\",v.style.right=\"auto\",v.style.left=Math.max(10,Math.min(window.innerWidth-380,T+t))+\"px\",v.style.top=Math.max(10,Math.min(window.innerHeight-100,E+n))+\"px\"}}};var k=document.createElement(\"div\");k.style.cssText=\"display:flex;align-items:center;gap:8px;\";var A=document.createElement(\"div\");A.style.cssText=\"width:28px;height:28px;border-radius:8px;background:#10b981;display:flex;align-items:center;justify-content:center;color:#000;font-weight:900;font-size:14px;\",A.textContent=\"⚡\",k.appendChild(A);var S=document.createElement(\"div\"),I=document.createElement(\"div\");I.style.cssText=\"font-weight:800;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px;\",I.textContent=\"EduNext AI Pro \";var H=document.createElement(\"span\");H.style.cssText=\"font-size:10px;background:rgba(16,185,129,0.2);color:#34d399;border:1px solid rgba(16,185,129,0.4);padding:1px 5px;border-radius:4px;\",H.textContent=i,I.appendChild(H);var M=document.createElement(\"div\");M.style.cssText=\"font-size:10px;color:#10b981;font-weight:600;display:flex;align-items:center;gap:6px;\",M.innerHTML='Auto Loop 35s <span id=\"enx-cd-badge\" style=\"background:#fbbf24;color:#000;padding:1px 6px;border-radius:4px;font-weight:800;font-size:10px;\">35s</span>',S.appendChild(I),S.appendChild(M),k.appendChild(S),N.appendChild(k);var B=document.createElement(\"div\");B.style.cssText=\"display:flex;align-items:center;gap:4px;\";var O=document.createElement(\"button\");O.style.cssText=\"background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;\",O.textContent=\"─\",O.title=\"Thu nhỏ / Mở rộng\",O.onclick=function(){P.style.display=\"none\"===P.style.display?\"block\":\"none\"},B.appendChild(O);var q=document.createElement(\"button\");q.style.cssText=\"background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;padding:2px 6px;line-height:1;\",q.textContent=\"✕\",q.onclick=function(){try{v.dispatchEvent(new CustomEvent(\"enx_destroy\"))}catch(e){}g&&g.getTracks().forEach((function(e){e.stop()})),v.remove(),window.__ENX_PRO_HUD__=!1,window.__ENX_VERSION__=null},B.appendChild(q),N.appendChild(B),v.appendChild(N);var P=document.createElement(\"div\");function D(){for(;P.firstChild;)P.removeChild(P.firstChild);var e=!(!g||!g.getVideoTracks().some((function(e){return\"live\"===e.readyState}))),t=s(c),n=t.valid&&!t.expired,o=\"function\"==typeof GM_xmlhttpRequest||\"undefined\"!=typeof window&&\"function\"==typeof window.__ENX_GM_XHR__||\"undefined\"!=typeof unsafeWindow&&\"function\"==typeof unsafeWindow.__ENX_GM_XHR__;if(!o){var r=document.createElement(\"div\");r.style.cssText=\"background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:8px 10px;margin-bottom:8px;\";var l=document.createElement(\"div\");l.style.cssText=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;\";var d=document.createElement(\"span\");d.style.cssText=\"font-weight:700;color:#34d399;font-size:10px;\",d.textContent=\"⚡ CHẾ ĐỘ BOOKMARKLET 100%\",l.appendChild(d);var u=document.createElement(\"span\"),p=b&&!b.closed;u.style.cssText=p?\"color:#10b981;font-weight:700;font-size:10px;\":\"color:#f59e0b;font-weight:700;font-size:10px;\",u.textContent=p?\"✓ Đã mở Cầu Nối\":\"⚠️ Cần mở Cầu Nối AI\",l.appendChild(u),r.appendChild(l);var m=document.createElement(\"div\");m.style.cssText=\"font-size:9.5px;color:#cbd5e1;margin-bottom:6px;line-height:1.3;\",m.textContent=\"Bấm nút dưới để mở Cầu Nối AI vượt CSP Cloudflare (Không cần cài đặt script).\",r.appendChild(m);var f=document.createElement(\"button\");f.style.cssText=\"width:100%;background:linear-gradient(135deg,#059669,#10b981);border:none;color:#fff;font-weight:800;font-size:10px;padding:6px;border-radius:6px;cursor:pointer;\",f.textContent=\"🌐 BẤM ĐÂY ĐỂ MỞ CẦU NỐI AI (VƯỢT CSP NGAY)\",f.onclick=function(){b&&!b.closed?(b.focus(),L(\"info\",\"Cầu Nối AI Bridge đang hoạt động!\")):(b=window.open(a+\"/bridge.html\",\"enx_bridge_win\",\"width=480,height=540,menubar=no,toolbar=no,location=no\"),L(\"success\",\"✓ Đã mở Cầu Nối AI Bridge (Vượt CSP 100%)!\")),D()},r.appendChild(f),P.appendChild(r)}if(!e){var v=document.createElement(\"div\");v.style.cssText=\"background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:10px;padding:8px 10px;margin-bottom:8px;text-align:center;\";var w=document.createElement(\"div\");w.style.cssText=\"font-size:10px;color:#fca5a5;font-weight:700;margin-bottom:6px;\",w.textContent=\"📷 CẦN CHIA SẺ MÀN HÌNH ĐỂ BOT TỰ ĐỘNG CHỤP & GIẢI BÀI!\",v.appendChild(w);var C=document.createElement(\"button\");C.style.cssText=\"width:100%;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;color:#fff;font-weight:900;font-size:11px;padding:8px;border-radius:6px;cursor:pointer;animation:pulse 2s infinite;\",C.textContent=\"👉 BẤM ĐÂY ĐỂ BẬT CHIA SẺ MÀN HÌNH (TAB EDUNEXT)\",C.onclick=function(){U()},v.appendChild(C),P.appendChild(v)}var _=document.createElement(\"div\");_.style.cssText=\"background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 10px;margin-bottom:8px;\";var T=document.createElement(\"div\");T.style.cssText=\"display:flex;align-items:center;justify-content:space-between;\";var E=document.createElement(\"div\");E.style.cssText=\"display:flex;align-items:center;gap:6px;\";var N=document.createElement(\"span\");N.textContent=n?\"🔑\":t.expired?\"⛔\":\"⚠️\",E.appendChild(N);var k=document.createElement(\"span\");k.style.cssText=n?\"color:#34d399;font-weight:700;\":t.expired?\"color:#ef4444;font-weight:700;\":\"color:#f59e0b;font-weight:700;\",k.textContent=n?\"Bản Quyền: \"+(t.plan||\"VIP\"):t.expired?\"Bản Quyền: Đã Hết Hạn\":\"Bản Quyền: Chưa Kích Hoạt\",E.appendChild(k),T.appendChild(E);var A=document.createElement(\"span\");n?(A.style.cssText=\"font-size:9.5px;padding:2px 6px;border-radius:4px;background:rgba(16,185,129,0.15);border:1px solid #10b981;color:#34d399;font-weight:700;\",A.textContent=\"ĐÃ KÍCH HOẠT\"):t.expired?(A.style.cssText=\"font-size:9.5px;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,0.15);border:1px solid #ef4444;color:#f87171;font-weight:700;\",A.textContent=\"ĐÃ TỰ HỦY\"):(A.style.cssText=\"font-size:9.5px;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,0.15);border:1px solid #f59e0b;color:#fbbf24;font-weight:700;\",A.textContent=\"CHƯA KÍCH HOẠT\"),T.appendChild(A),_.appendChild(T);var S=document.createElement(\"div\");S.style.cssText=\"font-size:10px;color:#94a3b8;margin-top:4px;line-height:1.3;padding-left:20px;\",n?S.textContent=\"Thời hạn: Còn \"+(t.remDays||0)+\" ngày (Hết hạn: \"+(t.expDate||\"\")+\")\":t.expired?(S.style.color=\"#fca5a5\",S.textContent=\"Key đã tự động hủy. Vui lòng liên hệ Admin Discord để gia hạn.\"):S.textContent=\"Kéo nút Bookmarklet từ website fpt-studyhub sau khi Admin duyệt đơn.\",_.appendChild(S),P.appendChild(_);var I=document.createElement(\"div\");I.style.cssText=\"display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:6px 10px;margin-bottom:8px;\";var H=document.createElement(\"div\");H.style.cssText=\"display:flex;align-items:center;gap:6px;\";var M=document.createElement(\"span\");M.style.cssText=e?\"color:#10b981;\":\"color:#ef4444;\",M.textContent=\"●\",H.appendChild(M);var B=document.createElement(\"span\");B.style.cssText=e?\"color:#10b981;font-weight:700;\":\"color:#94a3b8;\",B.textContent=e?\"Màn Hình: Đang kết nối (Auto Vision)\":\"Màn Hình: Chưa bật\",H.appendChild(B),I.appendChild(H);var O=document.createElement(\"button\");O.style.cssText=e?\"background:rgba(239,68,68,0.2);border:1px solid #ef4444;color:#fca5a5;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;\":\"background:rgba(16,185,129,0.2);border:1px solid #10b981;color:#34d399;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;\",O.textContent=e?\"Ngắt Kết Nối\":\"📷 Chia Sẻ Màn Hình\",O.onclick=function(){U()},I.appendChild(O),P.appendChild(I);var q=document.createElement(\"div\");q.style.cssText=\"display:flex;gap:8px;margin-bottom:8px;\";var R=document.createElement(\"button\");R.style.cssText=\"flex:1;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;font-weight:800;font-size:11px;padding:9px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(16,185,129,0.3);\",R.textContent=\"🎯 Chụp & Giải Câu Này Ngay\",R.onclick=function(){x=35,y();var t=j();if(t.allowed)return e?void Y(!0):(alert(\"Vui lòng bấm [📸 Chia Sẻ Màn Hình] để bot có thể chụp ảnh đề bài!\"),void U());alert(\"⛔ \"+t.reason)},q.appendChild(R);var G=document.createElement(\"button\");G.id=\"hud-auto-btn\",G.style.cssText=\"background:rgba(16,185,129,0.2);border:1px solid #10b981;color:#34d399;font-weight:700;font-size:11px;padding:9px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:4px;min-width:110px;justify-content:center;white-space:nowrap;\",G.textContent=h?\"⚡ Auto: 35s\":\"⏸ Auto: TẮT\",G.onclick=function(){(h=!h)?(x=35,G.style.background=\"rgba(16,185,129,0.2)\",G.style.borderColor=\"#10b981\",G.style.color=\"#34d399\",L(\"info\",\"Chế độ tự động liên tục: BẬT (Chu kỳ 35s)\"),y(),Y(!0)):(G.style.background=\"rgba(100,116,139,0.2)\",G.style.borderColor=\"#64748b\",G.style.color=\"#94a3b8\",L(\"info\",\"Chế độ tự động liên tục: TẮT\"),y())},q.appendChild(G),P.appendChild(q);var z=document.createElement(\"div\");z.id=\"hud-status-text\",z.style.cssText=\"font-size:11px;color:#38bdf8;margin-bottom:6px;min-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;\",z.textContent=e?\"● Auto Loop đang chạy: Tự động chụp & giải bài...\":\"⚠️ Chờ cấp quyền chia sẻ màn hình...\",P.appendChild(z);var X=document.createElement(\"div\");X.id=\"hud-logs-box\",X.style.cssText=\"background:#020617;border:1px solid #1e293b;border-radius:8px;height:95px;overflow-y:auto;padding:6px 8px;font-family:monospace;font-size:10px;line-height:1.45;color:#94a3b8;\",P.appendChild(X),L(\"success\",\"EduNext AI Pro \"+i+\" sẵn sàng!\"),o?L(\"success\",\"✓ Đã kích hoạt Tampermonkey Bypass CSP 100%\"):L(\"info\",\"Chế độ Bookmarklet 100% (Sử dụng song song Cầu Nối AI)\"),n?L(\"info\",\"Key hợp lệ (Gọi trực tiếp Google Gemini Flash-Lite)\"):L(\"warn\",\"Chưa có Key bản quyền hợp lệ (Bắt đầu bằng ENC_AI_)\")}function L(e,t){var n=document.getElementById(\"hud-logs-box\");if(n){var i=document.createElement(\"div\");i.style.color=\"warn\"===e?\"#f59e0b\":\"err\"===e?\"#ef4444\":\"success\"===e?\"#10b981\":\"#94a3b8\";var o=(new Date).toLocaleTimeString(\"vi-VN\");i.textContent=\"[\"+o+\"] \"+t,n.appendChild(i),n.scrollTop=n.scrollHeight}}function R(e,t){var n=document.getElementById(\"hud-status-text\");n&&(n.textContent=e,t&&(n.style.color=t))}async function U(){if(g)return g.getTracks().forEach((function(e){e.stop()})),g=null,f=null,D(),void L(\"info\",\"Đã dừng chia sẻ màn hình.\");try{if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia)return void alert(\"Trình duyệt không hỗ trợ Screen Capture API\");L(\"info\",\"Đang yêu cầu quyền chia sẻ màn hình...\");var e=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:1,displaySurface:\"browser\"},audio:!1,preferCurrentTab:!0}),t=document.createElement(\"video\");t.muted=!0,t.playsInline=!0,t.srcObject=e,g=e,f=t;var n=e.getVideoTracks()[0];n&&(n.onended=function(){g=null,f=null,D(),L(\"warn\",\"Chia sẻ màn hình đã ngắt.\")}),await t.play(),D(),L(\"success\",\"✓ Đã kích hoạt Auto Vision! Bot bắt đầu tự động giải liên tục!\"),Y(!0)}catch(e){L(\"warn\",\"Hủy chia sẻ màn hình: \"+(e.message||e))}}function G(e,t){for(var n=function(e){if(!e)return null;for(var t in e)if(t.startsWith(\"__reactFiber$\"))return e[t];return null}(e),i=0;n&&i<60;){if(n.memoizedProps&&\"function\"==typeof n.memoizedProps[t])return n.memoizedProps[t];if(n.pendingProps&&\"function\"==typeof n.pendingProps[t])return n.pendingProps[t];n=n.return,i++}return null}function z(e,t){if(e){e.focus();try{var n=G(e,\"onInputChange\");\"function\"==typeof n&&n(t)}catch(e){}try{e.select(),document.execCommand(\"selectAll\",!1,null),document.execCommand(\"insertText\",!1,t)}catch(e){}try{var i=e._valueTracker;i&&i.setValue(e.value+\"_diff\");var o=window.HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype,r=Object.getOwnPropertyDescriptor(o,\"value\");r&&r.set?r.set.call(e,t):e.value=t}catch(n){e.value=t}try{e.dispatchEvent(new Event(\"input\",{bubbles:!0,composed:!0})),e.dispatchEvent(new Event(\"change\",{bubbles:!0,composed:!0})),\"undefined\"!=typeof InputEvent&&e.dispatchEvent(new InputEvent(\"input\",{bubbles:!0,composed:!0,inputType:\"insertText\",data:t}))}catch(e){}try{var a=function(e){if(!e)return null;for(var t in e)if(t.startsWith(\"__reactProps$\")||t.startsWith(\"__reactEventHandlers$\"))return e[t];return null}(e);a&&\"function\"==typeof a.onChange&&a.onChange({target:{value:t},currentTarget:{value:t}})}catch(e){}}}function X(e){if(!e)return!1;try{e.focus&&e.focus();try{e.disabled=!1,e.removeAttribute(\"disabled\")}catch(e){}var t={bubbles:!0,cancelable:!0,view:window,composed:!0};return e.dispatchEvent(new PointerEvent(\"pointerdown\",t)),e.dispatchEvent(new MouseEvent(\"mousedown\",t)),e.dispatchEvent(new PointerEvent(\"pointerup\",t)),e.dispatchEvent(new MouseEvent(\"mouseup\",t)),e.dispatchEvent(new MouseEvent(\"click\",t)),\"function\"==typeof e.click&&e.click(),!0}catch(e){return!1}}async function V(e){var t=e.trim(),n=function(){for(var e=document.querySelectorAll('textarea.w-md-editor-text-input, .w-md-editor textarea, textarea, input[type=\"text\"], div[contenteditable=\"true\"]'),t=0;t<e.length;t++){var n=e[t];if(!n.closest(\"#enx-pro-hud\")&&null!==n.offsetParent)return n}return null}();if(!n)return L(\"warn\",\"Không tìm thấy ô nhập câu trả lời!\"),!1;l=!0;try{R(\"✍️ Đang làm sạch ô nhập & điền đáp án mới...\",\"#38bdf8\"),z(n,\"\"),await new Promise((function(e){setTimeout(e,80)})),z(n,t),L(\"info\",'Đã gõ nội dung: \"'+t.slice(0,35)+'...\"'),R(\"● Đang tìm và bấm nút Nộp câu trả lời...\",\"#10b981\"),await new Promise((function(e){setTimeout(e,300)})),function(){try{var e=document.querySelector('button[data-intent=\"SUBMIT_ANSWER\"], [data-intent=\"SUBMIT_ANSWER\"]');if(e&&null!==e.offsetParent)return;if(Array.from(document.querySelectorAll('.exercise-intent-radial__item, [class*=\"radial__item\"]')).filter((function(e){return!e.closest(\"#enx-pro-hud\")&&null!==e.offsetParent})).length>0)return;var t=document.querySelector('button.w-send-btn:not(.w-send-btn--close), .exercise-intent-radial__trigger, [class*=\"radial__trigger\"], [class*=\"intent-radial\"] > button, .radial-trigger');t&&!t.closest(\"#enx-pro-hud\")&&null!==t.offsetParent&&(L(\"info\",\"Mở menu nộp bài...\"),t.click())}catch(e){}}(),await new Promise((function(e){setTimeout(e,300)}));var i=!1,o=function(e){var t=[];function n(e,n,i){e&&(e.closest('#enx-pro-hud, .course-lesson-list, [class*=\"lesson-list\"], aside:not(.w-chat-input__intent-panel), nav, .ant-layout-sider')||t.push({el:e,score:n,reason:i}))}for(var i=Array.from(document.querySelectorAll('button[data-intent=\"SUBMIT_ANSWER\"], [data-intent=\"SUBMIT_ANSWER\"]')),o=0;o<i.length;o++)n(i[o],100,\"intent=SUBMIT_ANSWER\");for(var r=Array.from(document.querySelectorAll('.exercise-intent-column__item, .exercise-intent-radial__item, .exercise-intent-submit__button, [class*=\"exercise-intent\"] button')),a=0;a<r.length;a++){var s=r[a],c=(s.innerText||s.textContent||s.getAttribute(\"aria-label\")||\"\").trim();/nộp\\s*(?:câu\\s*trả\\s*lời|đáp\\s*án|bài)?|submit/i.test(c)&&n(s,95,\"intent-item-submit\")}for(var l=Array.from(document.querySelectorAll('button.w-send-btn:not(.w-send-btn--close), .w-send-btn:not(.w-send-btn--close), button[class*=\"w-send-btn\"], button[aria-label*=\"Gửi tin nhắn\"], button[aria-label*=\"Send message\"]')),d=0;d<l.length;d++)n(l[d],90,\"w-send-btn\");for(var u=Array.from(document.querySelectorAll('button, [role=\"button\"], div, span, a, input[type=\"button\"], input[type=\"submit\"]')),p=0;p<u.length;p++){var h=u[p];if(!h.closest(\"#enx-pro-hud, .course-lesson-list, aside:not(.w-chat-input__intent-panel), nav, .ant-layout-sider\")&&!h.classList.contains(\"w-chat-input__submit-note\")&&!(h.innerText||\"\").includes(\"Enter là xuống hàng\")){var m=(h.innerText||h.textContent||\"\").trim(),g=(h.getAttribute(\"aria-label\")||\"\").trim(),f=(h.getAttribute(\"title\")||\"\").trim();/^(?:nộp\\s+câu\\s+trả\\s+lời|nộp\\s+đáp\\s+án|nộp\\s+bài|submit\\s+answer)$/i.test(m)?n(\"BUTTON\"===h.tagName?h:h.querySelector('button, [role=\"button\"]')||h.closest('button, [role=\"button\"]')||h,85,\"text=Nộp câu trả lời\"):(/nộp\\s+câu\\s+trả\\s+lời|nộp\\s+đáp\\s+án|nộp\\s+bài/i.test(g)||/nộp\\s+câu\\s+trả\\s+lời|nộp\\s+đáp\\s+án|nộp\\s+bài/i.test(f))&&n(\"BUTTON\"===h.tagName?h:h.querySelector('button, [role=\"button\"]')||h.closest('button, [role=\"button\"]')||h,80,\"aria/title=Nộp câu trả lời\")}}if(e){var b=e.closest(\".w-chat-input__composer-row, .w-chat-input__layout, .w-chat-input, .chat-footer\")||e.parentElement;if(b)for(var x=Array.from(b.querySelectorAll('button, [role=\"button\"]')),y=0;y<x.length;y++){var v=x[y];if(!v.closest(\"#enx-pro-hud\")){var w=(v.innerText||v.textContent||\"\").trim().toLowerCase();\"text\"!==w&&\"math\"!==w&&\"∑ math\"!==w&&\"sigma\"!==w&&\"b\"!==w&&\"i\"!==w&&n(v,70,\"composer-button\")}}}return t.length>0?(t.sort((function(e,t){return t.score-e.score})),t[0].el):null}(n);if(o){var r=(o.innerText||o.textContent||o.getAttribute(\"aria-label\")||\"Nút Nộp\").trim();X(o)&&(i=!0,d=Date.now(),u=t,L(\"success\",\"✓ ĐÃ BẤM [\"+(r.slice(0,25)||\"Nộp câu trả lời\")+\"] thành công!\"),R(\"✓ Đã nộp thành công! Chờ EduNext chấm bài...\",\"#34d399\"))}try{var a=G(n,\"onSendMessage\");\"function\"==typeof a&&(L(\"info\",\"✓ Kích hoạt onSendMessage trực tiếp từ EduNext React Fiber!\"),a(t,t,{resolved_intent:\"SUBMIT_ANSWER\"}),i=!0,d=Date.now(),u=t,R(\"✓ Đã nộp qua React Fiber!\",\"#34d399\"))}catch(e){}return i||(function(e){if(e){var t={key:\"Enter\",code:\"Enter\",keyCode:13,which:13,bubbles:!0,cancelable:!0};e.dispatchEvent(new KeyboardEvent(\"keydown\",t)),e.dispatchEvent(new KeyboardEvent(\"keypress\",t)),e.dispatchEvent(new KeyboardEvent(\"keyup\",t))}}(n),d=Date.now(),u=t,L(\"warn\",\"Không thấy nút nộp dạng click, đã gửi Enter bài làm!\"),R(\"● Đã gửi Enter bài làm.\",\"#38bdf8\")),setTimeout((function(){l=!1}),5e3),!0}catch(e){return l=!1,L(\"err\",\"Lỗi khi nộp bài: \"+(e.message||e)),!1}}function K(){var e=\"\",t=\"\",n=\"\";try{var i=((document.title||\"\")+\" \"+((document.querySelector('.breadcrumb, .ant-breadcrumb, h1, h2, .course-header, [class*=\"course\"]')||{}).innerText||\"\")).match(/\\b([A-Z]{3}\\s*\\d{3})\\b/i);i&&(t=i[1].toUpperCase().replace(/\\s+/g,\"\"))}catch(e){}try{var o=window.location.href.match(/courses?(?:\\/detail)?\\/([a-zA-Z0-9_-]+)/i);o&&(e=o[1])}catch(e){}try{var r=document.querySelector('.course-name, .course-title, [class*=\"course-name\"], [class*=\"CourseHeader\"]');r&&(n=(r.innerText||r.textContent||\"\").trim().replace(/\\s+/g,\" \"))}catch(e){}return{key:t||(e?\"ID_\"+e:\"EDUNEXT_ACTIVE_COURSE\"),code:t,id:e,label:t||n||(e?\"Môn #\"+e:\"Môn học hiện tại\")}}function W(){try{var e=localStorage.getItem(\"enx_course_quota_v10\");if(e)return JSON.parse(e)}catch(e){}return{courses:{},count:0}}function j(){var e=K(),t=W(),n=t.courses[e.key],i=6048e5,o=Date.now();if(n){var r=(Array.isArray(n.completedSessions)?n.completedSessions:n.completedAt?[n.completedAt]:[]).filter((function(e){return o-e<i}));if(r.length>=3){var a=Math.min.apply(null,r),l=i-(o-a),d=Math.ceil(l/864e5),u=Math.ceil(l/36e5);return{allowed:!1,course:e,reason:\"Môn [\"+e.label+\"] đã làm đủ \"+r.length+\"/3 bài trong tuần này. Giới hạn bản quyền: 3 bài / tuần (vui lòng chờ \"+(d>1?d+\" ngày\":u+\" giờ\")+\").\"}}}var p=6,h=s(c);if(h.valid&&h.plan&&(h.plan.includes(\"1 Tuần\")?p=3:h.plan.includes(\"1 Tháng\")?p=5:h.plan.includes(\"Kỳ\")&&(p=6)),!t.courses[e.key]){var m=Object.keys(t.courses).length;if(m>=p)return{allowed:!1,course:e,reason:\"Đã đạt giới hạn số lượng môn của gói (\"+m+\"/\"+p+\" môn). Vui lòng liên hệ Discord Admin để mở rộng thêm môn.\"}}return{allowed:!0,course:e}}function F(){var e=K(),t=W(),n=Date.now();t.courses[e.key]||(t.courses[e.key]={label:e.label,completedSessions:[],url:window.location.pathname});var i=t.courses[e.key],o=Array.isArray(i.completedSessions)?i.completedSessions:i.completedAt?[i.completedAt]:[];(o=o.filter((function(e){return n-e<6048e5}))).push(n),i.completedSessions=o,i.completedAt=n,i.label=e.label,i.url=window.location.pathname,t.count=Object.keys(t.courses).length,function(e){try{localStorage.setItem(\"enx_course_quota_v10\",JSON.stringify(e))}catch(e){}}(t),L(\"warn\",\"📌 Đã ghi nhận hoàn thành bài (\"+o.length+\"/3 bài tuần này) cho môn: \"+e.label)}async function Y(e){if((h||e)&&!l){var t=j();if(t.allowed){var i=n(document);if(\"idle\"===i.state&&!e)return;if(\"waiting_teacher\"!==i.state||e)if(Date.now()<m)R(\"⏳ Chờ hồi phục Rate Limit 429 (\"+Math.ceil((m-Date.now())/1e3)+\"s)...\",\"#f59e0b\");else if(Date.now()-d<4e3&&!e)R(\"⏳ Chờ EduNext cập nhật sau khi nộp...\",\"#94a3b8\");else{var o=i.lastTeacherMsg||\"\";if(/chúc\\s*mừng\\s*(?:em|bạn)?\\s*hoàn\\s*thành\\s*buổi\\s*học/i.test(w=o||\"\")||/điểm\\s*buổi\\s*học\\s*:\\s*\\d+\\s*\\/\\s*\\d+/i.test(w)||/hẹn\\s*gặp\\s*(?:em|bạn).{0,30}buổi\\s*học\\s*tiếp\\s*theo/i.test(w)||/chúc\\s*mừng.{0,60}(?:hoàn\\s*thành|kết\\s*thúc).{0,40}(?:buổi\\s*học|bài\\s*học|khóa\\s*học)/i.test(w)||/(?:buổi\\s*học|bài\\s*học|khóa\\s*học).{0,40}(?:đã\\s*hoàn\\s*thành|đã\\s*kết\\s*thúc)/i.test(w)||/congratulations.{0,80}(?:completed|finished).{0,60}(?:lesson|session|course)/i.test(w)){F(),L(\"success\",\"🎉 CHÚC MỪNG: BẠN ĐÃ HOÀN THÀNH TOÀN BỘ BÀI HỌC!\"),R(\"🎉 HOÀN THÀNH TOÀN BỘ BÀI HỌC!\",\"#10b981\"),h=!1;var r=document.getElementById(\"hud-auto-btn\");r&&(r.textContent=\"✅ Hoàn thành\",r.style.background=\"rgba(16,185,129,0.2)\",r.style.borderColor=\"#10b981\",r.style.color=\"#34d399\");var v=document.getElementById(\"enx-cd-badge\");v&&(v.textContent=\"✅\",v.style.background=\"#10b981\",v.style.color=\"#fff\")}else{var w,C=function(e){if(!e)return!1;var t=e.includes(\"Câu hỏi\")||e.includes(\"Hãy trả lời\")||/\\bQuestion\\b/i.test(e)||/Please try the exercise/i.test(e)||/\\?/i.test(e),n=e.includes(\"Trả lời:\")||e.includes(\"trả lời theo\")||e.includes(\"điền đáp án\")||/\\bAnswer\\s*:/i.test(e)||/Use this answer format/i.test(e);return t&&n}(o)||/câu hỏi|bài sau|hãy làm|trả lời:|đáp án|\\?/i.test(o),_=function(e){try{for(var t=Array.from(document.querySelectorAll('button, [role=\"button\"], .quick-reply, .chat-chip, .suggestion-item, [class*=\"chip\"], [class*=\"quick\"], [class*=\"suggestion\"], .quick-insert-btn')),n=0;n<t.length;n++){var i=t[n];if(!i.closest(\"#enx-pro-hud\")&&!(i.disabled||null===i.offsetParent||e&&i.compareDocumentPosition(e)&Node.DOCUMENT_POSITION_FOLLOWING)){var o=(i.innerText||i.textContent||\"\").replace(/\\s+/g,\" \").trim();if(/^(?:sẵn\\s*sàng|ready|tôi\\s*đã\\s*sẵn\\s*sàng|i'm\\s*ready|im\\s*ready)[!.]?$/i.test(o))return i}}}catch(e){}return null}(i.lastStudentBadge);if(!C&&(/bạn\\s*đã\\s*sẵn\\s*sàng|sẵn\\s*sàng\\s*chuyển\\s*sang|are\\s*you\\s*ready|ready\\s*to\\s*move\\s*on|sẵn\\s*sàng\\s*chưa/i.test(o)||_)){var T=/ready/i.test(o)?\"Ready\":\"Sẵn sàng\";if(L(\"info\",\"🎯 Bắt được lời nhắc/nút [\"+T+\"] -> Tự động bấm & gửi để chuyển phần!\"),R('🎯 Bấm \"'+T+'\" chuyển phần...',\"#10b981\"),_)try{X(_)}catch(e){}return await V(T),void R(\"👀 Đang chờ câu hỏi tiếp theo hiện lên...\",\"#38bdf8\")}var E=function(e){if(!e)return\"\";var t=e.replace(/\\r\\n/g,\"\\n\"),n=t.search(/(?:câu\\s*hỏi|question|bài\\s*sau)\\s*:/i);return-1!==n&&(t=t.slice(n)),(t=(t=(t=t.replace(/[0-9a-f]{20,}/gi,\"\")).replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,\"\")).replace(/(?:Feedback|Sửa công thức(?:\\s*\\(\\d+\\))?|Đã chấm bằng AI|INT:\\s*\\w+)/gi,\"\")).trim()}(i.questionBlockText||o||\"\"),N=g&&g.getVideoTracks().some((function(e){return\"live\"===e.readyState}))?function(){if(!f||!f.videoWidth)return null;try{var e=document.createElement(\"canvas\"),t=Math.min(1,1600/Math.max(f.videoWidth,f.videoHeight));e.width=Math.max(1,Math.round(f.videoWidth*t)),e.height=Math.max(1,Math.round(f.videoHeight*t));var n=e.getContext(\"2d\",{alpha:!1});if(!n)return null;n.drawImage(f,0,0,e.width,e.height);var i=e.toDataURL(\"image/jpeg\",.8);return!i||i.length<500?null:{image:i,width:e.width,height:e.height}}catch(e){return null}}():null;if(E||N){var k=function(e){if(!e)return!1;var t=e.toLowerCase();return t.includes(\"chưa đúng\")||t.includes(\"chưa chính xác\")||t.includes(\"chưa thực hiện\")||t.includes(\"thử lại\")||t.includes(\"kiểm tra lại\")||t.includes(\"câu trả lời vừa rồi\")||t.includes(\"lặp lại nhiều lần\")||t.includes(\"thử đến lần\")||t.includes(\"điểm cần lưu ý là\")||t.includes(\"thực chất đang hỏi\")||t.includes(\"suy nghĩ lại\")||t.includes(\"không chính xác\")||t.includes(\"chưa phải\")||t.includes(\"not correct\")||t.includes(\"incorrect\")||t.includes(\"try again\")||t.includes(\"check again\")||t.includes(\"wrong answer\")}(o),A=i.fingerprint;if(A!==p||e){l=!0;try{k?(R(\"🔄 Giáo viên phản hồi chưa đúng -> Tự động sửa sai theo gợi ý...\",\"#f59e0b\"),L(\"warn\",\"⚡ Giáo viên phản hồi đáp án chưa đúng! Gửi kèm gợi ý để Gemini giải lại...\")):(R(\"⚡ Đang tự động phân tích và giải đề...\",\"#38bdf8\"),L(\"info\",\"⚡ Bắt được câu hỏi! Gửi Gemini Flash-Lite giải ngay...\"));var S=[\"Bạn là Trợ lý Học tập FPT EduNext AI Pro.\",E?\"CÂU HỎI TRÊN EDUNEXT:\\n\"+E:\"Dùng ảnh màn hình mới nhất để nhận diện câu hỏi và bài tập trên EduNext.\"];if(k||o&&i.lastStudentMsg){var I=u||i.lastStudentMsg;S.push('🚨 LƯU Ý ĐẶC BIỆT - GIÁO VIÊN VỪA TỪ CHỐI ĐÁP ÁN VÀ ĐƯA RA GỢI Ý:\\n- Đáp án sai học sinh vừa gửi: \"'+I+'\" (CÂU NÀY ĐÃ SAI HOẶC BỊ TỪ CHỐI)\\n- Toàn bộ phản hồi, phân tích và gợi ý của Giáo viên:\\n\"'+o+'\"\\n-> YÊU CẦU BẮT BUỘC:\\n1. Đọc thật kỹ phân tích và gợi ý của giáo viên ở trên.\\n2. Tìm ra bản chất câu hỏi thực sự đang yêu cầu (tên gọi đại lượng, lực, công thức, số lượng, v.v.).\\n3. Xuất đáp án MỚI HOÀN TOÀN, CHÍNH XÁC. TUYỆT ĐỐI KHÔNG lặp lại đáp án cũ \"'+I+'\"!')}S.push('QUY TẮC BẮT BUỘC:\\n1. Nếu đề bài yêu cầu trả lời theo mẫu hoặc bắt đầu bằng \"Trả lời:\", hãy xuất ĐÚNG ĐÁP ÁN: Trả lời: [đáp án].\\n2. Nếu là trắc nghiệm hoặc bài tập tự luận/toán/lập trình, trả lời ngắn gọn, chính xác, trực tiếp vào trọng tâm.\\n3. Tuyệt đối KHÔNG trả lời lan man dài dòng, KHÔNG nói lời chào.\\n4. Nếu bài học đã kết thúc, xuất mã: __LESSON_COMPLETE__'),m=Date.now()+8e3;var H=S.join(\"\\n\\n\"),M=await async function(e,t){var n,i=/trả lời:\\s*\\[|theo mẫu/i.test(e);if(!((n=s(c)).valid&&!n.expired?n.key:null))return L(\"warn\",\"Chưa có Key bản quyền! Vui lòng kéo Bookmarklet từ fpt-studyhub.\"),null;var o=await async function(e,t){var n={licenseKey:c,question:e,images:t?[t]:[]},i=\"function\"==typeof GM_xmlhttpRequest?GM_xmlhttpRequest:window.__ENX_GM_XHR__;return\"function\"==typeof i?new Promise((function(e){i({method:\"POST\",url:a+\"/api/v1/ai/solve\",headers:{\"Content-Type\":\"application/json\"},data:JSON.stringify(n),timeout:25e3,onload:function(t){try{var n=JSON.parse(t.responseText);429===t.status&&(m=Date.now()+3e4),n.success||L(\"warn\",n.message||\"AI chưa sẵn sàng\"),e(n.success?n.answer:null)}catch(t){e(null)}},onerror:function(){e(null)},ontimeout:function(){e(null)}})})):!b||b.closed?(L(\"warn\",\"Bấm Mở Cầu Nối AI trước khi chạy.\"),null):new Promise((function(e){var t=crypto.randomUUID(),i=setTimeout((function(){window.removeEventListener(\"message\",o),e(null)}),25e3);function o(n){n.origin===a&&n.source===b&&\"ENX_SOLVE_RES\"===n.data?.type&&n.data.requestId===t&&(clearTimeout(i),window.removeEventListener(\"message\",o),429===n.data.status&&(m=Date.now()+3e4),n.data.success||L(\"warn\",n.data.error||\"AI chưa sẵn sàng\"),e(n.data.success?n.data.answer:null))}window.addEventListener(\"message\",o),b.postMessage({type:\"ENX_SOLVE_REQ\",requestId:t,payload:n},a)}))}(e,t);return o?(!i||/^\\s*(?:tr[aả]\\s*l[oờ]i|answer)\\s*:/i.test(o)||o.startsWith(\"__\")||(o=\"Trả lời: \"+o),o):null}(H,N?N.image:null);if(!M||/_{0,2}\\s*NO_QUESTION\\s*_{0,2}/i.test(M))return R(\"👀 Đang theo dõi khi nào câu hỏi hiện lên...\",\"#94a3b8\"),void(l=!1);if(/_{0,2}\\s*LESSON_COMPLETE\\s*_{0,2}/i.test(M)){F(),L(\"success\",\"🎉 CHÚC MỪNG: BẠN ĐÃ HOÀN THÀNH TOÀN BỘ BÀI HỌC!\"),R(\"🎉 HOÀN THÀNH TOÀN BỘ BÀI HỌC!\",\"#10b981\"),h=!1;var B=document.getElementById(\"hud-auto-btn\");B&&(B.textContent=\"✅ Hoàn thành\",B.style.background=\"rgba(16,185,129,0.2)\",B.style.borderColor=\"#10b981\",B.style.color=\"#34d399\");var O=document.getElementById(\"enx-cd-badge\");return O&&(O.textContent=\"✅\",O.style.background=\"#10b981\",O.style.color=\"#fff\"),void(l=!1)}if(u&&M.trim().toLowerCase()===u.trim().toLowerCase()&&k)return L(\"warn\",'⚠️ Gemini vẫn trả lời đáp án cũ \"'+M+'\", đang thử yêu cầu đáp án khác...'),void(l=!1);L(\"success\",'✓ Gemini Flash-Lite trả lời: \"'+M.slice(0,35)+'...\"'),R(\"✍️ Đang làm sạch ô nhập & nộp bài...\",\"#34d399\"),await async function(){if(n(document).fingerprint!==A)throw new Error(\"Câu hỏi đã đổi khi AI đang giải. Bỏ đáp án cũ.\");if(!await V(M))throw new Error(\"Chưa điền/nộp được câu trả lời.\");p=A}(),L(\"success\",\"✓ ĐÃ NỘP XONG! Tự động chờ câu hỏi tiếp theo...\"),x=35,y(),R(\"👀 Đang theo dõi khi nào câu hỏi tiếp theo hiện lên...\",\"#38bdf8\")}catch(e){L(\"err\",\"Lỗi: \"+(e.message||e))}finally{l=!1}}else R(\"👀 Đang theo dõi khi nào có câu hỏi mới...\",\"#94a3b8\")}else e?(alert(\"Chưa thấy câu hỏi mới trên trang. Nếu đề bài dạng hình ảnh, hãy bấm [Chia Sẻ Màn Hình]!\"),U()):R(\"👀 Đang theo dõi khi nào câu hỏi hiện lên...\",\"#94a3b8\")}}else R(\"👀 Đã nộp bài, đang chờ EduNext phản hồi...\",\"#38bdf8\")}else{h=!1,R(\"⛔ \"+t.reason,\"#ef4444\"),L(\"warn\",\"⛔ \"+t.reason);var q=document.getElementById(\"hud-auto-btn\");q&&(q.textContent=\"⏸ Auto: TẮT\",q.style.background=\"rgba(239,68,68,0.2)\",q.style.borderColor=\"#ef4444\",q.style.color=\"#fca5a5\")}}}v.appendChild(P),D();var Q=setInterval((function(){h?(x--,y(),x<=0&&(x=35,y(),Y(!1))):y()}),1e3);v.addEventListener(\"enx_destroy\",(function(){clearInterval(Q),window.__ENX_PRO_HUD__=!1,window.__ENX_VERSION__=null})),(document.body||document.documentElement).appendChild(v)}catch(J){alert(\"Lỗi khởi động EduNext AI Pro: \"+J.message)}})(\"\");";
-
     // 1. Nhận diện key bản quyền từ URL (?key=ENC_AI_...) hoặc localStorage
     const urlParams = new URLSearchParams(window.location.search);
     let activeKey = urlParams.get('key') || '';
@@ -388,45 +275,32 @@
       } catch(_) {}
     }
 
-    // 2. Tự động nạp Key vào mã nếu có
-    let finalCode = INLINE_CODE;
+    // 2. Tạo đường link siêu nhẹ ~170 ký tự (Kéo thả 100% không bị chặn)
+    const host = window.location.origin || 'https://fpt-studyhub.vercel.app';
+    const keyParam = activeKey ? encodeURIComponent(activeKey) : '';
+    const bookmarkCode = "javascript:(function(){var s=document.createElement('script');s.src='" + host + "/inject.js?key=" + keyParam + "&t='+Date.now();s.async=true;(document.head||document.documentElement).appendChild(s);})();";
+
+    const mainBtn = document.getElementById('main-bookmark-btn');
+    if (mainBtn) {
+      mainBtn.setAttribute('href', bookmarkCode);
+    }
+
     if (activeKey && activeKey.startsWith('ENC_AI_')) {
-      finalCode = INLINE_CODE.replace(/\)\(""\);?$/, ')(' + JSON.stringify(activeKey) + ');');
       const badgeEl = document.querySelector('.badge');
       if (badgeEl) {
-        badgeEl.textContent = '🔑 ĐÃ NẠP SẴN BẢN QUYỀN VÀO MÃ BOOKMARK (TỰ ĐỘNG 100%)';
+        badgeEl.textContent = '🔑 ĐÃ NẠP SẴN BẢN QUYỀN VÀO NÚT KÉO THẢ (TỰ ĐỘNG 100%)';
         badgeEl.style.background = 'rgba(16, 185, 129, 0.25)';
         badgeEl.style.borderColor = '#10b981';
       }
-      const bannerEl = document.querySelector('.alert-banner');
-      if (bannerEl) {
-        bannerEl.style.borderColor = 'rgba(16, 185, 129, 0.5)';
-        bannerEl.style.background = 'rgba(16, 185, 129, 0.15)';
-        bannerEl.style.color = '#a7f3d0';
-        bannerEl.innerHTML = '✓ <strong>KEY BẢN QUYỀN ĐÃ ĐƯỢC TỰ ĐỘNG NẠP VÀO MÃ!</strong><br>Bạn chỉ cần bấm nút [SAO CHÉP MÃ] bên dưới &rarr; Chuột phải thanh Bookmark chọn Thêm trang &rarr; Dán vào là xong ngay!';
-      }
     }
 
-    // Gán href cho nút kéo dự phòng
-    const dragLink = document.getElementById('drag-bookmark-link');
-    if (dragLink) dragLink.setAttribute('href', finalCode);
-
     function copyBookmarklet() {
-      navigator.clipboard.writeText(finalCode).then(() => {
+      navigator.clipboard.writeText(bookmarkCode).then(() => {
         const toast = document.getElementById('toast');
         if (toast) {
           toast.style.display = 'block';
-          setTimeout(() => { toast.style.display = 'none'; }, 4000);
+          setTimeout(() => { toast.style.display = 'none'; }, 3000);
         }
-        const btnText = document.getElementById('copy-btn-text');
-        if (btnText) {
-          btnText.textContent = '✓ ĐÃ SAO CHÉP! HÃY CHUỘT PHẢI THANH BOOKMARK & DÁN URL';
-          setTimeout(() => {
-            btnText.textContent = '📋 BẤM VÀO ĐÂY ĐỂ SAO CHÉP MÃ v10.2.50';
-          }, 3500);
-        }
-      }).catch(err => {
-        alert('Vui lòng chọn và sao chép thủ công: ' + err.message);
       });
     }
   </script>
