@@ -1,27 +1,145 @@
 // Embedded in the bookmarklet by build-edunext.cjs. No provider secrets live here.
 function readEduNextTurn(doc) {
-  const messageSelector = '.wrap-message-view, [class*="message-item"], [class*="chat-item"], .chat-message, .w-chat-item';
-  const questionSelector = '.exercise-question-block, [class*="exercise-question"], [class*="question-content"], .question-title, [class*="question-box"]';
   const text = element => (element?.innerText || element?.textContent || '').replace(/\s+/g, ' ').trim();
   const visible = element => !element.closest('#enx-pro-hud') && element.getClientRects().length > 0;
   const after = (element, anchor) => !anchor || (!element.contains(anchor) && Boolean(anchor.compareDocumentPosition(element) & 4));
   const all = selector => Array.from(doc.querySelectorAll(selector)).filter(visible);
-  const students = all('span, p, small, label, div').filter(element => /^(học sinh|sinh viên|student)$/i.test(text(element)) && !Array.from(element.children).some(child => /^(học sinh|sinh viên|student)$/i.test(text(child))));
+
+  // 1. Locate student badge (supports Vietnamese and English)
+  const students = all('span, p, small, label, div, b, strong').filter(element => {
+    const t = text(element);
+    return /^(?:học\s*sinh|sinh\s*viên|student|bạn\s*\(sinh\s*viên\))$/i.test(t) &&
+      !Array.from(element.children).some(child => /^(?:học\s*sinh|sinh\s*viên|student)$/i.test(text(child)));
+  });
   const studentBadge = students.at(-1) || null;
-  const studentMessage = studentBadge?.closest(messageSelector) || studentBadge;
-  const messages = all(messageSelector).filter(element => !Array.from(element.querySelectorAll(messageSelector)).some(visible));
-  const teacher = messages.filter(element => after(element, studentMessage) && !element.contains(studentBadge) && !element.matches('.student, .user, [data-role="student"], [data-role="user"]')).at(-1);
-  // A new question can appear before EduNext appends its feedback toolbar.
-  const question = all(questionSelector).filter(element => after(element, studentMessage)).at(-1);
-  const content = question || teacher;
-  const lastTeacherMsg = text(teacher || question);
-  const questionBlockText = text(question || teacher);
+  const studentMessage = studentBadge ? (studentBadge.closest('.wrap-message-view, [class*="message-item"], [class*="chat-item"], .chat-message, [class*="message"], [class*="chat"], div') || studentBadge) : null;
+
+  // 2. Locate teacher markers that appear AFTER the student message
+  const teacherMarkers = all('div, span, p, button, a, small, label, b, strong').filter(element => {
+    if (!after(element, studentBadge)) return false;
+    const txt = text(element);
+    return /graded\s*by\s*ai|đã\s*chấm\s*bằng\s*ai|^int:\s*\w+|feedback|correct!|incorrect|you've\s*got\s*a\s*solid\s*grasp|on\s*to\s*the\s*next\s*question/i.test(txt);
+  });
+  const hasTeacherResponse = teacherMarkers.length > 0;
+
+  // 3. Locate question content
+  function findQuestion() {
+    const allCandidates = all('div, section, article, p, span, h1, h2, h3, h4, h5, h6, [class*="question"], [class*="exercise"]');
+    const validCandidates = studentBadge ? allCandidates.filter(el => after(el, studentBadge)) : allCandidates;
+
+    // A. Explicit heading elements containing "Câu hỏi:" or "Question:"
+    const headings = validCandidates.filter(el => {
+      const t = text(el);
+      return /^(?:câu\s*hỏi|question|bài\s*sau|đề\s*bài|exercise)\s*:/i.test(t) ||
+             /^(?:câu\s*hỏi|question|bài\s*sau|đề\s*bài|exercise)$/i.test(t);
+    });
+    if (headings.length > 0) {
+      const h = headings[headings.length - 1];
+      let curr = h;
+      let best = h;
+      while (curr && curr !== doc.body) {
+        const cText = text(curr);
+        if (cText.length > 25 && (cText.includes('?') || cText.includes('\n') || /answer|format|đáp\s*án/i.test(cText))) {
+          best = curr;
+          break;
+        }
+        curr = curr.parentElement;
+      }
+      return { element: best, text: text(best) };
+    }
+
+    // B. Element with "Please answer using this format:" or "Answer: [your answer]" or "Trả lời: [đáp án của bạn]"
+    const formats = validCandidates.filter(el => {
+      const t = text(el);
+      return /(?:please\s*answer\s*using\s*this\s*format|answer\s*:\s*\[|trả\s*lời\s*:\s*\[)/i.test(t);
+    });
+    if (formats.length > 0) {
+      const fmt = formats[formats.length - 1];
+      let curr = fmt;
+      let best = fmt;
+      while (curr && curr !== doc.body) {
+        const cText = text(curr);
+        if (cText.length > 30 && (cText.includes('?') || /câu\s*hỏi|question|sentence|select|which/i.test(cText))) {
+          best = curr;
+          break;
+        }
+        curr = curr.parentElement;
+      }
+      return { element: best, text: text(best) };
+    }
+
+    // C. Teacher message container containing '?' or prompt
+    if (hasTeacherResponse) {
+      const lastTeacher = teacherMarkers[teacherMarkers.length - 1];
+      let curr = lastTeacher;
+      while (curr && curr !== doc.body) {
+        const cText = text(curr);
+        if (cText.length > 35 && (cText.includes('?') || /are\s*you\s*ready|sẵn\s*sàng/i.test(cText))) {
+          return { element: curr, text: cText };
+        }
+        curr = curr.parentElement;
+      }
+    }
+
+    // D. Class-based fallback
+    const qBoxes = validCandidates.filter(el => el.matches && el.matches('.exercise-question-block, [class*="exercise-question"], [class*="question-content"], .question-title, [class*="question-box"]'));
+    if (qBoxes.length > 0) {
+      const lastQ = qBoxes[qBoxes.length - 1];
+      return { element: lastQ, text: text(lastQ) };
+    }
+
+    // E. General question text ending with '?' after student anchor
+    const questionTextEls = validCandidates.filter(el => {
+      const t = text(el);
+      return t.length > 25 && t.length < 1500 && (t.includes('?') || /modal\s*verb|obligation|generation\s*gap/i.test(t));
+    });
+    if (questionTextEls.length > 0) {
+      const lastQ = questionTextEls[questionTextEls.length - 1];
+      return { element: lastQ, text: text(lastQ) };
+    }
+
+    return null;
+  }
+
+  const qFound = findQuestion();
+  const content = qFound ? qFound.element : (teacherMarkers.at(-1) || null);
+  const questionBlockText = qFound ? qFound.text : (content ? text(content) : '');
+  const lastTeacherMsg = content ? text(content) : '';
   const imageIds = content ? Array.from(content.querySelectorAll('img')).map(image => image.currentSrc || image.src).join('|') : '';
-  const fingerprint = [doc.location?.href || '', studentMessage?.id || '', text(studentMessage), content?.id || '', questionBlockText, lastTeacherMsg, imageIds].join('\n');
+
+  // 4. Composer input detection
+  const activeInput = all('textarea.w-md-editor-text-input, .w-md-editor textarea, textarea, input[type="text"]')
+    .find(el => !el.disabled && !el.readOnly && el.offsetParent !== null);
+
+  // 5. State classification
+  let state = 'idle';
+  if (questionBlockText && (questionBlockText.includes('?') || /câu\s*hỏi|question|answer\s*:/i.test(questionBlockText))) {
+    state = 'student_turn';
+  } else if (hasTeacherResponse) {
+    state = 'student_turn';
+  } else if (studentBadge && !hasTeacherResponse) {
+    state = 'waiting_teacher';
+  } else if (activeInput && (questionBlockText || hasTeacherResponse)) {
+    state = 'student_turn';
+  } else if (studentBadge) {
+    state = 'waiting_teacher';
+  }
+
+  const fingerprint = [
+    doc.location?.href || '',
+    studentBadge ? (studentBadge.id || text(studentBadge)) : '',
+    content ? (content.id || questionBlockText.slice(0, 100)) : '',
+    imageIds
+  ].join('\n');
+
   return {
-    state: content && (questionBlockText || imageIds) ? 'student_turn' : studentMessage ? 'waiting_teacher' : 'idle',
-    lastStudentBadge: studentBadge, lastTeacherBadge: teacher || null,
-    lastStudentMsg: text(studentMessage), lastTeacherMsg, questionBlockText,
-    fingerprint, imageIds
+    state,
+    lastStudentBadge: studentBadge,
+    lastTeacherBadge: teacherMarkers.at(-1) || null,
+    lastStudentMsg: studentMessage ? text(studentMessage) : '',
+    lastTeacherMsg,
+    questionBlockText,
+    fingerprint,
+    imageIds
   };
 }
