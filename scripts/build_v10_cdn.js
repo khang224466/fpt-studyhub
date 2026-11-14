@@ -16,7 +16,7 @@ const minifiedCode = JSON.parse(rawCode);
 console.log('Successfully extracted minifiedCode from edunextBundle.ts, length:', minifiedCode.length);
 
 const finalScript = `/**
- * EduNext AI Assistant Pro v10.2.63 PRO (Self-Healing Key & Instant Direct Flash-Lite / Bridge)
+ * EduNext AI Assistant Pro v10.2.64 PRO (Self-Healing Key & Instant Direct Flash-Lite / Bridge)
  * Delivered via jsDelivr CDN — Whitelisted by FPT EduNext CSP & TrustedTypes
  */
 (function() {
@@ -28,7 +28,7 @@ const finalScript = `/**
     } catch(_) {}
   }
   if (!key) {
-    key = 'ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl';
+    key = 'FPT1.eyJvcmRlcklkIjoiT1JELTg4ODctU0VNRVNURVItVklQIiwiZXhwaXJlc0F0IjoxODA0OTkwODg4NTE0LCJwbGFuIjoiMSBL4buzIEjhu41jICg0IFRow6FuZykiLCJub25jZSI6InNlZWQtdmlwLTIwMjYifQ.eaIyaxIoNHGg5Xv1lGJueKphjp1UHa8kE8cPmQdn3LE';
   }
   try {
     ;(${minifiedCode})(key);
@@ -40,7 +40,7 @@ const finalScript = `/**
 
 // List of all versions to keep backward compatibility 100%
 const versions = [
-  '63', '62', '61', '60', '59', '58', '57', '56', '55', '54', '53', '52', '51', '50',
+  '64', '63', '62', '61', '60', '59', '58', '57', '56', '55', '54', '53', '52', '51', '50',
   '30', '29', '28', '27', '26', '25', '24', '23', '22', '21', '20',
   '19', '18', '17', '16'
 ];

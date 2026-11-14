@@ -7,11 +7,11 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     slug: 'edunext-assistant',
     category: 'edunext',
     categoryLabel: 'EduNext LMS',
-    tagline: 'Trợ lý học tập thông minh v10.2.63 PRO: Hỗ trợ trọn vẹn cả Tiếng Anh (Yes / Ready) & Tiếng Việt, giải bài siêu tốc, hạn mức 7 bài/tuần, bảo mật 100%',
+    tagline: 'Trợ lý học tập thông minh v10.2.64 PRO: Hỗ trợ trọn vẹn cả Tiếng Anh (Yes / Ready) & Tiếng Việt, giải bài siêu tốc, hạn mức 7 bài/tuần, bảo mật 100%',
     iconName: 'GraduationCap',
     targetDomain: 'fsc-edunext.fpt.edu.vn',
     authMethod: 'extensionBridge',
-    badge: 'Đang Hoạt Động (v10.2.63 PRO)',
+    badge: 'Đang Hoạt Động (v10.2.64 PRO)',
     isComingSoon: false,
     features: [
       'Auto Loop 100%: Tự động giải liên tục từ câu đầu đến khi hoàn thành bài học',
@@ -21,7 +21,7 @@ export const SERVICES_CATALOG: ServiceItem[] = [
       'Cloud AI Proxy & Gemini 2.0 Flash-Lite: Trả lời siêu tốc trong 1.2s',
       'Đồng bộ React 18 Fiber 5 tầng, tự động kích hoạt onSendMessage & Enter',
       'Cơ chế chống 429 Too Many Requests thông minh với backoff tự động',
-      'Bookmarklet 1-Click Zero-Install độc lập v10.2.63 PRO (Không cần Tampermonkey)'
+      'Bookmarklet 1-Click Zero-Install độc lập v10.2.64 PRO (Không cần Tampermonkey)'
     ],
     plans: [
       { id: 'edunext-1w', duration: '1w', durationLabel: '1 Tuần', price: 30000, originalPrice: 50000 },

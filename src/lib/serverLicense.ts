@@ -25,7 +25,31 @@ export function issueLicense(orderId: string, expiresAt: number, plan: string): 
 
 export function readLicense(token: unknown): LicenseClaims | null {
   if (typeof token !== 'string' || token.length > 2048) return null;
-  const parts = token.split('.');
+  const clean = token.trim();
+  
+  // Backward compatibility: Support legacy ENC_AI_ format during transition
+  if (clean.startsWith('ENC_AI_')) {
+    try {
+      const b64 = clean.slice(7);
+      const hex = Buffer.from(b64, 'base64').toString('ascii');
+      const salt = 'ENX_SEC_2026_FLASH_LITE';
+      let out = '';
+      for (let i = 0; i < hex.length; i += 2) {
+        const c = parseInt(hex.substr(i, 2), 16) ^ salt.charCodeAt((i / 2) % salt.length);
+        out += String.fromCharCode(c);
+      }
+      if (out.startsWith('EXP|')) {
+        const parts = out.split('|');
+        const expMs = parseInt(parts[1], 10);
+        const plan = parts[2] || 'VIP';
+        if (Number.isSafeInteger(expMs) && expMs > Date.now()) {
+          return { orderId: 'LEGACY_ENC_AI', expiresAt: expMs, plan, nonce: 'legacy' };
+        }
+      }
+    } catch { return null; }
+  }
+
+  const parts = clean.split('.');
   if (parts.length !== 3 || parts[0] !== 'FPT1' || !/^[A-Za-z0-9_-]+$/.test(parts[1]) || !/^[A-Za-z0-9_-]{43}$/.test(parts[2])) return null;
   const expected = createHmac('sha256', signingSecret()).update(parts[1]).digest();
   const signature = Buffer.from(parts[2], 'base64url');

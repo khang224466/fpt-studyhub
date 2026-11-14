@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.63";
+        var t = "v10.2.64";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -12,7 +12,7 @@ function e(e, serverOrigin) {
         window.__ENX_PRO_HUD__ = !0, window.__ENX_VERSION__ = t;
         var apiOrigin = serverOrigin || 'https://fpt-studyhub.vercel.app';
         var ENX_SALT = "ENX_SEC_2026_FLASH_LITE";
-        var DEFAULT_TOKEN = "ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl";
+        var DEFAULT_TOKEN = "FPT1.eyJvcmRlcklkIjoiT1JELTg4ODctU0VNRVNURVItVklQIiwiZXhwaXJlc0F0IjoxODA0OTkwODg4NTE0LCJwbGFuIjoiMSBL4buzIEjhu41jICg0IFRow6FuZykiLCJub25jZSI6InNlZWQtdmlwLTIwMjYifQ.eaIyaxIoNHGg5Xv1lGJueKphjp1UHa8kE8cPmQdn3LE";
 
         var submittedHistory = [];
         function isDuplicateSubmission(candidate) {
@@ -106,7 +106,7 @@ function e(e, serverOrigin) {
                     return { valid: false, reason: "Lỗi giải mã key: " + (err.message || err) };
                 }
             }
-            return { valid: false, reason: "Key không đúng định dạng (cần bắt đầu bằng ENC_AI_)" };
+            return { valid: false, reason: "Key không đúng định dạng bản quyền (FPT1...)" };
         }
 
         var a = (e || "").trim();
@@ -125,7 +125,7 @@ function e(e, serverOrigin) {
         } else if (!a) {
             a = DEFAULT_TOKEN;
         }
-        if (a && a.startsWith("ENC_AI_") && o(a).valid) {
+        if (a && (a.startsWith("FPT1.") || a.startsWith("ENC_AI_")) && o(a).valid) {
             try {
                 localStorage.setItem("enx_encrypted_ai_key", a);
                 localStorage.setItem("enx_license_key", a);
@@ -985,7 +985,7 @@ function e(e, serverOrigin) {
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
                                             /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.63 PRO." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.64 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +

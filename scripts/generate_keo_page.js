@@ -6,7 +6,7 @@ const html = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cầm Bookmark Kéo Lên Bấm Vô Là Chạy — EduNext AI Pro v10.2.63 PRO</title>
+  <title>Cầm Bookmark Kéo Lên Bấm Vô Là Chạy — EduNext AI Pro v10.2.64 PRO</title>
   <link rel="icon" href="https://fpt-studyhub.vercel.app/favicon.ico">
   <style>
     * {
@@ -216,7 +216,7 @@ const html = `<!DOCTYPE html>
 <body>
 
   <div class="container">
-    <div class="badge">⚡ EduNext AI Assistant Pro v10.2.63 PRO (Bản Kéo Thả 0s)</div>
+    <div class="badge">⚡ EduNext AI Assistant Pro v10.2.64 PRO (Bản Kéo Thả 0s)</div>
 
     <h1>Cầm Kéo Nút Này Lên <span>Thanh Dấu Trang</span> Là Xong!</h1>
     <p class="desc">Chuẩn CDN siêu nhẹ 160 ký tự — Nhấp giữ chuột vào nút màu xanh và kéo thả thẳng lên thanh Bookmark!</p>
@@ -234,7 +234,7 @@ const html = `<!DOCTYPE html>
         draggable="true"
       >
         <span>⚡</span>
-        <span id="btn-label-text">KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.63 PRO)</span>
+        <span id="btn-label-text">KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.64 PRO)</span>
       </a>
     </div>
 
@@ -257,15 +257,15 @@ const html = `<!DOCTYPE html>
     <div class="footer-actions">
       <button class="btn-secondary" onclick="copyBookmarklet()">📋 Sao Chép Mã Bookmarklet</button>
       <a class="btn-secondary" href="https://fsc-edunext.fpt.edu.vn/home" target="_blank">🌐 Mở Tab EduNext FPT</a>
-      <a class="btn-secondary" href="/edunext.user.js" target="_blank">📥 Cài Tampermonkey (v10.2.63 PRO)</a>
+      <a class="btn-secondary" href="/edunext.user.js" target="_blank">📥 Cài Tampermonkey (v10.2.64 PRO)</a>
     </div>
   </div>
 
   <div id="toast" class="toast">✓ ĐÃ SAO CHÉP MÃ BOOKMARKLET!</div>
 
   <script>
-    // 1. Nhận diện key bản quyền từ URL (?key=ENC_AI_...) hoặc localStorage, tự động nạp fallback VIP nếu chưa có
-    const DEFAULT_TOKEN = 'ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl';
+    // 1. Nhận diện key bản quyền từ URL (?key=FPT1...) hoặc localStorage, tự động nạp fallback VIP nếu chưa có
+    const DEFAULT_TOKEN = 'FPT1.eyJvcmRlcklkIjoiT1JELTg4ODctU0VNRVNURVItVklQIiwiZXhwaXJlc0F0IjoxODA0OTkwODg4NTE0LCJwbGFuIjoiMSBL4buzIEjhu41jICg0IFRow6FuZykiLCJub25jZSI6InNlZWQtdmlwLTIwMjYifQ.eaIyaxIoNHGg5Xv1lGJueKphjp1UHa8kE8cPmQdn3LE';
     const urlParams = new URLSearchParams(window.location.search);
     let activeKey = urlParams.get('key') || '';
     if (!activeKey) {
@@ -283,14 +283,14 @@ const html = `<!DOCTYPE html>
 
     // 2. Tạo đường link siêu nhẹ ~190 ký tự qua CDN jsDelivr (Được EduNext cấp phép 100%, kéo thả 0s)
     const keyParam = activeKey ? activeKey : DEFAULT_TOKEN;
-    const bookmarkCode = "javascript:(function(){window.__ENX_KEY__='" + keyParam + "';var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/khang224466/NX@main/BUISINESS/v10_2_63_minified.js?t='+Date.now();s.async=true;(document.head||document.documentElement).appendChild(s);})();";
+    const bookmarkCode = "javascript:(function(){window.__ENX_KEY__='" + keyParam + "';var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/khang224466/NX@main/BUISINESS/v10_2_64_minified.js?t='+Date.now();s.async=true;(document.head||document.documentElement).appendChild(s);})();";
 
     const mainBtn = document.getElementById('main-bookmark-btn');
     if (mainBtn) {
       mainBtn.setAttribute('href', bookmarkCode);
     }
 
-    if (activeKey && activeKey.startsWith('ENC_AI_')) {
+    if (activeKey && (activeKey.startsWith('FPT1.') || activeKey.startsWith('ENC_AI_'))) {
       const badgeEl = document.querySelector('.badge');
       if (badgeEl) {
         badgeEl.textContent = '🔑 ĐÃ NẠP SẴN BẢN QUYỀN VÀO NÚT KÉO THẢ (TỰ ĐỘNG 100%)';

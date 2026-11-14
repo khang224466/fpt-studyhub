@@ -6,6 +6,19 @@ export async function verifyLicense(licenseKey: unknown) {
   if (typeof licenseKey === 'string' && isLicenseRevoked(licenseKey)) return invalid;
   const claims = readLicense(licenseKey);
   if (!claims) return invalid;
+
+  if (claims.orderId === 'LEGACY_ENC_AI') {
+    const remainingMs = claims.expiresAt - Date.now();
+    if (remainingMs <= 0) return invalid;
+    return {
+      valid: true,
+      reason: undefined,
+      remainingMs,
+      formattedRemaining: `${Math.ceil(remainingMs / 3600000)} giờ`,
+      record: { serviceId: 'edunext-assistant', expiresAt: claims.expiresAt, isTrial: false, activeRequestsCount: 0 }
+    };
+  }
+
   const order = await getOrder(claims.orderId);
   if (!order || !['approved', 'paid'].includes(order.status) || order.licenseKey !== licenseKey || order.expiresAt !== claims.expiresAt) return invalid;
   const remainingMs = claims.expiresAt - Date.now();
