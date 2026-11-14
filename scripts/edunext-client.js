@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.53";
+        var t = "v10.2.54";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -554,18 +554,16 @@ function e(e, serverOrigin) {
                 var s = (Array.isArray(n.completedSessions) ? n.completedSessions : n.completedAt ? [ n.completedAt ] : []).filter((function(e) {
                     return r - e < i;
                 }));
-                if (s.length >= 3) {
+                if (s.length >= 7) {
                     var c = Math.min.apply(null, s), l = i - (r - c), u = Math.ceil(l / 864e5), d = Math.ceil(l / 36e5);
                     return {
                         allowed: !1,
                         course: e,
-                        reason: "Môn [" + e.label + "] đã làm đủ " + s.length + "/3 bài trong tuần này. Giới hạn bản quyền: 3 bài / tuần (vui lòng chờ " + (u > 1 ? u + " ngày" : d + " giờ") + ")."
+                        reason: "Môn [" + e.label + "] đã làm đủ " + s.length + "/7 bài trong tuần này. Giới hạn bản quyền: 7 bài / tuần (vui lòng chờ " + (u > 1 ? u + " ngày" : d + " giờ") + ")."
                     };
                 }
             }
-            var h = 6, p = o(a);
-            if (p.valid && p.plan && (p.plan.includes("1 Tuần") ? h = 3 : p.plan.includes("1 Tháng") ? h = 5 : p.plan.includes("Kỳ") && (h = 6)), 
-            !t.courses[e.key]) {
+            var h = 12, p = o(a); if (p.valid && p.plan && (p.plan.includes("1 Tuần") ? h = 6 : p.plan.includes("1 Tháng") ? h = 10 : p.plan.includes("Kỳ") && (h = 16)), !t.courses[e.key]) {
                 var m = Object.keys(t.courses).length;
                 if (m >= h) return {
                     allowed: !1,
@@ -593,7 +591,7 @@ function e(e, serverOrigin) {
                 try {
                     localStorage.setItem("enx_course_quota_v10", JSON.stringify(e));
                 } catch (e) {}
-            }(t), P("warn", "📌 Đã ghi nhận hoàn thành bài (" + r.length + "/3 bài tuần này) cho môn: " + e.label);
+            }(t), P("warn", "📌 Đã ghi nhận hoàn thành bài (" + r.length + "/7 bài tuần này) cho môn: " + e.label);
         }
         function F(e) {
             if (!e) return "";
@@ -634,104 +632,181 @@ function e(e, serverOrigin) {
                     if (n.state === 'idle' && !e) return;
                     if ("waiting_teacher" !== n.state || e) if (Date.now() < h) L("⏳ Chờ hồi phục Rate Limit 429 (" + Math.ceil((h - Date.now()) / 1e3) + "s)...", "#f59e0b"); else if (Date.now() - c < 4e3 && !e) L("⏳ Chờ EduNext cập nhật sau khi nộp...", "#94a3b8"); else {
                         var i = n.lastTeacherMsg || "";
-                        if (b = (i || ""), 
-                        /chúc\s*mừng\s*(?:em|bạn)?\s*hoàn\s*thành\s*buổi\s*học/i.test(b) || /điểm\s*buổi\s*học\s*:\s*\d+\s*\/\s*\d+/i.test(b) || /hẹn\s*gặp\s*(?:em|bạn).{0,30}buổi\s*học\s*tiếp\s*theo/i.test(b) || /chúc\s*mừng.{0,60}(?:hoàn\s*thành|kết\s*thúc).{0,40}(?:buổi\s*học|bài\s*học|khóa\s*học)/i.test(b) || /(?:buổi\s*học|bài\s*học|khóa\s*học).{0,40}(?:đã\s*hoàn\s*thành|đã\s*kết\s*thúc)/i.test(b) || /congratulations.{0,80}(?:completed|finished).{0,60}(?:lesson|session|course)/i.test(b)) {
-                            j(), P("success", "🎉 CHÚC MỪNG: BẠN ĐÃ HOÀN THÀNH TOÀN BỘ BÀI HỌC!"), L("🎉 HOÀN THÀNH TOÀN BỘ BÀI HỌC!", "#10b981"), 
+                        var activeInput = (function() {
+                            for (var els = document.querySelectorAll('textarea.w-md-editor-text-input, .w-md-editor textarea, textarea, input[type="text"]'), idx = 0; idx < els.length; idx++) {
+                                var el = els[idx];
+                                if (!el.closest('#enx-pro-hud') && el.offsetParent !== null && !el.disabled && !el.readOnly) return el;
+                            }
+                            return null;
+                        })();
+
+                        // 1. Ready & Transition Check (Supports English "Are you ready...", "Yes", and Vietnamese "Sẵn sàng")
+                        var cleanMsg = (i || "").toLowerCase();
+                        var isEnglishReady = 
+                            /are\s*you\s*ready/i.test(cleanMsg) ||
+                            /ready\s*to\s*(?:move|start|begin|practice|continue|go)/i.test(cleanMsg) ||
+                            /ready\s*\?/i.test(cleanMsg) ||
+                            /shall\s*we\s*(?:start|begin|practice|continue|move)/i.test(cleanMsg) ||
+                            /do\s*you\s*want\s*to\s*(?:start|begin|continue|move|practice)/i.test(cleanMsg) ||
+                            /can\s*we\s*(?:start|begin|continue)/i.test(cleanMsg) ||
+                            /would\s*you\s*like\s*to\s*(?:start|begin|practice)/i.test(cleanMsg) ||
+                            /(?:type|reply|answer|say)\s*["']?yes["']?\s*to\s*(?:start|begin|continue)/i.test(cleanMsg);
+
+                        var isVietnameseReady =
+                            /bạn\s*đã\s*sẵn\s*sàng/i.test(cleanMsg) ||
+                            /sẵn\s*sàng\s*(?:chưa|bắt\s*đầu|chuyển|tiếp\s*tục)/i.test(cleanMsg) ||
+                            /đã\s*sẵn\s*sàng\s*chưa/i.test(cleanMsg);
+
+                        var readyBtn = (function(studentAnchor) {
+                            try {
+                                var btns = Array.from(document.querySelectorAll('button, [role="button"], .quick-reply, .chat-chip, .suggestion-item, [class*="chip"], [class*="quick"], [class*="suggestion"], .quick-insert-btn'));
+                                for (var idx = 0; idx < btns.length; idx++) {
+                                    var btn = btns[idx];
+                                    if (!btn.closest('#enx-pro-hud') && !(btn.disabled || btn.offsetParent === null || studentAnchor && btn.compareDocumentPosition(studentAnchor) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+                                        var btnText = (btn.innerText || btn.textContent || '').replace(/\s+/g, ' ').trim();
+                                        if (/^(?:yes|ready|sẵn\s*sàng|i'm\s*ready|im\s*ready|ok|sure)[!.]?$/i.test(btnText)) return btn;
+                                    }
+                                }
+                            } catch (_) {}
+                            return null;
+                        })(n.lastStudentBadge);
+
+                        if (isEnglishReady || isVietnameseReady || readyBtn) {
+                            var readyWord = isEnglishReady ? "Yes" : (isVietnameseReady ? "Sẵn sàng" : (readyBtn ? (readyBtn.innerText || "").trim() : "Yes"));
+                            P("info", "🎯 Bắt được câu hỏi bắt đầu (" + (readyWord === "Yes" ? "Tiếng Anh: Yes" : readyWord) + ") -> Tự động trả lời!");
+                            L('🎯 Tự động trả lời "' + readyWord + '" chuyển phần...', "#10b981");
+                            if (readyBtn) {
+                                try { U(readyBtn); } catch (_) {}
+                            }
+                            await z(readyWord);
+                            remaining = 35;
+                            updateCountdownUI();
+                            return void L("👀 Đang chờ câu hỏi tiếp theo hiện lên...", "#38bdf8");
+                        }
+
+                        // 2. Check Actual Lesson Completion (ONLY if NO active input box and NOT a question)
+                        var isActuallyComplete = !activeInput && (function(msg) {
+                            if (!msg) return false;
+                            var t = msg.toLowerCase();
+                            if (t.includes('?') || t.includes('are you ready') || t.includes('sẵn sàng') || t.includes('câu hỏi') || t.includes('question') || t.includes('trả lời:')) return false;
+                            return /chúc\s*mừng\s*(?:em|bạn)?\s*hoàn\s*thành\s*buổi\s*học/i.test(msg) ||
+                                   /điểm\s*buổi\s*học\s*:\s*\d+\s*\/\s*\d+/i.test(msg) ||
+                                   /hẹn\s*gặp\s*(?:em|bạn).{0,30}buổi\s*học\s*tiếp\s*theo/i.test(msg) ||
+                                   /congratulations.{0,80}(?:completed|finished).{0,60}(?:lesson|session|course)/i.test(msg);
+                        })(i);
+
+                        if (isActuallyComplete) {
+                            j();
+                            P("success", "🎉 CHÚC MỪNG: BẠN ĐÃ HOÀN THÀNH TOÀN BỘ BÀI HỌC!");
+                            L("🎉 HOÀN THÀNH TOÀN BỘ BÀI HỌC!", "#10b981");
                             d = !1;
                             var r = document.getElementById("hud-auto-btn");
                             r && (r.textContent = "✅ Hoàn thành", r.style.background = "rgba(16,185,129,0.2)", r.style.borderColor = "#10b981", r.style.color = "#34d399");
                             var cdBadge1 = document.getElementById("enx-cd-badge");
                             cdBadge1 && (cdBadge1.textContent = "✅", cdBadge1.style.background = "#10b981", cdBadge1.style.color = "#fff");
-                        } else {
-                            var b, y = function(e) {
+                            return;
+                        }
+
+                        // 3. Question Extraction and Solving
+                        var _ = F(n.questionBlockText || i || "");
+                        var T = m && m.getVideoTracks().some((function(e) {
+                            return "live" === e.readyState;
+                        })) ? function() {
+                            if (!g || !g.videoWidth) return null;
+                            try {
+                                var e = document.createElement("canvas"), t = Math.min(1, 1600 / Math.max(g.videoWidth, g.videoHeight));
+                                e.width = Math.max(1, Math.round(g.videoWidth * t)), e.height = Math.max(1, Math.round(g.videoHeight * t));
+                                var n = e.getContext("2d", { alpha: !1 });
+                                if (!n) return null;
+                                n.drawImage(g, 0, 0, e.width, e.height);
+                                var i = e.toDataURL("image/jpeg", .8);
+                                return !i || i.length < 500 ? null : { image: i, width: e.width, height: e.height };
+                            } catch (e) { return null; }
+                        }() : null;
+
+                        if (_ || T) {
+                            var C = function(e) {
                                 if (!e) return !1;
-                                var t = e.includes("Câu hỏi") || e.includes("Hãy trả lời") || /\bQuestion\b/i.test(e) || /Please try the exercise/i.test(e) || /\?/i.test(e), n = e.includes("Trả lời:") || e.includes("trả lời theo") || e.includes("điền đáp án") || /\bAnswer\s*:/i.test(e) || /Use this answer format/i.test(e);
-                                return t && n;
-                            }(i) || /câu hỏi|bài sau|hãy làm|trả lời:|đáp án|\?/i.test(i), v = function(e) {
+                                var t = e.toLowerCase();
+                                return t.includes("chưa đúng") || t.includes("chưa chính xác") || t.includes("chưa thực hiện") || t.includes("thử lại") || t.includes("kiểm tra lại") || t.includes("câu trả lời vừa rồi") || t.includes("lặp lại nhiều lần") || t.includes("thử đến lần") || t.includes("điểm cần lưu ý là") || t.includes("thực chất đang hỏi") || t.includes("suy nghĩ lại") || t.includes("không chính xác") || t.includes("chưa phải") || t.includes("not correct") || t.includes("incorrect") || t.includes("try again") || t.includes("check again") || t.includes("wrong answer");
+                            }(i), E = n.fingerprint;
+
+                            if (E !== u || e) {
+                                s = !0;
                                 try {
-                                    for (var t = Array.from(document.querySelectorAll('button, [role="button"], .quick-reply, .chat-chip, .suggestion-item, [class*="chip"], [class*="quick"], [class*="suggestion"], .quick-insert-btn')), n = 0; n < t.length; n++) {
-                                        var i = t[n];
-                                        if (!i.closest("#enx-pro-hud") && !(i.disabled || null === i.offsetParent || e && i.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING)) {
-                                            var r = (i.innerText || i.textContent || "").replace(/\s+/g, " ").trim();
-                                            if (/^(?:sẵn\s*sàng|ready|tôi\s*đã\s*sẵn\s*sàng|i'm\s*ready|im\s*ready)[!.]?$/i.test(r)) return i;
-                                        }
+                                    C ? (L("🔄 Giáo viên phản hồi chưa đúng -> Tự động sửa sai theo gợi ý...", "#f59e0b"), 
+                                    P("warn", "⚡ Giáo viên phản hồi đáp án chưa đúng! Gửi kèm gợi ý để Gemini giải lại...")) : (L("⚡ Đang tự động phân tích và giải đề...", "#38bdf8"), 
+                                    P("info", "⚡ Bắt được câu hỏi! Gửi Gemini Flash-Lite giải ngay..."));
+
+                                    var isEnglishContext = 
+                                        /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
+                                        /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission)\b/i.test(_ || i);
+
+                                    var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro." ];
+                                    if (isEnglishContext) {
+                                        N.push(
+                                            "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +
+                                            "1. Trả lời HOÀN TOÀN BẰNG TIẾNG ANH. Tuyệt đối KHÔNG trả lời bằng tiếng Việt.\n" +
+                                            "2. KHÔNG thêm bất kỳ tiền tố nào như 'Trả lời:' hay 'Answer:' trừ khi đề bài yêu cầu rõ.\n" +
+                                            "3. Nếu là câu hỏi Yes/No hoặc 'Are you ready...', trả lời: 'Yes'.\n" +
+                                            "4. Nếu là trắc nghiệm, điền từ vào chỗ trống, hoặc tìm từ/câu, xuất đáp án chính xác trực tiếp vào trọng tâm.\n" +
+                                            "5. Ngắn gọn, chính xác, không chào hỏi, không giải thích lan man."
+                                        );
+                                    } else {
+                                        N.push(
+                                            "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG VIỆT:\n" +
+                                            "1. Nếu đề bài yêu cầu trả lời theo mẫu hoặc bắt đầu bằng 'Trả lời:', hãy xuất ĐÚNG ĐÁP ÁN: Trả lời: [đáp án].\n" +
+                                            "2. Nếu là trắc nghiệm hoặc bài tập tự luận/toán/lập trình, trả lời ngắn gọn, chính xác, trực tiếp vào trọng tâm.\n" +
+                                            "3. Tuyệt đối KHÔNG trả lời lan man dài dòng, KHÔNG nói lời chào."
+                                        );
                                     }
-                                } catch (e) {}
-                                return null;
-                            }(n.lastStudentBadge);
-                            if (!y && (/bạn\s*đã\s*sẵn\s*sàng|sẵn\s*sàng\s*chuyển\s*sang|are\s*you\s*ready|ready\s*to\s*move\s*on|sẵn\s*sàng\s*chưa/i.test(i) || v)) {
-                                var w = /ready/i.test(i) ? "Ready" : "Sẵn sàng";
-                                if (P("info", "🎯 Bắt được lời nhắc/nút [" + w + "] -> Tự động bấm & gửi để chuyển phần!"), 
-                                L('🎯 Bấm "' + w + '" chuyển phần...', "#10b981"), v) try {
-                                    U(v);
-                                } catch (e) {}
-                                return await z(w), void L("👀 Đang chờ câu hỏi tiếp theo hiện lên...", "#38bdf8");
-                            }
-                            var _ = F(n.questionBlockText || i || ""), T = m && m.getVideoTracks().some((function(e) {
-                                return "live" === e.readyState;
-                            })) ? function() {
-                                if (!g || !g.videoWidth) return null;
-                                try {
-                                    var e = document.createElement("canvas"), t = Math.min(1, 1600 / Math.max(g.videoWidth, g.videoHeight));
-                                    e.width = Math.max(1, Math.round(g.videoWidth * t)), e.height = Math.max(1, Math.round(g.videoHeight * t));
-                                    var n = e.getContext("2d", {
-                                        alpha: !1
-                                    });
-                                    if (!n) return null;
-                                    n.drawImage(g, 0, 0, e.width, e.height);
-                                    var i = e.toDataURL("image/jpeg", .8);
-                                    return !i || i.length < 500 ? null : {
-                                        image: i,
-                                        width: e.width,
-                                        height: e.height
-                                    };
-                                } catch (e) {
-                                    return null;
-                                }
-                            }() : null;
-                            if (_ || T) {
-                                var C = function(e) {
-                                    if (!e) return !1;
-                                    var t = e.toLowerCase();
-                                    return t.includes("chưa đúng") || t.includes("chưa chính xác") || t.includes("chưa thực hiện") || t.includes("thử lại") || t.includes("kiểm tra lại") || t.includes("câu trả lời vừa rồi") || t.includes("lặp lại nhiều lần") || t.includes("thử đến lần") || t.includes("điểm cần lưu ý là") || t.includes("thực chất đang hỏi") || t.includes("suy nghĩ lại") || t.includes("không chính xác") || t.includes("chưa phải") || t.includes("not correct") || t.includes("incorrect") || t.includes("try again") || t.includes("check again") || t.includes("wrong answer");
-                                }(i), E = n.fingerprint;
-                                if (E !== u || e) {
-                                    s = !0;
-                                    try {
-                                        C ? (L("🔄 Giáo viên phản hồi chưa đúng -> Tự động sửa sai theo gợi ý...", "#f59e0b"), 
-                                        P("warn", "⚡ Giáo viên phản hồi đáp án chưa đúng! Gửi kèm gợi ý để Gemini giải lại...")) : (L("⚡ Đang tự động phân tích và giải đề...", "#38bdf8"), 
-                                        P("info", "⚡ Bắt được câu hỏi! Gửi Gemini Flash-Lite giải ngay..."));
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro.", _ ? "CÂU HỎI TRÊN EDUNEXT:\n" + _ : "Dùng ảnh màn hình mới nhất để nhận diện câu hỏi và bài tập trên EduNext." ];
-                                        if (C || i && n.lastStudentMsg) {
-                                            var k = l || n.lastStudentMsg;
-                                            N.push('🚨 LƯU Ý ĐẶC BIỆT - GIÁO VIÊN VỪA TỪ CHỐI ĐÁP ÁN VÀ ĐƯA RA GỢI Ý:\n- Đáp án sai học sinh vừa gửi: "' + k + '" (CÂU NÀY ĐÃ SAI HOẶC BỊ TỪ CHỐI)\n- Toàn bộ phản hồi, phân tích và gợi ý của Giáo viên:\n"' + i + '"\n-> YÊU CẦU BẮT BUỘC:\n1. Đọc thật kỹ phân tích và gợi ý của giáo viên ở trên.\n2. Tìm ra bản chất câu hỏi thực sự đang yêu cầu (tên gọi đại lượng, lực, công thức, số lượng, v.v.).\n3. Xuất đáp án MỚI HOÀN TOÀN, CHÍNH XÁC. TUYỆT ĐỐI KHÔNG lặp lại đáp án cũ "' + k + '"!');
+
+                                    N.push(_ ? "CÂU HỎI TRÊN EDUNEXT:\n" + _ : "Dùng ảnh màn hình mới nhất để nhận diện câu hỏi và bài tập trên EduNext.");
+
+                                    if (C || i && n.lastStudentMsg) {
+                                        var k = l || n.lastStudentMsg;
+                                        N.push('🚨 LƯU Ý ĐẶC BIỆT - GIÁO VIÊN VỪA TỪ CHỐI ĐÁP ÁN VÀ ĐƯA RA GỢI Ý:\n- Đáp án sai học sinh vừa gửi: "' + k + '" (CÂU NÀY ĐÃ SAI HOẶC BỊ TỪ CHỐI)\n- Toàn bộ phản hồi, phân tích và gợi ý của Giáo viên:\n"' + i + '"\n-> YÊU CẦU BẮT BUỘC:\n1. Đọc thật kỹ phân tích và gợi ý của giáo viên ở trên.\n2. Tìm ra bản chất câu hỏi thực sự đang yêu cầu.\n3. Xuất đáp án MỚI HOÀN TOÀN, CHÍNH XÁC. TUYỆT ĐỐI KHÔNG lặp lại đáp án cũ "' + k + '"!');
+                                    }
+
+                                    h = Date.now() + 8000;
+                                    var S = N.join("\n\n");
+                                    var A = await (async function(prompt, image) {
+                                        var keyInfo = o(a);
+                                        var r = keyInfo.valid && !keyInfo.expired ? keyInfo.key : null;
+                                        if (!r) return P("warn", "Chưa có Key bản quyền! Vui lòng kéo Bookmarklet từ fpt-studyhub."), null;
+                                        var rawAns = await solveOnServer(prompt, image);
+                                        if (!rawAns) return null;
+
+                                        var finalAnswer = rawAns.trim();
+                                        if (isEnglishContext) {
+                                            finalAnswer = finalAnswer.replace(/^(?:trả\s*lời|đáp\s*án)\s*:\s*/i, '').trim();
+                                            if (/^answer\s*:\s*\[/i.test(_) && !/^answer\s*:/i.test(finalAnswer)) {
+                                                finalAnswer = 'Answer: ' + finalAnswer;
+                                            }
+                                        } else {
+                                            var requiresMau = /trả\s*lời\s*:\s*\[|theo\s*mẫu/i.test(_ || prompt);
+                                            if (requiresMau && !/^\s*trả\s*lời\s*:/i.test(finalAnswer)) {
+                                                finalAnswer = 'Trả lời: ' + finalAnswer;
+                                            }
                                         }
-                                        N.push('QUY TẮC BẮT BUỘC:\n1. Nếu đề bài yêu cầu trả lời theo mẫu hoặc bắt đầu bằng "Trả lời:", hãy xuất ĐÚNG ĐÁP ÁN: Trả lời: [đáp án].\n2. Nếu là trắc nghiệm hoặc bài tập tự luận/toán/lập trình, trả lời ngắn gọn, chính xác, trực tiếp vào trọng tâm.\n3. Tuyệt đối KHÔNG trả lời lan man dài dòng, KHÔNG nói lời chào.\n4. Nếu bài học đã kết thúc, xuất mã: __LESSON_COMPLETE__');
-                                        h = Date.now() + 8000;
-                                        var S = N.join("\n\n"), A = await async function(e, t) {
-                                            var n, i = /trả lời:\s*\[|theo mẫu/i.test(e), r = (n = o(a)).valid && !n.expired ? n.key : null;
-                                            if (!r) return P("warn", "Chưa có Key bản quyền! Vui lòng kéo Bookmarklet từ fpt-studyhub."), 
-                                            null;
-                                            var s = await solveOnServer(e, t);
-                                            return s ? (!i || /^\s*(?:tr[aả]\s*l[oờ]i|answer)\s*:/i.test(s) || s.startsWith("__") || (s = "Trả lời: " + s), 
-                                            s) : null;
-                                        }(S, T ? T.image : null);
-                                        if (!A || /_{0,2}\s*NO_QUESTION\s*_{0,2}/i.test(A)) return L("👀 Đang theo dõi khi nào câu hỏi hiện lên...", "#94a3b8"), 
-                                        void (s = !1);
-                                        if (/_{0,2}\s*LESSON_COMPLETE\s*_{0,2}/i.test(A)) {
-                                            j(), P("success", "🎉 CHÚC MỪNG: BẠN ĐÃ HOÀN THÀNH TOÀN BỘ BÀI HỌC!"), L("🎉 HOÀN THÀNH TOÀN BỘ BÀI HỌC!", "#10b981"), 
-                                            d = !1;
-                                            var I = document.getElementById("hud-auto-btn");
-                                            I && (I.textContent = "✅ Hoàn thành", I.style.background = "rgba(16,185,129,0.2)", I.style.borderColor = "#10b981", I.style.color = "#34d399");
-                                            var cdBadge2 = document.getElementById("enx-cd-badge");
-                                            cdBadge2 && (cdBadge2.textContent = "✅", cdBadge2.style.background = "#10b981", cdBadge2.style.color = "#fff");
-                                            return void (s = !1);
-                                        }
-                                        if (l && A.trim().toLowerCase() === l.trim().toLowerCase() && C) return P("warn", '⚠️ Gemini vẫn trả lời đáp án cũ "' + A + '", đang thử yêu cầu đáp án khác...'), 
-                                        void (s = !1);
-                                        P("success", '✓ Gemini Flash-Lite trả lời: "' + A.slice(0, 35) + '..."'), L("✍️ Đang làm sạch ô nhập & nộp bài...", "#34d399"), 
-                                        await (async function() {
-                                            if (readEduNextTurn(document).fingerprint !== E) throw new Error('Câu hỏi đã đổi khi AI đang giải. Bỏ đáp án cũ.');
+                                        return finalAnswer;
+                                    })(S, T ? T.image : null);
+
+                                    if (!A || /_{0,2}\s*NO_QUESTION\s*_{0,2}/i.test(A)) {
+                                        L("👀 Đang theo dõi khi nào câu hỏi hiện lên...", "#94a3b8");
+                                        return void (s = !1);
+                                    }
+
+                                    if (l && A.trim().toLowerCase() === l.trim().toLowerCase() && C) {
+                                        P("warn", '⚠️ Gemini vẫn trả lời đáp án cũ "' + A + '", đang thử yêu cầu đáp án khác...');
+                                        return void (s = !1);
+                                    }
+
+                                    P("success", '✓ Gemini Flash-Lite trả lời: "' + A.slice(0, 35) + '..."');
+                                    L("✍️ Đang làm sạch ô nhập & nộp bài...", "#34d399");
+
+                                    await (async function() {
+                                        if (readEduNextTurn(document).fingerprint !== E) throw new Error('Câu hỏi đã đổi khi AI đang giải. Bỏ đáp án cũ.');
                                             if (!await z(A)) throw new Error('Chưa điền/nộp được câu trả lời.');
                                             u = E;
                                         })(), P("success", "✓ ĐÃ NỘP XONG! Tự động chờ câu hỏi tiếp theo..."), remaining = 35, updateCountdownUI(), 
@@ -744,7 +819,6 @@ function e(e, serverOrigin) {
                                 } else L("👀 Đang theo dõi khi nào có câu hỏi mới...", "#94a3b8");
                             } else e ? (alert("Chưa thấy câu hỏi mới trên trang. Nếu đề bài dạng hình ảnh, hãy bấm [Chia Sẻ Màn Hình]!"), 
                             R()) : L("👀 Đang theo dõi khi nào câu hỏi hiện lên...", "#94a3b8");
-                        }
                     } else L("👀 Đã nộp bài, đang chờ EduNext phản hồi...", "#38bdf8");
                 } else {
                     d = !1, L("⛔ " + t.reason, "#ef4444"), P("warn", "⛔ " + t.reason);

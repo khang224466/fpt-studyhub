@@ -16,7 +16,7 @@ const minifiedCode = JSON.parse(rawCode);
 console.log('Successfully extracted minifiedCode from edunextBundle.ts, length:', minifiedCode.length);
 
 const finalScript = `/**
- * EduNext AI Assistant Pro v10.2.53 (Persistent Orders & Auto-Solve 35s Loop)
+ * EduNext AI Assistant Pro v10.2.54 (English Ready/Yes Support & 7 Sessions/Week Quota)
  * Delivered via jsDelivr CDN — Whitelisted by FPT EduNext CSP & TrustedTypes
  */
 (function() {
@@ -35,12 +35,16 @@ const finalScript = `/**
 })();
 `;
 
-// 1. Target v10.2.53
+// 1. Target v10.2.54
+const outputPath54 = path.join(__dirname, '../../v10_2_54_minified.js');
+fs.writeFileSync(outputPath54, finalScript, 'utf8');
+console.log('Saved to', outputPath54, 'size:', finalScript.length);
+
+// 2. Backward compatibility for earlier links
 const outputPath53 = path.join(__dirname, '../../v10_2_53_minified.js');
 fs.writeFileSync(outputPath53, finalScript, 'utf8');
 console.log('Saved to', outputPath53, 'size:', finalScript.length);
 
-// 2. Backward compatibility for earlier links
 const outputPath52 = path.join(__dirname, '../../v10_2_52_minified.js');
 fs.writeFileSync(outputPath52, finalScript, 'utf8');
 console.log('Saved to', outputPath52, 'size:', finalScript.length);

@@ -6,7 +6,7 @@ const html = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cầm Bookmark Kéo Lên Bấm Vô Là Chạy — EduNext AI Pro v10.2.53</title>
+  <title>Cầm Bookmark Kéo Lên Bấm Vô Là Chạy — EduNext AI Pro v10.2.54</title>
   <link rel="icon" href="https://fpt-studyhub.vercel.app/favicon.ico">
   <style>
     * {
@@ -216,7 +216,7 @@ const html = `<!DOCTYPE html>
 <body>
 
   <div class="container">
-    <div class="badge">⚡ EduNext AI Assistant Pro v10.2.53 (Bản Kéo Thả 0s)</div>
+    <div class="badge">⚡ EduNext AI Assistant Pro v10.2.54 (Bản Kéo Thả 0s)</div>
 
     <h1>Cầm Kéo Nút Này Lên <span>Thanh Dấu Trang</span> Là Xong!</h1>
     <p class="desc">Chuẩn CDN siêu nhẹ 160 ký tự — Nhấp giữ chuột vào nút màu xanh và kéo thả thẳng lên thanh Bookmark!</p>
@@ -234,7 +234,7 @@ const html = `<!DOCTYPE html>
         draggable="true"
       >
         <span>⚡</span>
-        <span id="btn-label-text">KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.53)</span>
+        <span id="btn-label-text">KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.54)</span>
       </a>
     </div>
 
@@ -280,7 +280,7 @@ const html = `<!DOCTYPE html>
 
     // 2. Tạo đường link siêu nhẹ ~190 ký tự qua CDN jsDelivr (Được EduNext cấp phép 100%, kéo thả 0s)
     const keyParam = activeKey ? activeKey : '';
-    const bookmarkCode = "javascript:(function(){window.__ENX_KEY__='" + keyParam + "';var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/khang224466/NX@main/BUISINESS/v10_2_53_minified.js?t='+Date.now();s.async=true;(document.head||document.documentElement).appendChild(s);})();";
+    const bookmarkCode = "javascript:(function(){window.__ENX_KEY__='" + keyParam + "';var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/khang224466/NX@main/BUISINESS/v10_2_54_minified.js?t='+Date.now();s.async=true;(document.head||document.documentElement).appendChild(s);})();";
 
     const mainBtn = document.getElementById('main-bookmark-btn');
     if (mainBtn) {
