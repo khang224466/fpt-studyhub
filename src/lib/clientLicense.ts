@@ -10,7 +10,7 @@ export interface ParsedLicenseInfo {
   remainingFormatted: string;
 }
 
-export function parseClientLicense(encKey?: string, fallbackExpiresAt?: number): ParsedLicenseInfo | null {
+export function parseClientLicense(encKey?: string, fallbackExpiresAt?: number, currentNow?: number): ParsedLicenseInfo | null {
   let expTimestamp = fallbackExpiresAt || 0;
   let planLabel = 'VIP';
   if (encKey?.startsWith('FPT1.')) {
@@ -27,7 +27,10 @@ export function parseClientLicense(encKey?: string, fallbackExpiresAt?: number):
 
   if (!expTimestamp) return null;
 
-  const now = Date.now();
+  // Protect against Next.js dynamic prerender error in Client Component
+  const now = currentNow ?? (typeof window !== 'undefined' ? Date.now() : 0);
+  if (!now) return null;
+
   const diffMs = expTimestamp - now;
   const expired = diffMs <= 0;
   const remainingDays = Math.ceil(diffMs / (24 * 3600 * 1000));

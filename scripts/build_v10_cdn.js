@@ -1,28 +1,22 @@
 const fs = require('fs');
 const path = require('path');
 
-const routeContent = fs.readFileSync(path.join(__dirname, '../src/app/inject.js/route.ts'), 'utf8');
-const startMarker = 'const minifiedCode = "';
-const startIdx = routeContent.indexOf(startMarker);
+const bundlePath = path.join(__dirname, '../src/lib/edunextBundle.ts');
+const bundleContent = fs.readFileSync(bundlePath, 'utf8');
+const startMarker = 'export const EDUNEXT_SOURCE = ';
+const startIdx = bundleContent.indexOf(startMarker);
 if (startIdx === -1) {
-  console.error('Could not find startMarker');
+  console.error('Could not find startMarker in edunextBundle.ts');
   process.exit(1);
 }
 
 const codeStart = startIdx + startMarker.length;
-const endIdx = routeContent.indexOf('";\n  const scriptContent', codeStart);
-if (endIdx === -1) {
-  console.error('Could not find endIdx');
-  process.exit(1);
-}
-
-const rawMinified = routeContent.slice(codeStart, endIdx);
-// Unescape the string literal
-const minifiedCode = JSON.parse('"' + rawMinified + '"');
-console.log('Successfully extracted minifiedCode, length:', minifiedCode.length);
+const rawCode = bundleContent.slice(codeStart).trim().replace(/;$/, '');
+const minifiedCode = JSON.parse(rawCode);
+console.log('Successfully extracted minifiedCode from edunextBundle.ts, length:', minifiedCode.length);
 
 const finalScript = `/**
- * EduNext AI Assistant Pro v10.2.52 (Auto-Solve & 35s Countdown Timer)
+ * EduNext AI Assistant Pro v10.2.53 (Persistent Orders & Auto-Solve 35s Loop)
  * Delivered via jsDelivr CDN — Whitelisted by FPT EduNext CSP & TrustedTypes
  */
 (function() {
@@ -41,6 +35,12 @@ const finalScript = `/**
 })();
 `;
 
+// 1. Target v10.2.53
+const outputPath53 = path.join(__dirname, '../../v10_2_53_minified.js');
+fs.writeFileSync(outputPath53, finalScript, 'utf8');
+console.log('Saved to', outputPath53, 'size:', finalScript.length);
+
+// 2. Backward compatibility for earlier links
 const outputPath52 = path.join(__dirname, '../../v10_2_52_minified.js');
 fs.writeFileSync(outputPath52, finalScript, 'utf8');
 console.log('Saved to', outputPath52, 'size:', finalScript.length);

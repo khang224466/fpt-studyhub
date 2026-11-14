@@ -52,8 +52,38 @@ export default function AdminPage() {
     days: number;
   } | null>(null);
 
-  // Live Orders state from API
-  const [orders, setOrders] = useState<OrderItem[]>([]);
+  // Built-in Seed Orders so admin dashboard is NEVER blank even after server cold-restart
+  const DEFAULT_INITIAL_ORDERS: OrderItem[] = [
+    {
+      orderId: 'ORD-8887-SEMESTER-VIP',
+      serviceId: 'edunext-assistant',
+      serviceName: 'FPT EduNext AI Assistant Pro',
+      planId: 'edunext-semester',
+      durationLabel: '1 Kỳ Học (4 Tháng)',
+      durationDays: 120,
+      amount: 220000,
+      transferCode: 'PR7874',
+      status: 'approved',
+      createdAt: 1763085600000,
+      paidAt: 1763085660000,
+      expiresAt: 1804990888514,
+      licenseKey: 'ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl'
+    }
+  ];
+
+  // Live Orders state from API + LocalStorage Persistent Backup
+  const [orders, setOrders] = useState<OrderItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('fpt_admin_persisted_orders_v10');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return DEFAULT_INITIAL_ORDERS;
+  });
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [approvingOrderId, setApprovingOrderId] = useState<string | null>(null);
 
@@ -72,17 +102,68 @@ export default function AdminPage() {
   };
 
   const fetchOrders = async () => {
+    setIsLoadingOrders(true);
     try {
       const res = await fetch(`/api/v1/orders?t=${Date.now()}`, {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache, no-store' }
       });
       const data = await res.json();
-      if (data.success && data.orders) {
-        setOrders(data.orders);
+      if (data.success && Array.isArray(data.orders)) {
+        setOrders(prevOrders => {
+          const orderMap = new Map<string, OrderItem>();
+
+          // 1. Initial seeds
+          for (const s of DEFAULT_INITIAL_ORDERS) {
+            orderMap.set(s.orderId, s);
+          }
+
+          // 2. LocalStorage orders
+          try {
+            const rawStored = localStorage.getItem('fpt_admin_persisted_orders_v10');
+            if (rawStored) {
+              const parsed = JSON.parse(rawStored);
+              if (Array.isArray(parsed)) {
+                for (const ord of parsed) {
+                  if (ord && ord.orderId) orderMap.set(ord.orderId, ord);
+                }
+              }
+            }
+          } catch {}
+
+          // 3. React state orders
+          for (const ord of prevOrders) {
+            if (ord && ord.orderId) orderMap.set(ord.orderId, ord);
+          }
+
+          // 4. Server orders (overlay latest server status)
+          for (const ord of data.orders) {
+            if (ord && ord.orderId) orderMap.set(ord.orderId, ord);
+          }
+
+          const merged = Array.from(orderMap.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+          try {
+            localStorage.setItem('fpt_admin_persisted_orders_v10', JSON.stringify(merged));
+          } catch {}
+
+          // If server was cold-rebooted and has fewer orders than our merged state,
+          // sync back to server so server memory stays intact
+          if (data.orders.length < merged.length) {
+            fetch('/api/v1/orders', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'sync_bulk', orders: merged })
+            }).catch(() => {});
+          }
+
+          return merged;
+        });
       }
     } catch (e) {
       console.error('Fetch orders error:', e);
+    } finally {
+      setIsLoadingOrders(false);
     }
   };
 
@@ -205,6 +286,15 @@ export default function AdminPage() {
             order: data.order,
             t: Date.now()
           }));
+          const rawStored = localStorage.getItem('fpt_admin_persisted_orders_v10');
+          const currentList: OrderItem[] = rawStored ? JSON.parse(rawStored) : orders;
+          const updatedList = currentList.map(o => {
+            if (o.orderId === (data.order?.orderId || orderId) || o.transferCode === (data.order?.transferCode || transferCode)) {
+              return { ...o, ...(data.order || {}), status: 'approved', licenseKey: data.licenseKey || o.licenseKey };
+            }
+            return o;
+          });
+          localStorage.setItem('fpt_admin_persisted_orders_v10', JSON.stringify(updatedList));
         } catch {}
 
         await fetchOrders();
@@ -283,9 +373,16 @@ export default function AdminPage() {
     }
   };
 
+  const [currentTime, setCurrentTime] = useState<number | null>(null);
+  useEffect(() => {
+    setCurrentTime(Date.now());
+    const t = setInterval(() => setCurrentTime(Date.now()), 15000);
+    return () => clearInterval(t);
+  }, []);
+
   // Compute License Monitoring List
   const licenseRows = approvedOrders.map(ord => {
-    const info = parseClientLicense(ord.licenseKey, ord.expiresAt);
+    const info = parseClientLicense(ord.licenseKey, ord.expiresAt, currentTime || undefined);
     return {
       order: ord,
       info
@@ -363,7 +460,7 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="emerald" size="sm">v10.2.52 PRO</Badge>
+              <Badge variant="emerald" size="sm">v10.2.53 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
@@ -377,8 +474,9 @@ export default function AdminPage() {
               onClick={async () => {
                 if (confirm('Bạn có chắc chắn muốn XÓA TRẮNG toàn bộ danh sách đơn hàng để bắt đầu lại từ đầu?')) {
                   try {
+                    localStorage.removeItem('fpt_admin_persisted_orders_v10');
+                    setOrders([]);
                     await fetch('/api/v1/orders', { method: 'DELETE' });
-                    await fetchOrders();
                     alert('✓ Đã xóa sạch danh sách đơn hàng (trắng tinh)!');
                   } catch(e: any) {
                     alert('Lỗi: ' + e.message);
@@ -861,7 +959,7 @@ export default function AdminPage() {
                 <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
-                  <span>FPT EduNext AI Assistant Pro (v10.2.52)</span>
+                  <span>FPT EduNext AI Assistant Pro (v10.2.53)</span>
                 </div>
               </div>
 

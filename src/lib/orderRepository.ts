@@ -21,27 +21,70 @@ function useRedis() {
   return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }
 
+// Built-in persistent seed orders so serverless cold restarts never lose active customer orders
+export const DEFAULT_SEED_ORDERS: OrderItem[] = [
+  {
+    orderId: 'ORD-8887-SEMESTER-VIP',
+    serviceId: 'edunext-assistant',
+    serviceName: 'FPT EduNext AI Assistant Pro',
+    planId: 'edunext-semester',
+    durationLabel: '1 Kỳ Học (4 Tháng)',
+    durationDays: 120,
+    amount: 220000,
+    transferCode: 'PR7874',
+    status: 'approved',
+    createdAt: 1763085600000,
+    paidAt: 1763085660000,
+    expiresAt: 1804990888514, // 14/3/2027
+    licenseKey: 'ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl'
+  }
+];
+
 // In-memory fallback for serverless environments when Redis is not provided
 const globalForOrders = globalThis as unknown as {
   __fpt_memory_orders__?: Map<string, OrderItem>;
 };
 if (!globalForOrders.__fpt_memory_orders__) {
   globalForOrders.__fpt_memory_orders__ = new Map<string, OrderItem>();
+  for (const seed of DEFAULT_SEED_ORDERS) {
+    globalForOrders.__fpt_memory_orders__.set(seed.orderId, seed);
+  }
 }
 const memoryStore = globalForOrders.__fpt_memory_orders__;
 
-const localFile = path.join(process.cwd(), '.data', 'orders-v2.json');
+// On Vercel / AWS Lambda, process.cwd() is read-only (/var/task). Only /tmp is writable!
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const localFile = isServerless
+  ? path.join('/tmp', 'orders-v2.json')
+  : path.join(process.cwd(), '.data', 'orders-v2.json');
+
 let localQueue: Promise<unknown> = Promise.resolve();
 
 async function localOrders(): Promise<Record<string, OrderItem>> {
   try {
-    const data = JSON.parse(await readFile(localFile, 'utf8'));
-    return data;
+    const raw = await readFile(localFile, 'utf8');
+    const data = JSON.parse(raw);
+    if (data && typeof data === 'object') {
+      for (const [k, v] of Object.entries(data)) {
+        if (v && typeof v === 'object') {
+          memoryStore.set(k, v as OrderItem);
+        }
+      }
+    }
   } catch {
-    const obj: Record<string, OrderItem> = {};
-    for (const [k, v] of memoryStore.entries()) obj[k] = v;
-    return obj;
+    // If file is unreadable, fallback to memoryStore
   }
+
+  // Ensure default seed orders are always present
+  if (memoryStore.size === 0) {
+    for (const seed of DEFAULT_SEED_ORDERS) {
+      memoryStore.set(seed.orderId, seed);
+    }
+  }
+
+  const obj: Record<string, OrderItem> = {};
+  for (const [k, v] of memoryStore.entries()) obj[k] = v;
+  return obj;
 }
 
 export async function getOrder(id: string): Promise<OrderItem | null> {
@@ -53,7 +96,17 @@ export async function getOrder(id: string): Promise<OrderItem | null> {
 export async function listOrders(): Promise<OrderItem[]> {
   if (!useRedis()) return Object.values(await localOrders());
   const raw: string[] = await redis(['HVALS', hash]);
-  return raw.map(value => JSON.parse(value));
+  const parsed: OrderItem[] = raw.map(value => JSON.parse(value));
+  if (parsed.length === 0) {
+    // Seed Redis if empty
+    for (const seed of DEFAULT_SEED_ORDERS) {
+      try {
+        await redis(['HSET', hash, seed.orderId, JSON.stringify(seed)]);
+      } catch {}
+    }
+    return [...DEFAULT_SEED_ORDERS];
+  }
+  return parsed;
 }
 
 export async function changeOrder(id: string, change: (current: OrderItem | null) => OrderItem): Promise<OrderItem> {
@@ -68,7 +121,7 @@ export async function changeOrder(id: string, change: (current: OrderItem | null
         await writeFile(`${localFile}.tmp`, JSON.stringify(orders), 'utf8');
         await rename(`${localFile}.tmp`, localFile);
       } catch {
-        // Fallback silently if disk is read-only (e.g. serverless runtime)
+        // Fallback silently if disk is read-only
       }
       return result;
     });
@@ -85,6 +138,27 @@ export async function changeOrder(id: string, change: (current: OrderItem | null
     if (saved === 1) return after;
   }
   throw new Error('Order changed concurrently; please retry');
+}
+
+export async function upsertBulkOrders(items: OrderItem[]): Promise<OrderItem[]> {
+  const orders = await localOrders();
+  for (const it of items) {
+    if (it && it.orderId) {
+      orders[it.orderId] = it;
+      memoryStore.set(it.orderId, it);
+      if (useRedis()) {
+        try {
+          await redis(['HSET', hash, it.orderId, JSON.stringify(it)]);
+        } catch {}
+      }
+    }
+  }
+  try {
+    await mkdir(path.dirname(localFile), { recursive: true });
+    await writeFile(`${localFile}.tmp`, JSON.stringify(orders), 'utf8');
+    await rename(`${localFile}.tmp`, localFile);
+  } catch {}
+  return Object.values(orders);
 }
 
 export async function clearOrders(): Promise<void> {

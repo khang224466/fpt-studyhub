@@ -9,7 +9,7 @@ const headers = { 'Cache-Control': 'no-store' };
 const reply = (body: unknown, status = 200) => NextResponse.json(body, { status, headers });
 const denied = () => reply({ success: false, message: 'Cần xác thực quản trị viên.' }, 401);
 const failed = () => reply({ success: false, message: 'Không thể lưu đơn hàng. Kiểm tra cấu hình kho dữ liệu riêng và khóa ký license.' }, 503);
-const validId = (id: unknown): id is string => typeof id === 'string' && /^ORD-[0-9a-f-]{36}$/i.test(id);
+const validId = (id: unknown): id is string => typeof id === 'string' && /^ORD-[\w-]{4,50}$/i.test(id);
 
 export async function POST(req: NextRequest) {
   let body;
@@ -48,6 +48,11 @@ export async function PUT(req: NextRequest) {
   try { body = await req.json(); } catch { return reply({ success: false }, 400); }
   if (!body || typeof body !== 'object') return reply({ success: false }, 400);
   const action = body.action;
+  if (action === 'sync_bulk' && Array.isArray(body.orders)) {
+    const { upsertBulkOrders } = await import('@/lib/orderRepository');
+    const updatedList = await upsertBulkOrders(body.orders);
+    return reply({ success: true, orders: updatedList, count: updatedList.length });
+  }
   if (!['confirm_transfer', 'approve', 'extend', 'revoke'].includes(action)) return reply({ success: false, message: 'Thao tác không hợp lệ.' }, 400);
   if (action === 'extend' && (!Number.isInteger(body.addDays) || body.addDays < 1 || body.addDays > 365)) return reply({ success: false, message: 'Số ngày phải từ 1 đến 365.' }, 400);
   try {
