@@ -154,7 +154,7 @@
       <div class="title-box">
         <div class="icon">⚡</div>
         <div>
-          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.16</span></h1>
+          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.51 PRO</span></h1>
           <div class="sub">Vượt CSP Cloudflare 100% • Đồng Bộ Realtime 2 Chiều</div>
         </div>
       </div>
@@ -172,24 +172,14 @@
       </div>
     </div>
 
-    <!-- Khóa Bảo Mật: Không hiển thị Plain Key & Không cho phép người dùng tự nhập Key -->
-    <div class="key-box" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 10px 12px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:15px;">🔒</span>
-          <div>
-            <div style="font-size:11px;color:#fff;font-weight:700;">Bản Quyền AI Pro: Cấp Quyền Độc Quyền</div>
-            <div style="font-size:9.5px;color:#94a3b8;">Key bảo mật được cấp bởi Admin • Khóa an toàn 100%</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;background:rgba(16,185,129,0.15);padding:2px 7px;border-radius:6px;border:1px solid rgba(16,185,129,0.3);">
-          <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#10b981;"></span>
-          <span style="font-size:9.5px;color:#10b981;font-weight:700;">ĐÃ KÍCH HOẠT</span>
-        </div>
+    <div class="key-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:11px;color:#94a3b8;font-weight:600;">🔑 Google Gemini API Key:</span>
+        <span id="key-badge" style="font-size:9.5px;color:#10b981;font-weight:700;">✓ Đã sẵn sàng</span>
       </div>
-      <div style="margin-top:6px;padding:5px 8px;background:#060a12;border-radius:6px;border:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-family:monospace;font-size:10px;color:#64748b;letter-spacing:2px;">••••••••••••••••••••••••••••••••••••••••</span>
-        <span style="font-size:9.5px;color:#38bdf8;font-weight:600;">Được cấp bởi Admin</span>
+      <div style="display:flex;gap:6px;">
+        <input id="custom-key-input" type="text" placeholder="AQ.Ab8... hoặc AIzaSy..." style="flex:1;background:#0b0f19;border:1px solid #334155;color:#38bdf8;font-family:monospace;font-size:10px;padding:5px 8px;border-radius:6px;outline:none;" />
+        <button id="save-key-btn" style="background:#059669;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;font-weight:700;cursor:pointer;">Lưu Key</button>
       </div>
     </div>
 
@@ -197,7 +187,364 @@
     <div id="logs" class="logs-box"></div>
   </div>
 
-  <script src="/bridge-client.js"></script>
+  <script>
+    const logsEl = document.getElementById('logs');
+    const statusEl = document.getElementById('bridge-status');
+    const keyInput = document.getElementById('custom-key-input');
+    const saveKeyBtn = document.getElementById('save-key-btn');
+    const keyBadge = document.getElementById('key-badge');
+
+    const SALT = 'ENX_SEC_2026_FLASH_LITE';
+    const ENCRYPTED_DEFAULT_TOKEN = 'ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl';
+
+    function extractTrueGeminiKey(keyStr) {
+      let cur = (keyStr || '').trim();
+      for (let depth = 0; depth < 5; depth++) {
+        if (cur.startsWith('AIzaSy') || cur.startsWith('AIza') || cur.startsWith('AQ.') || (!cur.startsWith('ENC_') && cur.length >= 20)) {
+          return cur;
+        }
+        if (!cur.startsWith('ENC_AI_')) {
+          break;
+        }
+        try {
+          const b64 = cur.slice(7);
+          const hex = atob(b64);
+          let out = '';
+          for (let i = 0; i < hex.length; i += 2) {
+            const c = parseInt(hex.substr(i, 2), 16) ^ SALT.charCodeAt((i / 2) % SALT.length);
+            out += String.fromCharCode(c);
+          }
+          if (out.startsWith('EXP|')) {
+            const parts = out.split('|');
+            cur = parts.slice(3).join('|').trim();
+          } else {
+            cur = out.trim();
+          }
+        } catch (e) {
+          break;
+        }
+      }
+      if (cur.startsWith('AIzaSy') || cur.startsWith('AIza') || cur.startsWith('AQ.') || (!cur.startsWith('ENC_') && cur.length >= 20)) {
+        return cur;
+      }
+      return '';
+    }
+
+    function log(type, msg) {
+      const time = new Date().toLocaleTimeString('vi-VN');
+      const div = document.createElement('div');
+      div.style.color = type === 'err' ? '#ef4444' : type === 'warn' ? '#f59e0b' : type === 'success' ? '#10b981' : '#94a3b8';
+      div.textContent = `[${time}] ${msg}`;
+      logsEl.appendChild(div);
+      logsEl.scrollTop = logsEl.scrollHeight;
+    }
+
+    log('success', '✓ Khởi tạo AI Bridge v10.2.38 thành công!');
+
+    // Initialize Key UI with auto-decrypted clean key
+    let activeSavedKey = '';
+    try {
+      const stored = localStorage.getItem('enx_bridge_gemini_key');
+      activeSavedKey = extractTrueGeminiKey(stored) || extractTrueGeminiKey(ENCRYPTED_DEFAULT_TOKEN);
+      if (activeSavedKey) {
+        localStorage.setItem('enx_bridge_gemini_key', activeSavedKey);
+      }
+    } catch(_) {
+      activeSavedKey = extractTrueGeminiKey(ENCRYPTED_DEFAULT_TOKEN);
+    }
+    if (keyInput) keyInput.value = activeSavedKey;
+
+    if (saveKeyBtn) {
+      saveKeyBtn.onclick = function() {
+        const val = (keyInput.value || '').trim();
+        if (val) {
+          const cleanKey = extractTrueGeminiKey(val) || val;
+          try {
+            localStorage.setItem('enx_bridge_gemini_key', cleanKey);
+            activeSavedKey = cleanKey;
+            keyInput.value = cleanKey;
+            log('success', '✓ Đã lưu Google Gemini API Key mới thành công!');
+            if (keyBadge) keyBadge.textContent = '✓ Đã lưu';
+          } catch(e) {}
+        }
+      };
+    }
+
+    // 1. HANDSHAKE & HEARTBEAT VỚI CỬA SỔ EDUNEXT
+    let edunextWindow = null;
+
+    function syncWithEduNext() {
+      const target = edunextWindow || window.opener;
+      if (target && !target.closed) {
+        try {
+          target.postMessage({ type: 'ENX_BRIDGE_READY' }, '*');
+          statusEl.innerHTML = '<span class="dot" style="background:#10b981"></span> 🟢 Đã liên kết với cửa sổ EduNext!';
+          return true;
+        } catch(e) {}
+      } else {
+        statusEl.innerHTML = '<span class="dot" style="background:#f59e0b"></span> ⚠️ Đang chờ EduNext mở Cầu Nối...';
+        return false;
+      }
+    }
+
+    if (syncWithEduNext()) {
+      log('success', '✓ Đã đồng bộ với cửa sổ EduNext!');
+    }
+    setInterval(syncWithEduNext, 2000);
+
+    let cachedModelList = null;
+    let preferredModel = 'gemini-flash-lite-latest';
+
+    async function discoverModels(cleanKey) {
+      if (cachedModelList && cachedModelList.length > 0) return cachedModelList;
+      log('info', 'Đang đồng bộ model Google Gemini Studio khả dụng...');
+
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`, {
+          method: 'GET',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.models && Array.isArray(data.models)) {
+            // LỌC BỎ PRO VÀ ULTRA - CHỈ GIỮ FLASH CAO RPM
+            const visionCandidates = data.models
+              .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+              .map(m => m.name.replace(/^models\//, ''))
+              .filter(name => 
+                !name.includes('tts') &&
+                !name.includes('audio') &&
+                !name.includes('embed') &&
+                !name.includes('aqa') &&
+                !name.includes('gemma') &&
+                !name.includes('2.5') &&
+                !name.includes('pro') &&
+                !name.includes('ultra')
+              );
+
+            const flashPriority = [
+              'gemini-flash-lite-latest',
+              'gemini-2.0-flash-lite',
+              'gemini-2.0-flash-lite-preview-02-05',
+              'gemini-1.5-flash',
+              'gemini-1.5-flash-latest',
+              'gemini-2.0-flash',
+              'gemini-flash-latest',
+              'gemini-1.5-flash-8b'
+            ];
+
+            const prioritized = flashPriority.filter(m => visionCandidates.includes(m));
+            const others = visionCandidates.filter(m => !flashPriority.includes(m));
+            cachedModelList = [...prioritized, ...others];
+
+            if (cachedModelList.length > 0) {
+              log('success', `✓ Đã chọn ${cachedModelList.length} model Vision khả dụng: ${cachedModelList.slice(0, 3).join(', ')}...`);
+              return cachedModelList;
+            }
+          }
+        }
+      } catch (err) {
+        log('warn', 'Không thể lấy danh sách model trực tiếp, chuyển sang danh sách chuẩn...');
+      }
+
+      cachedModelList = [
+        'gemini-flash-lite-latest',
+        'gemini-2.0-flash-lite',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-latest',
+        'gemini-2.0-flash',
+        'gemini-flash-latest'
+      ];
+      return cachedModelList;
+    }
+
+    // KHÓA ĐỒNG BỘ & ĐIỀU TIẾT NHỊP (CHỐNG SPAM LIÊN TỤC & 429 RATE LIMIT)
+    let isBridgeSolving = false;
+    let lastBridgeReqTime = 0;
+
+    window.addEventListener('message', async (e) => {
+      const data = e.data;
+      if (!data || typeof data !== 'object') return;
+
+      if (e.source) {
+        edunextWindow = e.source;
+      }
+
+      if (data.type === 'ENX_PING' || data.type === 'ENX_BRIDGE_PONG') {
+        const target = e.source || edunextWindow || window.opener;
+        if (target) {
+          try { target.postMessage({ type: 'ENX_BRIDGE_PONG' }, '*'); } catch(_) {}
+        }
+        statusEl.innerHTML = '<span class="dot" style="background:#10b981"></span> 🟢 Đã liên kết với cửa sổ EduNext!';
+        return;
+      }
+
+      if (data.type === 'ENX_SOLVE_REQ') {
+        const { requestId, rawKey, promptText, imageBase64 } = data;
+        const targetWin = e.source || edunextWindow || window.opener;
+
+        if (isBridgeSolving) {
+          log('info', 'Đang xử lý câu hỏi trước đó, tạm hoãn yêu cầu lặp...');
+          return;
+        }
+
+        // ĐIỀU TIẾT NHỊP: Giữ khoảng cách tối thiểu 4 giây giữa các lần gọi để không bị Google 429
+        const now = Date.now();
+        if (now - lastBridgeReqTime < 4000) {
+          const waitMs = 4000 - (now - lastBridgeReqTime);
+          log('info', `Giữ nhịp an toàn (chờ ${(waitMs / 1000).toFixed(1)}s tránh lỗi 429)...`);
+          await new Promise(r => setTimeout(r, waitMs));
+        }
+        lastBridgeReqTime = Date.now();
+
+        isBridgeSolving = true;
+        statusEl.innerHTML = '<span class="dot" style="background:#38bdf8"></span> ⚡ Đang giải bài tập từ ảnh...';
+        log('info', `Nhận yêu cầu: ${imageBase64 ? '📸 Ảnh Vision + ' : ''}"${(promptText || '').slice(0, 35)}..."`);
+
+        try {
+          const trueGeminiKey = extractTrueGeminiKey(rawKey) || activeSavedKey || extractTrueGeminiKey(ENCRYPTED_DEFAULT_TOKEN);
+          let answer = null;
+          let lastErr = null;
+
+          if (trueGeminiKey) {
+            const candidateModels = await discoverModels(trueGeminiKey);
+
+            const parts = [];
+            if (imageBase64) {
+              const b64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+              parts.push({ inlineData: { mimeType: 'image/jpeg', data: b64 } });
+            }
+            parts.push({ text: promptText || 'Giải bài tập trên ảnh' });
+
+            const orderedModels = [preferredModel].concat(candidateModels.filter(m => m !== preferredModel));
+
+            for (const model of orderedModels) {
+              try {
+                log('info', `Gửi API tới Google Studio (${model})...`);
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(trueGeminiKey)}`;
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+                const res = await fetch(url, {
+                  method: 'POST',
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': trueGeminiKey
+                  },
+                  signal: controller.signal,
+                  body: JSON.stringify({
+                    contents: [{ role: 'user', parts }],
+                    systemInstruction: {
+                      parts: [{
+                        text: 'Bạn là Trợ lý Học tập FPT EduNext AI Pro. Đọc kỹ câu hỏi và mọi phản hồi, gợi ý của giáo viên. Nếu giáo viên vừa từ chối câu trả lời trước, tuyệt đối không lặp lại câu sai cũ mà phải đưa ra đáp án mới đúng theo gợi ý. Trả lời đúng mẫu yêu cầu (ví dụ: "Trả lời: [đáp án]").'
+                      }]
+                    },
+                    generationConfig: {
+                      temperature: 0.1,
+                      maxOutputTokens: 800
+                    }
+                  })
+                });
+
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                  const resJson = await res.json();
+                  const candidate = resJson.candidates && resJson.candidates[0];
+                  if (candidate && candidate.content && candidate.content.parts && candidate.content.parts[0]) {
+                    const rawAns = candidate.content.parts[0].text || '';
+                    if (rawAns.trim()) {
+                      answer = rawAns.replace(/```(?:markdown|json|text)?/gi, '').replace(/```/g, '').trim();
+                      answer = answer.replace(/^\*\*Trả lời:\*\*/i, 'Trả lời:').trim();
+                      preferredModel = model;
+                      log('success', `✓ Gemini (${model}) phản hồi: "${answer.slice(0, 30)}..." (Đã lưu ưu tiên)`);
+                      break;
+                    }
+                  }
+                } else {
+                  const errText = await res.text();
+                  lastErr = `Model ${model} HTTP ${res.status}: ${errText.slice(0, 50)}`;
+                  log('warn', lastErr);
+
+                  if ((res.status === 400 || res.status === 401) && (errText.includes('API key not valid') || errText.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED'))) {
+                    log('warn', `Google báo key lỗi (${res.status}), chuyển sang Cloud Engine dự phòng...`);
+                    break;
+                  }
+
+                  if (res.status === 429) {
+                    log('warn', `⚠️ Bị giới hạn tần suất 429 trên model ${model}, thử model khác...`);
+                  }
+                }
+              } catch (modelErr) {
+                if (modelErr.name === 'AbortError') {
+                  log('warn', `Model ${model} quá hạn (timeout 20s) -> Bỏ qua`);
+                } else {
+                  log('warn', `Lỗi gọi model ${model}: ${modelErr.message}`);
+                }
+              }
+            }
+          }
+
+          // Fallback to Cloud Engine if needed
+          if (!answer) {
+            log('warn', '⚡ Đang gọi Cloud Engine dự phòng...');
+            try {
+              const cloudRes = await fetch('/api/v1/ai/solve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  question: promptText,
+                  images: imageBase64 ? [imageBase64] : [],
+                  licenseKey: rawKey || activeSavedKey,
+                  apiKeyOverride: trueGeminiKey
+                })
+              });
+              const cloudData = await cloudRes.json();
+              if (cloudData.success && cloudData.answer) {
+                answer = cloudData.answer;
+                log('success', '✓ Cloud Engine giải thành công!');
+              } else {
+                lastErr = cloudData.message || 'Cloud Engine không phản hồi';
+              }
+            } catch(ce) {
+              lastErr = ce.message;
+            }
+          }
+
+          if (answer) {
+            statusEl.innerHTML = '<span class="dot" style="background:#10b981"></span> ✓ Đã giải xong, đang gửi về EduNext';
+            if (targetWin) {
+              targetWin.postMessage({
+                type: 'ENX_SOLVE_RES',
+                requestId,
+                success: true,
+                answer
+              }, '*');
+            }
+          } else {
+            statusEl.innerHTML = '<span class="dot" style="background:#ef4444"></span> ✗ Lỗi giải bài';
+            if (targetWin) {
+              targetWin.postMessage({
+                type: 'ENX_SOLVE_RES',
+                requestId,
+                success: false,
+                error: lastErr || 'Google Gemini không phản hồi'
+              }, '*');
+            }
+          }
+        } finally {
+          isBridgeSolving = false;
+          setTimeout(() => {
+            if (statusEl.innerHTML.includes('Đã giải xong')) {
+              statusEl.innerHTML = '<span class="dot"></span> Đang sẵn sàng nhận bài tiếp theo...';
+            }
+          }, 3000);
+        }
+      }
+    });
+  </script>
 
 </body>
 </html>

@@ -22,7 +22,7 @@ const minifiedCode = JSON.parse('"' + rawMinified + '"');
 console.log('Successfully extracted minifiedCode, length:', minifiedCode.length);
 
 const finalScript = `/**
- * EduNext AI Assistant Pro v10.2.50 (Auto-Solve & 35s Countdown Timer)
+ * EduNext AI Assistant Pro v10.2.51 (Auto-Solve & 35s Countdown Timer)
  * Delivered via jsDelivr CDN — Whitelisted by FPT EduNext CSP & TrustedTypes
  */
 (function() {
@@ -41,6 +41,10 @@ const finalScript = `/**
 })();
 `;
 
-const outputPath = path.join(__dirname, '../../v10_2_50_minified.js');
-fs.writeFileSync(outputPath, finalScript, 'utf8');
-console.log('Saved to', outputPath, 'size:', finalScript.length);
+const outputPath51 = path.join(__dirname, '../../v10_2_51_minified.js');
+fs.writeFileSync(outputPath51, finalScript, 'utf8');
+console.log('Saved to', outputPath51, 'size:', finalScript.length);
+
+const outputPath50 = path.join(__dirname, '../../v10_2_50_minified.js');
+fs.writeFileSync(outputPath50, finalScript, 'utf8');
+console.log('Saved to', outputPath50, 'size:', finalScript.length);
