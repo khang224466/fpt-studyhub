@@ -195,7 +195,7 @@ export default function ActivatePage() {
                   className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold text-sm shadow-xl shadow-emerald-950/80 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-emerald-400/40 select-none"
                 >
                   {copiedScript ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-                  <span>{copiedScript ? '✓ Đã sao chép mã! Hãy chuột phải Bookmark và dán' : `📋 Bấm Sao Chép Mã ${searchResult.service.name} (v10.2.50)`}</span>
+                  <span>{copiedScript ? '✓ Đã sao chép mã! Hãy chuột phải Bookmark và dán' : `📋 Bấm Sao Chép Mã ${searchResult.service.name} (v10.2.55)`}</span>
                 </button>
               </div>
 
@@ -216,7 +216,7 @@ export default function ActivatePage() {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-700 transition-colors"
                 >
                   <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Cài Tampermonkey (v10.2.50)</span>
+                  <span>Cài Tampermonkey (v10.2.55)</span>
                 </a>
               </div>
             </div>
@@ -231,7 +231,7 @@ export default function ActivatePage() {
                 <li>Bấm nút <strong>Sao Chép Mã</strong> ở trên</li>
                 <li>Chuột phải lên thanh Bookmark trình duyệt (Ctrl+Shift+B) &rarr; Chọn <strong>Thêm trang...</strong> &rarr; Dán vào ô URL</li>
                 <li>Truy cập vào trang học tập: <strong>https://{searchResult.service.targetDomain}</strong></li>
-                <li>Nhấn vào nút Bookmark vừa tạo &rarr; Bảng điều khiển HUD <strong>v10.2.50 PRO</strong> sẽ xuất hiện, tự động giải bài và nộp theo mẫu 35s!</li>
+                <li>Nhấn vào nút Bookmark vừa tạo &rarr; Bảng điều khiển HUD <strong>v10.2.55 PRO</strong> sẽ xuất hiện, tự động giải bài và nộp theo mẫu 35s!</li>
               </ol>
             </div>
           </div>

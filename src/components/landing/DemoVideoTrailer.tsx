@@ -41,22 +41,32 @@ export function DemoVideoTrailer() {
   };
 
   const steps = [
-    { id: 1, time: 0, title: '1. Tự Động Quét Đề', desc: 'Auto Vision quét màn hình đề bài EduNext' },
-    { id: 2, time: 7, title: '2. Gemini Flash-Lite Giải Bài', desc: 'AI trả lời đúng mẫu Trả lời: [...] trong 1.2s' },
-    { id: 3, time: 14, title: '3. Điền React Fiber & Nộp', desc: 'Đồng bộ 5 tầng DOM và bấm Nộp 100%' },
-    { id: 4, time: 21, title: '4. Vòng Lặp Auto Liên Tục', desc: 'Tự chuyển câu kế tiếp đến khi hoàn thành' }
+    { id: 1, time: 0, title: '1. Tự Động Quét Đề', desc: 'Auto Vision quét đề bài CSD201 Dijkstra' },
+    { id: 2, time: 7, title: '2. Gemini Flash-Lite Giải', desc: 'AI phân tích & trích xuất đáp án O((V+E)logV) trong 1.1s' },
+    { id: 3, time: 14, title: '3. Điền React Fiber & Nộp', desc: 'Đồng bộ 5 tầng DOM và nộp câu trả lời 100%' },
+    { id: 4, time: 21, title: '4. Vòng Lặp Auto & Tiếng Anh', desc: 'Tự động bắt câu chuyển phần Yes/Ready và làm liên tục' }
   ];
 
-  // Simulated content typed in textarea
-  const fullAnswer = "Trả lời: Cơ chế Buffer Overflow xảy ra khi dữ liệu vượt quá kích thước bộ đệm. Để phòng ngừa hiệu quả trong môi trường hệ thống: 1. Áp dụng ASLR (Address Space Layout Randomization) để ngẫu nhiên hóa không gian địa chỉ bộ nhớ; 2. Sử dụng Stack Canary nhằm phát hiện các hành vi ghi đè con trỏ lệnh trả về trước khi mã độc được thực thi.";
-  
+  // Matched Q&A for CSD201 Algorithm Question
+  const answerQ1 = "Trả lời: Độ phức tạp thời gian của thuật toán Dijkstra khi sử dụng Priority Queue (Min-Heap) là O((V + E) log V), trong đó V là số lượng đỉnh và E là số lượng cạnh của đồ thị. Với đồ thị liên thông đơn giản, có thể biểu diễn rút gọn là O(E log V).";
+  const answerQ2 = "Yes";
+
+  const isQuestion1 = playbackTime < 21;
+  const currentAnswer = isQuestion1 ? answerQ1 : answerQ2;
+
   let streamedText = "";
   if (playbackTime >= 10 && playbackTime < 15) {
     const progress = (playbackTime - 10) / 4;
-    streamedText = fullAnswer.slice(0, Math.floor(fullAnswer.length * progress));
-  } else if (playbackTime >= 15) {
-    streamedText = fullAnswer;
+    streamedText = answerQ1.slice(0, Math.floor(answerQ1.length * progress));
+  } else if (playbackTime >= 15 && playbackTime < 21) {
+    streamedText = answerQ1;
+  } else if (playbackTime >= 21 && playbackTime < 24) {
+    streamedText = "Yes";
+  } else if (playbackTime >= 24) {
+    streamedText = "";
   }
+
+  const countdown = Math.max(7, 35 - Math.floor(playbackTime));
 
   return (
     <section id="trailer" className="py-20 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-t border-slate-800/80 relative overflow-hidden">
@@ -88,13 +98,13 @@ export function DemoVideoTrailer() {
               <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" />
               <div className="ml-3 hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300">
                 <span className="text-emerald-400">🔒 https://</span>
-                <span>fsc-edunext.fpt.edu.vn/home/course/class-session</span>
+                <span>fsc-edunext.fpt.edu.vn/home/course/csd201-session</span>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                Live Simulation (v10.2.23)
+                Live Simulation (v10.2.55 PRO)
               </span>
             </div>
           </div>
@@ -137,17 +147,21 @@ export function DemoVideoTrailer() {
                       <span className="text-[11px] font-bold text-amber-400">Giảng Viên EduNext</span>
                       <span className="text-[10px] text-slate-500 font-mono">10:14 AM</span>
                     </div>
-                    <p className="text-xs text-slate-200 leading-relaxed font-medium">
-                      {playbackTime < 21 ? (
+                    <div className="text-xs text-slate-200 leading-relaxed font-medium">
+                      {isQuestion1 ? (
                         <>
-                          <strong>Câu hỏi 1:</strong> Phân tích cơ chế chống tràn bộ nhớ trong Buffer Overflow và giải pháp phòng ngừa bằng ASLR & Stack Canary? Trả lời theo mẫu: <span className="text-emerald-400 font-mono font-bold">Trả lời: [đáp án]</span>
+                          <div className="mb-1"><strong>Câu hỏi 1:</strong> Trình bày độ phức tạp thời gian thuật toán Dijkstra tìm đường đi ngắn nhất khi sử dụng Priority Queue (Min-Heap)?</div>
+                          <div>Trả lời theo mẫu: <span className="text-emerald-400 font-mono font-bold">Trả lời: [đáp án]</span></div>
                         </>
                       ) : (
-                        <>
-                          <strong>Câu hỏi 2:</strong> Trình bày độ phức tạp thời gian thuật toán Dijkstra tìm đường đi ngắn nhất khi sử dụng Priority Queue (Min-Heap)?
-                        </>
+                        <div className="space-y-1">
+                          <div className="text-emerald-400 text-[11px] font-semibold">✓ Đã hoàn thành Câu hỏi 1 (10/10 Điểm). Chuyển sang phần tiếp theo:</div>
+                          <div className="text-slate-100 font-semibold flex items-center gap-2">
+                            <span>Are you ready to move on to the next part? 🚀</span>
+                          </div>
+                        </div>
                       )}
-                    </p>
+                    </div>
                   </div>
                 </div>
 
@@ -155,12 +169,12 @@ export function DemoVideoTrailer() {
                 {activeStep === 2 && (
                   <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-950/70 border border-emerald-500/50 px-3 py-2 rounded-xl max-w-md animate-pulse">
                     <Sparkles className="w-4 h-4 text-emerald-400 animate-spin" />
-                    <span>⚡ <strong>Gemini 2.0 Flash-Lite:</strong> Đang phân tích đề & trích xuất đáp án chính xác... (1.2s)</span>
+                    <span>⚡ <strong>Gemini 2.0 Flash-Lite:</strong> Đang phân tích thuật toán Dijkstra & giải theo mẫu... (1.1s)</span>
                   </div>
                 )}
 
-                {/* Student Answer Bubble (Active in Step 3 & 4) */}
-                {playbackTime >= 15 && (
+                {/* Student Answer Bubble */}
+                {playbackTime >= 15 && isQuestion1 && (
                   <div className="flex items-start justify-end gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="bg-emerald-950/60 border border-emerald-500/60 p-3.5 rounded-2xl rounded-tr-sm max-w-md shadow-md text-right space-y-1">
                       <div className="flex items-center justify-between gap-4">
@@ -168,11 +182,33 @@ export function DemoVideoTrailer() {
                         <span className="text-[11px] font-bold text-emerald-400">Bạn (Sinh Viên)</span>
                       </div>
                       <p className="text-xs text-slate-100 text-left leading-relaxed">
-                        {fullAnswer}
+                        {answerQ1}
                       </p>
                       <div className="pt-1 text-[10px] text-emerald-400 font-bold flex items-center justify-end gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>Hệ thống chấm: 10/10 Điểm</span>
+                      </div>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                      SV
+                    </div>
+                  </div>
+                )}
+
+                {/* Student Transition Answer (Yes) in Step 4 */}
+                {playbackTime >= 22 && !isQuestion1 && (
+                  <div className="flex items-start justify-end gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="bg-emerald-950/60 border border-emerald-500/60 p-3 rounded-2xl rounded-tr-sm shadow-md text-right space-y-1">
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-[10px] text-emerald-300 font-mono">✓ Tự động trả lời Ready/Yes</span>
+                        <span className="text-[11px] font-bold text-emerald-400">Bạn (Sinh Viên)</span>
+                      </div>
+                      <p className="text-xs text-emerald-300 font-bold text-left">
+                        Yes
+                      </p>
+                      <div className="pt-0.5 text-[10px] text-emerald-400 font-medium flex items-center justify-end gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>Đã chuyển phần thành công!</span>
                       </div>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
@@ -192,6 +228,12 @@ export function DemoVideoTrailer() {
                       Tự động gõ & kích hoạt onSendMessage...
                     </span>
                   )}
+                  {playbackTime >= 21 && (
+                    <span className="text-cyan-400 font-bold flex items-center gap-1">
+                      <Zap className="w-3 h-3" />
+                      Tự động nộp "Yes" chuyển phần bài tập...
+                    </span>
+                  )}
                 </div>
                 <div className="relative">
                   <div className="w-full h-16 p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs font-sans text-slate-200 overflow-hidden">
@@ -208,7 +250,7 @@ export function DemoVideoTrailer() {
                   <div className="relative">
                     <button 
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                        activeStep === 3
+                        activeStep === 3 || (playbackTime >= 21 && playbackTime < 23)
                           ? 'bg-emerald-500 text-slate-950 ring-4 ring-emerald-500/40 scale-105'
                           : 'bg-emerald-600 text-white'
                       }`}
@@ -216,7 +258,7 @@ export function DemoVideoTrailer() {
                       <span>Nộp câu trả lời</span>
                       <Send className="w-3 h-3" />
                     </button>
-                    {activeStep === 3 && (
+                    {(activeStep === 3 || (playbackTime >= 21 && playbackTime < 23)) && (
                       <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping" />
                     )}
                   </div>
@@ -224,7 +266,7 @@ export function DemoVideoTrailer() {
               </div>
             </div>
 
-            {/* Right: The Floating HUD v10.2.23 */}
+            {/* Right: The Floating HUD v10.2.55 PRO */}
             <div className="w-full md:w-80 p-4 bg-slate-950/95 flex flex-col justify-between border-t md:border-t-0 select-none">
               <div className="space-y-3">
                 {/* HUD Header */}
@@ -236,11 +278,14 @@ export function DemoVideoTrailer() {
                     <div>
                       <div className="text-xs font-extrabold text-white flex items-center gap-1.5">
                         <span>EduNext AI Pro</span>
-                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1 py-0.2 rounded border border-emerald-500/30 font-mono">
-                          v10.2.23
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1 py-0.2 rounded border border-emerald-500/30 font-mono font-bold">
+                          v10.2.55 PRO
                         </span>
                       </div>
-                      <div className="text-[10px] text-emerald-400 font-semibold">Auto Loop: BẬT 100%</div>
+                      <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                        <span>Auto Loop 35s</span>
+                        <span className="bg-amber-400 text-slate-950 px-1 py-0.2 rounded font-black text-[9px]">{countdown}s</span>
+                      </div>
                     </div>
                   </div>
                   <div className="text-xs text-slate-500">─ ✕</div>
@@ -251,47 +296,50 @@ export function DemoVideoTrailer() {
                   <div className="p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
                       <span>🔑 Bản quyền:</span>
-                      <span className="text-white">Gói 1 Tháng</span>
+                      <span className="text-white font-bold">1 Kỳ Học (4 Tháng)</span>
                     </div>
-                    <span className="text-emerald-400 font-mono text-[10px]">Còn 28 ngày</span>
+                    <span className="text-emerald-400 font-mono text-[10px] font-bold bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30">ĐÃ KÍCH HOẠT</span>
                   </div>
 
                   <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-slate-300">
+                    <div className="flex items-center gap-1.5 text-slate-300">
                       <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                      <span>Màn hình: Auto Vision</span>
+                      <span>Màn hình: Đang kết nối (Auto Vision)</span>
                     </div>
-                    <Badge variant="emerald" size="sm">Đang kết nối</Badge>
+                    <span className="text-[10px] text-rose-400 font-bold bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-500/30">Ngắt</span>
                   </div>
 
                   <div className="flex gap-2">
-                    <button className="flex-1 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs shadow-md">
-                      🎯 Chụp & Giải
+                    <button className="flex-1 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-md shadow-emerald-950/50">
+                      🎯 Chụp & Giải Câu Này Ngay
                     </button>
-                    <button className="px-3 py-1.5 rounded-lg bg-emerald-950 border border-emerald-500 text-emerald-300 font-bold text-xs">
-                      ⚡ Auto: BẬT
+                    <button className="px-3 py-1.5 rounded-lg bg-emerald-950/80 border border-emerald-500 text-emerald-300 font-bold text-xs flex items-center gap-1">
+                      <span>⚡ Auto: {countdown}s</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Live Console Logs */}
-                <div className="p-2.5 rounded-lg bg-black border border-slate-800 font-mono text-[10px] space-y-1 h-32 overflow-hidden text-slate-400">
-                  <div className="text-emerald-400">[10:14:00] EduNext AI Pro v10.2.23 sẵn sàng!</div>
-                  <div className="text-slate-300">[10:14:01] Auto Loop đang chạy liên tục...</div>
+                <div className="p-2.5 rounded-lg bg-black border border-slate-800 font-mono text-[10px] space-y-1 h-36 overflow-hidden text-slate-400">
+                  <div className="text-emerald-400">[10:14:00] EduNext AI Pro v10.2.55 sẵn sàng!</div>
+                  <div className="text-emerald-300">[10:14:00] Key hợp lệ: 1 Kỳ Học (4 Tháng) (Sẵn sàng 100%)</div>
                   {playbackTime >= 2 && (
-                    <div className="text-cyan-400">[10:14:02] 📸 Auto Vision: Nhận diện câu hỏi mới!</div>
+                    <div className="text-cyan-400">[10:14:02] 📸 Auto Vision: Nhận diện đề bài Dijkstra (CSD201)!</div>
                   )}
                   {playbackTime >= 7 && (
-                    <div className="text-emerald-400">[10:14:03] ✓ Gemini Flash-Lite trả lời (1.2s)</div>
+                    <div className="text-emerald-400">[10:14:03] ✓ Gemini Flash-Lite trả lời: "Trả lời: O((V+E)logV)..." (1.1s)</div>
                   )}
                   {playbackTime >= 12 && (
-                    <div className="text-slate-300">[10:14:04] Đã điền React Fiber 5 tầng...</div>
+                    <div className="text-slate-300">[10:14:04] ✍️ Điền React Fiber 5 tầng & kiểm tra mẫu...</div>
                   )}
-                  {playbackTime >= 15 && (
-                    <div className="text-emerald-400 font-bold">[10:14:05] ✓ ĐÃ BẤM [Nộp câu trả lời] thành công!</div>
+                  {playbackTime >= 15 && playbackTime < 21 && (
+                    <div className="text-emerald-400 font-bold">[10:14:05] ✓ ĐÃ BẤM [Nộp câu trả lời] thành công! (10/10 Điểm)</div>
                   )}
                   {playbackTime >= 21 && (
-                    <div className="text-amber-400">[10:14:08] Tự động chuyển câu tiếp theo...</div>
+                    <>
+                      <div className="text-amber-400 font-semibold">[10:14:08] 🚀 Phát hiện câu hỏi chuyển phần: "Are you ready..." ➔ Nộp "Yes"!</div>
+                      <div className="text-emerald-400 font-bold">[10:14:09] ✓ ĐÃ NỘP XONG! Tự động chờ câu hỏi tiếp theo...</div>
+                    </>
                   )}
                 </div>
               </div>
@@ -300,10 +348,10 @@ export function DemoVideoTrailer() {
               <div className="pt-2 border-t border-slate-800 text-[11px] text-emerald-400 font-semibold flex items-center gap-1.5 truncate">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
                 <span className="truncate">
-                  {activeStep === 1 && "Đang quét và nhận diện đề bài..."}
-                  {activeStep === 2 && "Gemini Flash-Lite đang giải bài..."}
-                  {activeStep === 3 && "Đang tự động nộp câu trả lời..."}
-                  {activeStep === 4 && "Đã nộp xong! Tự động chờ câu kế..."}
+                  {activeStep === 1 && "Đang quét và nhận diện đề bài CSD201..."}
+                  {activeStep === 2 && "Gemini Flash-Lite đang giải thuật toán Dijkstra..."}
+                  {activeStep === 3 && "Đang tự động nộp câu trả lời qua React Fiber..."}
+                  {activeStep === 4 && "Đã nộp xong! Tự động bắt câu chuyển phần & tiếp tục..."}
                 </span>
               </div>
             </div>
@@ -386,7 +434,7 @@ export function DemoVideoTrailer() {
         <div className="mt-10 p-6 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-950 border border-emerald-500/40 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
             <h4 className="text-base sm:text-lg font-bold text-white">
-              Sẵn Sàng Trải Nghiệm EduNext AI Pro v10.2.23?
+              Sẵn Sàng Trải Nghiệm EduNext AI Pro v10.2.55?
             </h4>
             <p className="text-xs text-slate-400 mt-1">
               Đăng ký nhận Key bản quyền ngay để tự động hóa 100% việc làm bài tập trên lớp!
