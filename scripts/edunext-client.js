@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.58";
+        var t = "v10.2.59";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -771,7 +771,7 @@ function e(e, serverOrigin) {
                     })();
 
                     // If active input is available and question text exists, it is ALWAYS student's turn
-                    if (activeInput && n.questionBlockText && n.state === 'waiting_teacher') {
+                    if (activeInput && n.state === 'waiting_teacher') {
                         n.state = 'student_turn';
                     }
 
@@ -784,7 +784,7 @@ function e(e, serverOrigin) {
                             var i = n.lastTeacherMsg || "";
 
                             // 1. Ready & Transition Check (Supports English "Are you ready...", "Yes", and Vietnamese "Sẵn sàng")
-                            var cleanMsg = (i || "").toLowerCase();
+                            var cleanMsg = ((n.questionBlockText || "") + " " + (i || "") + " " + (document.body ? (document.body.innerText || "") : "")).slice(-3000).toLowerCase();
                             var isEnglishReady = 
                                 /are\s*you\s*ready/i.test(cleanMsg) ||
                                 /ready\s*to\s*(?:move|start|begin|practice|continue|go)/i.test(cleanMsg) ||
@@ -875,13 +875,7 @@ function e(e, serverOrigin) {
                                 }(i), E = n.fingerprint;
 
                                 if (E !== u || e) {
-                                    // If same fingerprint and automatic countdown: wait for EduNext to render new question
-                                    if (E === u && !isManual && !C) {
-                                        L("👀 Đã nộp bài, đang chờ EduNext phản hồi câu tiếp theo...", "#38bdf8");
-                                        remaining = 15;
-                                        updateCountdownUI();
-                                        return;
-                                    }
+                                    // Checked below after Gemini analysis
 
                                     s = !0;
                                     try {
@@ -945,6 +939,15 @@ function e(e, serverOrigin) {
 
                                         if (!A || /_{0,2}\s*NO_QUESTION\s*_{0,2}/i.test(A)) {
                                             L("👀 Đang theo dõi khi nào câu hỏi hiện lên...", "#94a3b8");
+                                            remaining = 15;
+                                            updateCountdownUI();
+                                            return void (s = !1);
+                                        }
+
+                                        if (l && A.trim().toLowerCase() === l.trim().toLowerCase() && !C) {
+                                            L("👀 Đã nộp đáp án '" + l.slice(0, 20) + "', đang chờ EduNext sang câu mới...", "#38bdf8");
+                                            remaining = 15;
+                                            updateCountdownUI();
                                             return void (s = !1);
                                         }
 

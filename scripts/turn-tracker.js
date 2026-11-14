@@ -2,7 +2,7 @@
 function readEduNextTurn(doc) {
   const text = element => (element?.innerText || element?.textContent || '').replace(/\s+/g, ' ').trim();
   const visible = element => !element.closest('#enx-pro-hud') && element.getClientRects().length > 0;
-  const after = (element, anchor) => !anchor || (!element.contains(anchor) && Boolean(anchor.compareDocumentPosition(element) & 4));
+  const after = (element, anchor) => !anchor || (!element.contains(anchor) && Boolean(anchor.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING));
   const all = selector => Array.from(doc.querySelectorAll(selector)).filter(visible);
 
   // 1. Locate student badge (supports Vietnamese and English)
@@ -25,77 +25,80 @@ function readEduNextTurn(doc) {
   // 3. Locate question content
   function findQuestion() {
     const allCandidates = all('div, section, article, p, span, h1, h2, h3, h4, h5, h6, [class*="question"], [class*="exercise"]');
-    const validCandidates = studentBadge ? allCandidates.filter(el => after(el, studentBadge)) : allCandidates;
+    // Prioritize candidates appearing AFTER the student message, but fall back to all candidates if needed
+    const afterCandidates = studentBadge ? allCandidates.filter(el => after(el, studentBadge)) : allCandidates;
+    const searchSets = afterCandidates.length > 0 ? [afterCandidates, allCandidates] : [allCandidates];
 
-    // A. Explicit heading elements containing "Câu hỏi:" or "Question:"
-    const headings = validCandidates.filter(el => {
-      const t = text(el);
-      return /^(?:câu\s*hỏi|question|bài\s*sau|đề\s*bài|exercise)\s*:/i.test(t) ||
-             /^(?:câu\s*hỏi|question|bài\s*sau|đề\s*bài|exercise)$/i.test(t);
-    });
-    if (headings.length > 0) {
-      const h = headings[headings.length - 1];
-      let curr = h;
-      let best = h;
-      while (curr && curr !== doc.body) {
-        const cText = text(curr);
-        if (cText.length > 25 && (cText.includes('?') || cText.includes('\n') || /answer|format|đáp\s*án/i.test(cText))) {
-          best = curr;
-          break;
+    for (let s = 0; s < searchSets.length; s++) {
+      const candidates = searchSets[s];
+
+      // A. Explicit heading elements containing "Câu hỏi:" or "Question:"
+      const headings = candidates.filter(el => {
+        const t = text(el);
+        return /(?:câu\s*hỏi|question|bài\s*sau|đề\s*bài|exercise)\s*:/i.test(t) ||
+               /^(?:câu\s*hỏi|question|bài\s*sau|đề\s*bài|exercise)$/i.test(t);
+      });
+      if (headings.length > 0) {
+        const h = headings[headings.length - 1];
+        let curr = h;
+        let best = h;
+        while (curr && curr !== doc.body) {
+          const cText = text(curr);
+          if (cText.length > 25 && (cText.includes('?') || cText.includes('\n') || /answer|format|đáp\s*án/i.test(cText))) {
+            best = curr;
+            break;
+          }
+          curr = curr.parentElement;
         }
-        curr = curr.parentElement;
+        return { element: best, text: text(best) };
       }
-      return { element: best, text: text(best) };
-    }
 
-    // B. Element with "Please answer using this format:" or "Answer: [your answer]" or "Trả lời: [đáp án của bạn]"
-    const formats = validCandidates.filter(el => {
-      const t = text(el);
-      return /(?:please\s*answer\s*using\s*this\s*format|answer\s*:\s*\[|trả\s*lời\s*:\s*\[)/i.test(t);
-    });
-    if (formats.length > 0) {
-      const fmt = formats[formats.length - 1];
-      let curr = fmt;
-      let best = fmt;
-      while (curr && curr !== doc.body) {
-        const cText = text(curr);
-        if (cText.length > 30 && (cText.includes('?') || /câu\s*hỏi|question|sentence|select|which/i.test(cText))) {
-          best = curr;
-          break;
+      // B. Transition / Ready prompts ("Are you ready to move on...", "Bạn đã sẵn sàng...")
+      const readyPrompts = candidates.filter(el => {
+        const t = text(el);
+        return /are\s*you\s*ready/i.test(t) || /ready\s*to\s*(?:move|start|begin)/i.test(t) || /đã\s*sẵn\s*sàng\s*(?:chưa|chuyển)/i.test(t);
+      });
+      if (readyPrompts.length > 0) {
+        const r = readyPrompts[readyPrompts.length - 1];
+        return { element: r, text: text(r) };
+      }
+
+      // C. Element with "Please answer using this format:" or "Answer: [your answer]" or "Trả lời: [đáp án của bạn]"
+      const formats = candidates.filter(el => {
+        const t = text(el);
+        return /(?:please\s*answer\s*using\s*this\s*format|answer\s*:\s*\[|trả\s*lời\s*:\s*\[)/i.test(t);
+      });
+      if (formats.length > 0) {
+        const fmt = formats[formats.length - 1];
+        let curr = fmt;
+        let best = fmt;
+        while (curr && curr !== doc.body) {
+          const cText = text(curr);
+          if (cText.length > 30 && (cText.includes('?') || /câu\s*hỏi|question|sentence|select|which/i.test(cText))) {
+            best = curr;
+            break;
+          }
+          curr = curr.parentElement;
         }
-        curr = curr.parentElement;
+        return { element: best, text: text(best) };
       }
-      return { element: best, text: text(best) };
-    }
 
-    // C. Teacher message container containing '?' or prompt
-    if (hasTeacherResponse) {
-      const lastTeacher = teacherMarkers[teacherMarkers.length - 1];
-      let curr = lastTeacher;
-      while (curr && curr !== doc.body) {
-        const cText = text(curr);
-        if (cText.length > 35 && (cText.includes('?') || /are\s*you\s*ready|sẵn\s*sàng/i.test(cText))) {
-          return { element: curr, text: cText };
-        }
-        curr = curr.parentElement;
+      // D. Class-based fallback
+      const qBoxes = candidates.filter(el => el.matches && el.matches('.exercise-question-block, [class*="exercise-question"], [class*="question-content"], .question-title, [class*="question-box"]'));
+      if (qBoxes.length > 0) {
+        const lastQ = qBoxes[qBoxes.length - 1];
+        return { element: lastQ, text: text(lastQ) };
       }
-    }
 
-    // D. Class-based fallback
-    const qBoxes = validCandidates.filter(el => el.matches && el.matches('.exercise-question-block, [class*="exercise-question"], [class*="question-content"], .question-title, [class*="question-box"]'));
-    if (qBoxes.length > 0) {
-      const lastQ = qBoxes[qBoxes.length - 1];
-      return { element: lastQ, text: text(lastQ) };
-    }
-
-    // E. General question text ending with '?' after student anchor
-    const questionTextEls = validCandidates.filter(el => {
-      const t = text(el);
-      return t.length > 25 && t.length < 1500 && (t.includes('?') || /modal\s*verb|obligation|generation\s*gap/i.test(t));
-    });
-    if (questionTextEls.length > 0) {
-      const lastQ = questionTextEls[questionTextEls.length - 1];
-      return { element: lastQ, text: text(lastQ) };
+      // E. General question text ending with '?'
+      const questionTextEls = candidates.filter(el => {
+        const t = text(el);
+        return t.length > 25 && t.length < 1500 && (t.includes('?') || /modal\s*verb|obligation|generation\s*gap/i.test(t));
+      });
+      if (questionTextEls.length > 0) {
+        const lastQ = questionTextEls[questionTextEls.length - 1];
+        return { element: lastQ, text: text(lastQ) };
+      }
     }
 
     return null;
@@ -113,14 +116,15 @@ function readEduNextTurn(doc) {
 
   // 5. State classification
   let state = 'idle';
-  if (questionBlockText && (questionBlockText.includes('?') || /câu\s*hỏi|question|answer\s*:/i.test(questionBlockText))) {
+  if (questionBlockText && (questionBlockText.includes('?') || /câu\s*hỏi|question|answer\s*:|ready/i.test(questionBlockText))) {
     state = 'student_turn';
   } else if (hasTeacherResponse) {
     state = 'student_turn';
+  } else if (activeInput && !activeInput.disabled) {
+    // If the input box is active and enabled, student is allowed to type!
+    state = 'student_turn';
   } else if (studentBadge && !hasTeacherResponse) {
     state = 'waiting_teacher';
-  } else if (activeInput && (questionBlockText || hasTeacherResponse)) {
-    state = 'student_turn';
   } else if (studentBadge) {
     state = 'waiting_teacher';
   }
