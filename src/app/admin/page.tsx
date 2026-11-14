@@ -56,13 +56,21 @@ export default function AdminPage() {
     <main className="min-h-screen grid place-items-center bg-slate-950 p-6">
       <form className="w-full max-w-md space-y-5 rounded-2xl border border-slate-700 p-8" onSubmit={async event => {
         event.preventDefault(); setBusy('login'); setMessage('');
-        try { const data = await request('/api/v1/orders', undefined, password); setOrders(data.orders); setToken(password); setPassword(''); }
-        catch (error) { setMessage(error instanceof Error ? error.message : 'Đăng nhập thất bại'); }
+        try {
+          const cleanPass = password.trim();
+          const data = await request('/api/v1/orders', undefined, cleanPass);
+          setOrders(data.orders);
+          setToken(cleanPass);
+          setPassword('');
+        } catch (error) { setMessage(error instanceof Error ? error.message : 'Đăng nhập thất bại'); }
         finally { setBusy(''); }
       }}>
         <h1 className="text-2xl font-bold">Quản trị FPT Study Hub</h1>
-        <label className="block" htmlFor="admin-token">Mã truy cập quản trị</label>
-        <input id="admin-token" type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full rounded-lg bg-slate-900 p-3 border border-slate-700" />
+        <div>
+          <label className="block mb-1 text-sm text-slate-300" htmlFor="admin-token">Mã truy cập quản trị</label>
+          <p className="text-xs text-slate-400 mb-2">Mật mã mặc định: <span className="font-mono text-emerald-400 font-bold">admin123</span> (hoặc token Vercel nếu có cài)</p>
+          <input id="admin-token" type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Nhập admin123" className="w-full rounded-lg bg-slate-900 p-3 border border-slate-700 text-white" />
+        </div>
         <Button disabled={Boolean(busy)} type="submit">Đăng nhập</Button>
         <p role="alert" className="text-amber-300">{message}</p>
         <Link href="/" className="block text-emerald-400">Về trang chủ</Link>

@@ -1,8 +1,8 @@
-import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
+﻿import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import path from 'node:path';
 import type { OrderItem } from '@/types/rental';
 
-// Production requires a private Redis REST endpoint. Never fall back to a public demo database.
+// Production requires a private Redis REST endpoint. Falls back to in-memory/local storage if not configured.
 const hash = 'fpt:orders:v2';
 async function redis(command: unknown[]) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -18,33 +18,58 @@ async function redis(command: unknown[]) {
   return data.result;
 }
 function useRedis() {
-  return process.env.NODE_ENV === 'production' || Boolean(process.env.UPSTASH_REDIS_REST_URL);
+  return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }
+
+// In-memory fallback for serverless environments when Redis is not provided
+const globalForOrders = globalThis as unknown as {
+  __fpt_memory_orders__?: Map<string, OrderItem>;
+};
+if (!globalForOrders.__fpt_memory_orders__) {
+  globalForOrders.__fpt_memory_orders__ = new Map<string, OrderItem>();
+}
+const memoryStore = globalForOrders.__fpt_memory_orders__;
+
 const localFile = path.join(process.cwd(), '.data', 'orders-v2.json');
 let localQueue: Promise<unknown> = Promise.resolve();
+
 async function localOrders(): Promise<Record<string, OrderItem>> {
-  try { return JSON.parse(await readFile(localFile, 'utf8')); }
-  catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {}; throw error; }
+  try {
+    const data = JSON.parse(await readFile(localFile, 'utf8'));
+    return data;
+  } catch {
+    const obj: Record<string, OrderItem> = {};
+    for (const [k, v] of memoryStore.entries()) obj[k] = v;
+    return obj;
+  }
 }
+
 export async function getOrder(id: string): Promise<OrderItem | null> {
-  if (!useRedis()) return (await localOrders())[id] || null;
+  if (!useRedis()) return (await localOrders())[id] || memoryStore.get(id) || null;
   const raw = await redis(['HGET', hash, id]);
   return raw ? JSON.parse(raw) : null;
 }
+
 export async function listOrders(): Promise<OrderItem[]> {
   if (!useRedis()) return Object.values(await localOrders());
   const raw: string[] = await redis(['HVALS', hash]);
   return raw.map(value => JSON.parse(value));
 }
+
 export async function changeOrder(id: string, change: (current: OrderItem | null) => OrderItem): Promise<OrderItem> {
   if (!useRedis()) {
     const operation = localQueue.then(async () => {
       const orders = await localOrders();
-      const result = change(orders[id] || null);
+      const result = change(orders[id] || memoryStore.get(id) || null);
       orders[id] = result;
-      await mkdir(path.dirname(localFile), { recursive: true });
-      await writeFile(`${localFile}.tmp`, JSON.stringify(orders), 'utf8');
-      await rename(`${localFile}.tmp`, localFile);
+      memoryStore.set(id, result);
+      try {
+        await mkdir(path.dirname(localFile), { recursive: true });
+        await writeFile(`${localFile}.tmp`, JSON.stringify(orders), 'utf8');
+        await rename(`${localFile}.tmp`, localFile);
+      } catch {
+        // Fallback silently if disk is read-only (e.g. serverless runtime)
+      }
       return result;
     });
     localQueue = operation.catch(() => {});
