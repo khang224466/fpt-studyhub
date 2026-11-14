@@ -45,6 +45,31 @@ export default function AdminPage() {
   const [isQuickApproving, setIsQuickApproving] = useState(false);
   const [extendingOrderId, setExtendingOrderId] = useState<string | null>(null);
   const [keyFilter, setKeyFilter] = useState<'all' | 'warning' | 'active' | 'expired'>('all');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [adminPin, setAdminPin] = useState<string>('');
+  const [pinError, setPinError] = useState<string>('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const auth = sessionStorage.getItem('fpt_admin_auth');
+      if (auth === 'true') {
+        setIsAuthenticated(true);
+      }
+    }
+  }, []);
+
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanPin = adminPin.trim();
+    if (cleanPin === 'FPTADMIN2026' || cleanPin === 'fptadmin2026' || cleanPin === '888713971161505832' || cleanPin === '858709070') {
+      setIsAuthenticated(true);
+      sessionStorage.setItem('fpt_admin_auth', 'true');
+      setPinError('');
+    } else {
+      setPinError('Mã PIN bảo mật không chính xác. Vui lòng kiểm tra lại!');
+    }
+  };
+
   const [lastGenerated, setLastGenerated] = useState<{
     key: string;
     planLabel: string;
@@ -526,6 +551,66 @@ export default function AdminPage() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="max-w-md w-full p-8 rounded-2xl bg-slate-900 border border-emerald-500/30 shadow-2xl shadow-emerald-950/50 space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400">
+              <ShieldCheck className="w-8 h-8 animate-pulse" />
+            </div>
+            <h1 className="text-xl font-bold text-white tracking-tight">
+              Xác Thực Quản Trị Viên Bảo Mật
+            </h1>
+            <p className="text-xs text-slate-400">
+              Hệ thống quản lý bản quyền & đơn hàng FPT StudyHub <span className="text-emerald-400 font-semibold">v10.2.62 PRO</span>
+            </p>
+          </div>
+
+          <form onSubmit={handlePinSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Nhập Mã PIN Quản Trị / Passcode:
+              </label>
+              <input
+                type="password"
+                value={adminPin}
+                onChange={(e) => { setAdminPin(e.target.value); setPinError(''); }}
+                placeholder="Nhập mã PIN truy cập..."
+                autoFocus
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-emerald-500 transition-colors"
+              />
+              {pinError && (
+                <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>{pinError}</span>
+                </p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full py-2.5 text-xs font-bold cursor-pointer"
+            >
+              Mở Khóa Quản Trị
+            </Button>
+          </form>
+
+          <div className="pt-4 border-t border-slate-800 text-center">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Quay lại trang chủ học tập</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -543,7 +628,7 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Web Quản Trị & Duyệt Cấp Key Bản Quyền
               </h1>
-              <Badge variant="emerald" size="sm">v10.2.61 PRO</Badge>
+              <Badge variant="emerald" size="sm">v10.2.62 PRO</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Admin: <strong>{BANK_CONFIG.accountName}</strong> • {BANK_CONFIG.bankName}: <strong className="font-mono text-emerald-400">{BANK_CONFIG.accountNo}</strong> • Discord: <a href={BANK_CONFIG.discordContactUrl} target="_blank" className="text-indigo-400 underline">888713971161505832</a>
@@ -551,6 +636,19 @@ export default function AdminPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                sessionStorage.removeItem('fpt_admin_auth');
+                setIsAuthenticated(false);
+              }}
+              className="gap-1.5 cursor-pointer text-amber-400 border-amber-500/30 hover:bg-amber-950/20"
+              title="Khóa bảo mật trang quản trị"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Khóa Quản Trị</span>
+            </Button>
             <Button 
               size="sm" 
               variant="outline" 
@@ -692,9 +790,23 @@ export default function AdminPage() {
                 Kiểm tra tài khoản VIB {BANK_CONFIG.accountNo} ({BANK_CONFIG.accountName}), sau đó bấm "Duyệt & Cấp Key" để hệ thống tự sinh mã bản quyền có hạn chuẩn.
               </p>
             </div>
-            <Badge variant="indigo" size="sm">
-              Tự động đồng bộ Realtime (2s)
-            </Badge>
+            <div className="flex items-center gap-2">
+              {pendingOrders.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDeletePendingOrders}
+                  className="gap-1 text-xs text-red-400 hover:text-red-300 border-red-500/30 hover:border-red-500/60 cursor-pointer"
+                  title="Xóa toàn bộ các đơn chờ thanh toán rác"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Xóa {pendingOrders.length} Đơn Rác</span>
+                </Button>
+              )}
+              <Badge variant="indigo" size="sm">
+                Tự động đồng bộ Realtime (2s)
+              </Badge>
+            </div>
           </div>
 
           {/* Quick Approve Box by Transfer Code (e.g. PR7874) */}
@@ -778,8 +890,8 @@ export default function AdminPage() {
                         <td className="py-3 px-3">
                           {ord.licenseKey ? (
                             <div className="flex items-center gap-2">
-                              <span className="text-[11px] text-emerald-300 truncate max-w-[140px]">
-                                {ord.licenseKey}
+                              <span className="text-[11px] text-emerald-300 font-mono">
+                                {ord.licenseKey.startsWith('ENC_AI_') ? 'ENC_AI_••••••••••••' : ord.licenseKey.slice(0, 10) + '••••••••'}
                               </span>
                               <button
                                 onClick={() => handleCopy(ord.licenseKey || '')}
@@ -794,24 +906,38 @@ export default function AdminPage() {
                           )}
                         </td>
                         <td className="py-3 px-3 text-right font-sans">
-                          {isApproved ? (
-                            <span className="text-emerald-400 text-xs font-semibold">✓ Đã Hoàn Tất</span>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="primary"
-                              disabled={approvingOrderId === ord.orderId}
-                              onClick={() => handleApproveOrder(ord.orderId)}
-                              className="text-xs shadow-md shadow-emerald-950 cursor-pointer"
+                          <div className="inline-flex items-center gap-2">
+                            {isApproved ? (
+                              <span className="text-emerald-400 text-xs font-semibold">✓ Đã Hoàn Tất</span>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                disabled={approvingOrderId === ord.orderId}
+                                onClick={() => handleApproveOrder(ord.orderId)}
+                                className="text-xs shadow-md shadow-emerald-950 cursor-pointer"
+                              >
+                                {approvingOrderId === ord.orderId ? (
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1" />
+                                ) : (
+                                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                                )}
+                                <span>Duyệt & Cấp Key</span>
+                              </Button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteOrder(ord.orderId)}
+                              disabled={deletingOrderId === ord.orderId}
+                              className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/50 hover:border-red-600 transition-colors cursor-pointer"
+                              title="Xóa vĩnh viễn đơn & Dừng hoạt động Key lập tức"
                             >
-                              {approvingOrderId === ord.orderId ? (
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1" />
+                              {deletingOrderId === ord.orderId ? (
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                               ) : (
-                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               )}
-                              <span>Duyệt & Cấp Key</span>
-                            </Button>
-                          )}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1011,9 +1137,9 @@ export default function AdminPage() {
                             </Button>
                             <button
                               type="button"
-                              onClick={() => handleRevokeOrder(ord.orderId)}
+                              onClick={() => handleDeleteOrder(ord.orderId)}
                               className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-                              title="Thu hồi / Khóa key"
+                              title="Xóa vĩnh viễn đơn & Dừng hoạt động Key lập tức trên toàn hệ thống"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1042,7 +1168,7 @@ export default function AdminPage() {
                 <label className="block text-slate-400 mb-1 font-medium">Hệ thống áp dụng:</label>
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
-                  <span>FPT EduNext AI Assistant Pro (v10.2.61 PRO)</span>
+                  <span>FPT EduNext AI Assistant Pro (v10.2.62 PRO)</span>
                 </div>
               </div>
 

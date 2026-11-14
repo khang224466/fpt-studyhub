@@ -178,7 +178,7 @@ export function isLicenseRevoked(key: string): boolean {
 }
 
 export async function deleteOrder(id: string): Promise<boolean> {
-  const existing = memoryStore.get(id);
+  const existing = memoryStore.get(id) || (await localOrders())[id];
   if (existing && existing.licenseKey) {
     revokedLicenseKeys.add(existing.licenseKey);
   }

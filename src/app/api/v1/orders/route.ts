@@ -33,6 +33,13 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('orderId');
+  const action = req.nextUrl.searchParams.get('action');
+  const key = req.nextUrl.searchParams.get('key');
+  if (action === 'check_key') {
+    const { isLicenseRevoked } = await import('@/lib/orderRepository');
+    const isRev = isLicenseRevoked(key || '');
+    return reply({ success: true, valid: !isRev, revoked: Boolean(isRev) });
+  }
   try {
     if (!id) {
       const orders = (await listOrders()).sort((a,b) => b.createdAt - a.createdAt);

@@ -154,7 +154,7 @@
       <div class="title-box">
         <div class="icon">⚡</div>
         <div>
-          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.61 PRO</span></h1>
+          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.62 PRO</span></h1>
           <div class="sub">Vượt CSP Cloudflare 100% • Đồng Bộ Realtime 2 Chiều</div>
         </div>
       </div>
@@ -237,7 +237,7 @@
       logsEl.scrollTop = logsEl.scrollHeight;
     }
 
-    log('success', '✓ Khởi tạo AI Bridge v10.2.61 PRO thành công!');
+    log('success', '✓ Khởi tạo AI Bridge v10.2.62 PRO thành công!');
 
     // Initialize clean key in background
     let activeSavedKey = '';
@@ -368,15 +368,31 @@
         const imageBase64 = data.imageBase64 || (data.payload?.images && data.payload.images[0]) || null;
         const targetWin = e.source || edunextWindow || window.opener;
 
-        if (isRevoked(rawKey)) {
-          log('err', '⛔ Key bản quyền đã bị xóa / thu hồi vĩnh viễn bởi Quản trị viên!');
+        let revoked = isRevoked(rawKey);
+        if (!revoked && rawKey) {
+          try {
+            const chk = await fetch(`/api/v1/orders?action=check_key&key=${encodeURIComponent(rawKey)}`, { cache: 'no-store' });
+            const cData = await chk.json();
+            if (cData && cData.revoked) {
+              revoked = true;
+              try {
+                const rawRev = localStorage.getItem('fpt_revoked_keys_v10') || '[]';
+                const list = JSON.parse(rawRev);
+                if (!list.includes(rawKey)) { list.push(rawKey); localStorage.setItem('fpt_revoked_keys_v10', JSON.stringify(list)); }
+              } catch (_) {}
+            }
+          } catch (_) {}
+        }
+
+        if (revoked) {
+          log('err', '⛔ Key bản quyền này đã bị Quản trị viên xóa / thu hồi vĩnh viễn!');
           if (targetWin) {
             targetWin.postMessage({
               type: 'ENX_SOLVE_RES',
               requestId,
               success: false,
               revoked: true,
-              error: 'Key bản quyền đã bị xóa / thu hồi vĩnh viễn bởi Quản trị viên!'
+              error: 'Key bản quyền này đã bị Quản trị viên xóa / thu hồi vĩnh viễn!'
             }, '*');
           }
           return;

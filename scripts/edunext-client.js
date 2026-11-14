@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.61";
+        var t = "v10.2.62";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -13,6 +13,24 @@ function e(e, serverOrigin) {
         var apiOrigin = serverOrigin || 'https://fpt-studyhub.vercel.app';
         var ENX_SALT = "ENX_SEC_2026_FLASH_LITE";
         var DEFAULT_TOKEN = "ENC_AI_MDAxNjA4MjM2MjdkNzM2YjA1MDcwMzA3NmM3NDc1NzY2MzM0NmU2YzAyMmQ2NTBkMjEzYjdmN2I3MTYzMGI1YTUxNWM1MTc2M2EwZDEwN2QwOTNkNzQxYjFhNzMwYzdlMmIyNzJhMjI3YjFhNDU1ODQ0NzUxNTJmM2YyNjYxMGYzMTBkMWYxMDc0MDI3YzA5MGYxZjcwMzUwNzYxNGE1NjRmM2IzYzM4Mjk3ZTcxM2EzYzJl";
+
+        var submittedHistory = [];
+        function isDuplicateSubmission(candidate) {
+            if (!candidate || typeof candidate !== 'string') return false;
+            var norm = candidate.toLowerCase().replace(/^(?:trả\s*lời|đáp\s*án|answer)\s*:\s*/i, '').replace(/[.,!?;:'"()[\]{}]/g, '').replace(/\s+/g, ' ').trim();
+            if (norm.length < 3) return false;
+            return submittedHistory.some(function(prev) {
+                var pNorm = prev.toLowerCase().replace(/^(?:trả\s*lời|đáp\s*án|answer)\s*:\s*/i, '').replace(/[.,!?;:'"()[\]{}]/g, '').replace(/\s+/g, ' ').trim();
+                return norm === pNorm || (norm.length > 20 && (pNorm.includes(norm) || norm.includes(pNorm)));
+            });
+        }
+
+        function parseWaitSeconds(str) {
+            if (!str) return 35;
+            var match = str.match(/after\s*(\d+)\s*seconds/i) || str.match(/(\d+)\s*(?:seconds|giây)/i);
+            if (match) return Math.min(600, parseInt(match[1], 10) + 3);
+            return 35;
+        }
 
         function isRevoked(token) {
             if (!token) return false;
@@ -807,6 +825,29 @@ function e(e, serverOrigin) {
                 var t = K();
                 if (t.allowed) {
                     var n = readEduNextTurn(document);
+
+                    // IF 1: Check Dead-End Conversation ("This conversation can no longer be continued")
+                    if (n.deadConversation || /This conversation can no longer be continued|start a new chat/i.test(document.body ? document.body.innerText : '')) {
+                        P("warn", "⚡ Phát hiện hội thoại bị kết thúc! Tự động khởi động lại...");
+                        L("⚡ Đang tự động bấm [Try again] hoặc [+ New]...", "#f59e0b");
+                        var tryAgainBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
+                            return !b.closest('#enx-pro-hud') && /try\s*again|thử\s*lại/i.test((b.innerText || b.textContent || '').trim());
+                        });
+                        if (tryAgainBtn) {
+                            try { tryAgainBtn.click(); P("success", "✓ Đã bấm [Try again] khôi phục hội thoại!"); } catch (_) {}
+                        } else {
+                            var newChatBtn = Array.from(document.querySelectorAll('button, a')).find(function(b) {
+                                return !b.closest('#enx-pro-hud') && /\+\s*New/i.test((b.innerText || b.textContent || '').trim());
+                            });
+                            if (newChatBtn) {
+                                try { newChatBtn.click(); P("success", "✓ Đã bấm [+ New] mở phiên học mới!"); } catch (_) {}
+                            }
+                        }
+                        remaining = 5;
+                        updateCountdownUI();
+                        return;
+                    }
+
                     if (n.state === 'idle' && !e) return;
 
                     var activeInput = (function() {
@@ -823,42 +864,46 @@ function e(e, serverOrigin) {
                     }
 
                     if ("waiting_teacher" !== n.state || e) {
-                        if (Date.now() < h) {
+                        // IF 2: Check 429 Rate Limit Cooldown
+                        var bodyTxt = document.body ? document.body.innerText : "";
+                        var tooManyMatch = bodyTxt.match(/Too\s*many\s*requests.*?after\s*(\d+)\s*seconds/i);
+                        if (tooManyMatch) {
+                            var sWait = parseInt(tooManyMatch[1], 10) + 3;
+                            h = Math.max(h, Date.now() + (sWait * 1000));
                             L("⏳ Chờ hồi phục Rate Limit 429 (" + Math.ceil((h - Date.now()) / 1e3) + "s)...", "#f59e0b");
+                            remaining = sWait;
+                            updateCountdownUI();
+                            return;
+                        }
+
+                        if (Date.now() < h) {
+                            var leftSec = Math.ceil((h - Date.now()) / 1e3);
+                            L("⏳ Chờ hồi phục Rate Limit 429 (" + leftSec + "s)...", "#f59e0b");
+                            remaining = leftSec;
+                            updateCountdownUI();
+                            return;
                         } else if (Date.now() - c < 4e3 && !e) {
                             L("⏳ Chờ EduNext cập nhật sau khi nộp...", "#94a3b8");
                         } else {
                             var i = n.lastTeacherMsg || "";
 
+                            // Auto-click Try again if present after 429 cooldown has elapsed
+                            if (Date.now() >= h) {
+                                var tryBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
+                                    return !b.closest('#enx-pro-hud') && /try\s*again|thử\s*lại/i.test((b.innerText || b.textContent || '').trim());
+                                });
+                                if (tryBtn) {
+                                    try { tryBtn.click(); } catch (_) {}
+                                }
+                            }
+
                             // 1. Ready & Transition Check - STRICT ANTI-"YES" FIREWALL FOR EXERCISES
                             var hasActualExercise = (function() {
-                                var combined = (n.questionBlockText || "") + " " + (i || "");
+                                var combined = (n.questionBlockText || "") + " " + (n.fullTeacherMsg || "") + " " + (i || "");
                                 if (/(?:câu\s*hỏi|question|bài\s*sau|đề\s*bài|exercise|please\s*try\s*the\s*exercise|write\s*your\s*answer|answer\s*:\s*\[|fill\s*in|choose\s*the|what\s+is|what\s+does|how\s+does|which\s+modal)/i.test(combined)) return true;
                                 if (document.querySelector('.exercise-question-block, [class*="exercise-question"], [class*="question-content"], [class*="question-box"]')) return true;
                                 return false;
                             })();
-
-                            // Check on-screen 429 message
-                            var bodyTxt = document.body ? document.body.innerText : "";
-                            var tooManyMatch = bodyTxt.match(/Too\s*many\s*requests.*?after\s*(\d+)\s*seconds/i);
-                            if (tooManyMatch) {
-                                var sWait = parseInt(tooManyMatch[1], 10) + 5;
-                                h = Math.max(h, Date.now() + (sWait * 1000));
-                                L("⏳ Chờ hồi phục Rate Limit 429 (" + Math.ceil((h - Date.now()) / 1e3) + "s)...", "#f59e0b");
-                                remaining = sWait;
-                                updateCountdownUI();
-                                return;
-                            }
-
-                            // If Rate Limit cooldown has passed, click Try again button if present
-                            if (Date.now() >= h) {
-                                var tryAgainBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
-                                    return !b.closest('#enx-pro-hud') && /try\s*again|thử\s*lại/i.test((b.innerText || b.textContent || '').trim());
-                                });
-                                if (tryAgainBtn) {
-                                    try { tryAgainBtn.click(); } catch (_) {}
-                                }
-                            }
 
                             // Click quick-reply chip if teacher presented a single choice button (e.g. [Ready] / [Sẵn sàng]) AND no active text input
                             if (!hasActualExercise && !activeInput) {
@@ -887,7 +932,7 @@ function e(e, serverOrigin) {
                                 }
                             }
 
-                        // 2. Check Actual Lesson Completion (ONLY if NO active input box and NOT a question)
+                            // 2. Check Actual Lesson Completion (ONLY if NO active input box and NOT a question)
                             var isActuallyComplete = !activeInput && (function(msg) {
                                 if (!msg) return false;
                                 var t = msg.toLowerCase();
@@ -931,12 +976,10 @@ function e(e, serverOrigin) {
                                 var C = function(e) {
                                     if (!e) return !1;
                                     var t = e.toLowerCase();
-                                    return t.includes("chưa đúng") || t.includes("chưa chính xác") || t.includes("chưa thực hiện") || t.includes("thử lại") || t.includes("kiểm tra lại") || t.includes("câu trả lời vừa rồi") || t.includes("lặp lại nhiều lần") || t.includes("thử đến lần") || t.includes("điểm cần lưu ý là") || t.includes("thực chất đang hỏi") || t.includes("suy nghĩ lại") || t.includes("không chính xác") || t.includes("chưa phải") || t.includes("not correct") || t.includes("incorrect") || t.includes("try again") || t.includes("check again") || t.includes("wrong answer");
-                                }(i), E = n.fingerprint;
+                                    return t.includes("chưa đúng") || t.includes("chưa chính xác") || t.includes("chưa thực hiện") || t.includes("thử lại") || t.includes("kiểm tra lại") || t.includes("câu trả lời vừa rồi") || t.includes("lặp lại nhiều lần") || t.includes("thử đến lần") || t.includes("điểm cần lưu ý là") || t.includes("thực chất đang hỏi") || t.includes("suy nghĩ lại") || t.includes("không chính xác") || t.includes("chưa phải") || t.includes("not correct") || t.includes("incorrect") || t.includes("try again") || t.includes("check again") || t.includes("wrong answer") || t.includes("definition of a vocabulary word again");
+                                }(n.fullTeacherMsg || i), E = n.fingerprint;
 
-                                if (E !== u || e) {
-                                    // Checked below after Gemini analysis
-
+                                if (E !== u || e || C) {
                                     s = !0;
                                     try {
                                         C ? (L("🔄 Giáo viên phản hồi chưa đúng -> Tự động sửa sai theo gợi ý...", "#f59e0b"), 
@@ -945,17 +988,16 @@ function e(e, serverOrigin) {
 
                                         var isEnglishContext = 
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
-                                            /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission)\b/i.test(_ || i);
+                                            /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.62 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +
                                                 "1. Trả lời HOÀN TOÀN BẰNG TIẾNG ANH. Tuyệt đối KHÔNG trả lời bằng tiếng Việt.\n" +
-                                                "2. KHÔNG thêm bất kỳ tiền tố nào như 'Trả lời:' hay 'Answer:' trừ khi đề bài yêu cầu rõ.\n" +
-                                                "3. Nếu là câu hỏi Yes/No hoặc 'Are you ready...', trả lời: 'Yes'.\n" +
-                                                "4. Nếu là trắc nghiệm, điền từ vào chỗ trống, hoặc tìm từ/câu, xuất đáp án chính xác trực tiếp vào trọng tâm.\n" +
-                                                "5. Ngắn gọn, chính xác, không chào hỏi, không giải thích lan man."
+                                                "2. KHÔNG thêm tiền tố 'Trả lời:'. Nếu đề yêu cầu 'Answer: [your answer]', xuất: 'Answer: [đáp án]'.\n" +
+                                                "3. Nếu là trắc nghiệm, xuất đáp án chính xác.\n" +
+                                                "4. Ngắn gọn, chính xác, không chào hỏi, không giải thích lan man."
                                             );
                                         } else {
                                             N.push(
@@ -968,9 +1010,23 @@ function e(e, serverOrigin) {
 
                                         N.push(_ ? "CÂU HỎI TRÊN EDUNEXT:\n" + _ : "Dùng ảnh màn hình mới nhất để nhận diện câu hỏi và bài tập trên EduNext.");
 
-                                        if (C || i && n.lastStudentMsg) {
-                                            var k = l || n.lastStudentMsg;
-                                            N.push('🚨 LƯU Ý ĐẶC BIỆT - GIÁO VIÊN VỪA TỪ CHỐI ĐÁP ÁN VÀ ĐƯA RA GỢI Ý:\n- Đáp án sai học sinh vừa gửi: "' + k + '" (CÂU NÀY ĐÃ SAI HOẶC BỊ TỪ CHỐI)\n- Toàn bộ phản hồi, phân tích và gợi ý của Giáo viên:\n"' + i + '"\n-> YÊU CẦU BẮT BUỘC:\n1. Đọc thật kỹ phân tích và gợi ý của giáo viên ở trên.\n2. Tìm ra bản chất câu hỏi thực sự đang yêu cầu.\n3. Xuất đáp án MỚI HOÀN TOÀN, CHÍNH XÁC. TUYỆT ĐỐI KHÔNG lặp lại đáp án cũ "' + k + '"!');
+                                        // IF 3: Feed full teacher commentary, hint, and past student mistakes to Gemini
+                                        if (C || n.hintText || n.fullTeacherMsg || n.lastStudentMsg) {
+                                            var teacherFull = n.fullTeacherMsg || i || "";
+                                            var hintFull = n.hintText || "";
+                                            var prevAnswer = l || n.lastStudentMsg || "";
+                                            var pastSubmissions = submittedHistory.slice(-4).map(function(s) { return '"' + s + '"'; }).join(', ');
+                                            N.push(
+                                                "🚨 PHẢN HỒI, NHẬN XÉT VÀ GỢI Ý (HINT) TỪ GIÁO VIÊN:\n" +
+                                                (hintFull ? "Gợi ý cụ thể (Hint): " + hintFull + "\n" : "") +
+                                                (teacherFull ? "Lời nhận xét chi tiết của giáo viên:\n\"" + teacherFull + "\"\n" : "") +
+                                                (prevAnswer ? "Câu trả lời trước đó của học sinh (đã bị sai hoặc từ chối): \"" + prevAnswer + "\"\n" : "") +
+                                                (pastSubmissions ? "Các đáp án đã nộp gần đây (TUYỆT ĐỐI KHÔNG LẶP LẠI): " + pastSubmissions + "\n" : "") +
+                                                "-> YÊU CẦU QUAN TRỌNG NHẤT:\n" +
+                                                "1. Đọc thật kỹ nhận xét và gợi ý của giáo viên để hiểu bản chất yêu cầu (ví dụ: so sánh 'development' và 'qualified', hay hỏi về tuổi, hay hỏi định nghĩa).\n" +
+                                                "2. TUYỆT ĐỐI KHÔNG lặp lại đáp án cũ \"" + prevAnswer + "\" hay các đáp án đã nộp ở trên!\n" +
+                                                "3. Xuất đáp án MỚI HOÀN TOÀN, CHÍNH XÁC đáp ứng đúng yêu cầu của giáo viên."
+                                            );
                                         }
 
                                         h = Date.now() + 8000;
@@ -1009,6 +1065,23 @@ function e(e, serverOrigin) {
                                             return void (s = !1);
                                         }
 
+                                        // IF 4: Anti-Duplicate Submission Check
+                                        if (isDuplicateSubmission(A)) {
+                                            P("warn", '⚠️ Đáp án "' + A.slice(0, 30) + '..." đã từng được nộp trước đó. Yêu cầu Gemini đưa ra đáp án khác...');
+                                            var retryPrompt = S + "\n\n🚨 CẢNH BÁO QUAN TRỌNG: Đáp án \"" + A + "\" ĐÃ TỪNG ĐƯỢC NỘP TRƯỚC ĐÓ VÀ BỊ TỪ CHỐI HOẶC BỊ TRÙNG! Hãy đọc kỹ gợi ý và xuất một đáp án MỚI KHÁC HOÀN TOÀN và CHÍNH XÁC!";
+                                            var retryAns = await solveOnServer(retryPrompt, T ? T.image : null);
+                                            if (retryAns && retryAns.trim() && !isDuplicateSubmission(retryAns)) {
+                                                A = retryAns.trim();
+                                                if (isEnglishContext) {
+                                                    A = A.replace(/^(?:trả\s*lời|đáp\s*án)\s*:\s*/i, '').trim();
+                                                    if (/(?:answer|format)\s*:\s*(?:\[|your)/i.test(_ || retryPrompt) && !/^answer\s*:/i.test(A)) {
+                                                        A = 'Answer: ' + A;
+                                                    }
+                                                }
+                                                P("success", '✓ Gemini đổi sang đáp án mới: "' + A.slice(0, 35) + '..."');
+                                            }
+                                        }
+
                                         if (l && A.trim().toLowerCase() === l.trim().toLowerCase() && !C) {
                                             L("👀 Đã nộp đáp án '" + l.slice(0, 20) + "', chờ EduNext sang câu mới...", "#38bdf8");
                                             remaining = 5;
@@ -1016,20 +1089,26 @@ function e(e, serverOrigin) {
                                             return void (s = !1);
                                         }
 
-                                        if (l && A.trim().toLowerCase() === l.trim().toLowerCase() && C) {
-                                            P("warn", '⚠️ Gemini vẫn trả lời đáp án cũ "' + A + '", đang thử yêu cầu đáp án khác...');
-                                            return void (s = !1);
-                                        }
-
                                         P("success", '✓ Gemini Flash-Lite trả lời: "' + A.slice(0, 35) + '..."');
                                         L("✍️ Đang làm sạch ô nhập & nộp bài...", "#34d399");
 
+                                        // IF 5: Safe submit - check active input without throwing false abort
                                         await (async function() {
-                                            if (readEduNextTurn(document).fingerprint !== E) throw new Error('Câu hỏi đã đổi khi AI đang giải. Bỏ đáp án cũ.');
-                                                if (!await z(A)) throw new Error('Chưa điền/nộp được câu trả lời.');
-                                                u = E;
-                                            })(), P("success", "✓ ĐÃ NỘP XONG! Tự động chờ câu hỏi tiếp theo..."), remaining = 35, updateCountdownUI(), 
-                                            L("👀 Đang theo dõi khi nào câu hỏi tiếp theo hiện lên...", "#38bdf8");
+                                            var curInput = (function() {
+                                                for (var els = document.querySelectorAll('textarea.w-md-editor-text-input, .w-md-editor textarea, textarea, input[type="text"]'), idx = 0; idx < els.length; idx++) {
+                                                    var el = els[idx];
+                                                    if (!el.closest('#enx-pro-hud') && el.offsetParent !== null && !el.disabled && !el.readOnly) return el;
+                                                }
+                                                return null;
+                                            })();
+                                            if (!curInput) throw new Error('Không tìm thấy ô nhập liệu để nộp bài.');
+                                            if (!await z(A)) throw new Error('Chưa điền/nộp được câu trả lời.');
+                                            submittedHistory.push(A);
+                                            if (submittedHistory.length > 25) submittedHistory.shift();
+                                            u = E;
+                                            l = A;
+                                        })(), P("success", "✓ ĐÃ NỘP XONG! Tự động chờ câu hỏi tiếp theo..."), remaining = 35, updateCountdownUI(), 
+                                        L("👀 Đang theo dõi khi nào câu hỏi tiếp theo hiện lên...", "#38bdf8");
                                     } catch (e) {
                                         P("err", "Lỗi: " + (e.message || e));
                                     } finally {

@@ -97,16 +97,49 @@ function readEduNextTurn(doc) {
   const qFound = findQuestion();
   const content = qFound ? qFound.element : (teacherMarkers.at(-1) || null);
   const questionBlockText = qFound ? qFound.text : (content ? text(content) : '');
-  const lastTeacherMsg = content ? text(content) : '';
+
+  // Locate the entire teacher message container (bubble) to capture full feedback and hints
+  let teacherContainer = null;
+  if (content) {
+    let curr = content.parentElement;
+    while (curr && curr !== doc.body && (!studentMessage || !curr.contains(studentMessage))) {
+      const cTxt = text(curr);
+      if (cTxt.length > (questionBlockText.length + 15)) {
+        teacherContainer = curr;
+        break;
+      }
+      curr = curr.parentElement;
+    }
+    if (!teacherContainer) {
+      teacherContainer = content.closest('.wrap-message-view, [class*="message-item"], [class*="chat-item"], .chat-message, [class*="message"], [class*="chat"], div') || content;
+    }
+  }
+
+  // Extract hints explicitly
+  const hintEls = all('div, p, span, small').filter(el => {
+    if (studentBadge && !after(el, studentBadge)) return false;
+    const t = text(el);
+    return /^(?:hint|gợi\s*ý|concept\s*check|question\s*analysis)\s*[:]/i.test(t) ||
+           /(?:take\s*another\s*look|looks\s*like\s*you\s*provided|not\s*quite\s*work\s*here|current\s*answer\s*is\s*incorrect|misunderstood\s*the\s*question)/i.test(t);
+  });
+  const hintText = hintEls.map(el => text(el)).filter(Boolean).join('\n');
+
+  const fullTeacherMsg = teacherContainer ? text(teacherContainer) : (content ? text(content) : '');
+  const lastTeacherMsg = fullTeacherMsg || questionBlockText;
   const imageIds = content ? Array.from(content.querySelectorAll('img')).map(image => image.currentSrc || image.src).join('|') : '';
 
   // 4. Composer input detection
   const activeInput = all('textarea.w-md-editor-text-input, .w-md-editor textarea, textarea, input[type="text"]')
     .find(el => !el.disabled && !el.readOnly && el.offsetParent !== null);
 
-  // 5. State classification
+  // 5. Dead Conversation detection
+  const deadConversation = /this\s*conversation\s*can\s*no\s*longer\s*be\s*continued|start\s*a\s*new\s*chat/i.test(doc.body ? text(doc.body) : '');
+
+  // 6. State classification
   let state = 'idle';
-  if (activeInput && !activeInput.disabled) {
+  if (deadConversation) {
+    state = 'dead_conversation';
+  } else if (activeInput && !activeInput.disabled) {
     // If the input box is active and enabled, student is allowed to type!
     state = 'student_turn';
   } else if (questionBlockText && (questionBlockText.includes('?') || /câu\s*hỏi|question|answer\s*:|which|what|select|choose/i.test(questionBlockText))) {
@@ -128,10 +161,13 @@ function readEduNextTurn(doc) {
 
   return {
     state,
+    deadConversation,
     lastStudentBadge: studentBadge,
     lastTeacherBadge: teacherMarkers.at(-1) || null,
     lastStudentMsg: studentMessage ? text(studentMessage) : '',
     lastTeacherMsg,
+    fullTeacherMsg,
+    hintText,
     questionBlockText,
     fingerprint,
     imageIds
