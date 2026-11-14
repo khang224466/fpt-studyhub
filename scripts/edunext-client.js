@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.64";
+        var t = "v10.2.65";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -27,7 +27,7 @@ function e(e, serverOrigin) {
 
         function parseWaitSeconds(str) {
             if (!str) return 35;
-            var match = str.match(/after\s*(\d+)\s*seconds/i) || str.match(/(\d+)\s*(?:seconds|giây)/i);
+            var match = str.match(/after\s*(\d+)\s*seconds/i) || str.match(/(?:sau|after)\s*(\d+)\s*(?:seconds|giây)/i) || str.match(/(\d+)\s*(?:seconds|giây)/i);
             if (match) return Math.min(600, parseInt(match[1], 10) + 3);
             return 35;
         }
@@ -164,7 +164,7 @@ function e(e, serverOrigin) {
             try {
                 function parseWaitSeconds(str) {
                     if (!str || typeof str !== 'string') return 35;
-                    var m = str.match(/after\s*(\d+)\s*seconds/i) || str.match(/(\d+)\s*giây/i) || str.match(/retry\s*in\s*(\d+)/i);
+                    var m = str.match(/after\s*(\d+)\s*seconds/i) || str.match(/(?:sau|after)\s*(\d+)\s*(?:seconds|giây)/i) || str.match(/(\d+)\s*giây/i) || str.match(/retry\s*in\s*(\d+)/i);
                     return m ? Math.min(600, parseInt(m[1], 10) + 5) : 35;
                 }
                 if (window.fetch && !window.__enx_fetch_hooked) {
@@ -182,7 +182,10 @@ function e(e, serverOrigin) {
                                 h = Date.now() + (waitSec * 1000);
                                 remaining = waitSec;
                                 updateCountdownUI();
-                                P("warn", "EduNext 429 Too Many Requests -> Tự động hoãn " + waitSec + "s bảo vệ nick");
+                                if (Date.now() - (window.__ENX_LAST_429_LOG__ || 0) > 15000) {
+                                    window.__ENX_LAST_429_LOG__ = Date.now();
+                                    P("warn", "EduNext 429 Too Many Requests -> Tự động hoãn " + waitSec + "s bảo vệ nick");
+                                }
                             }
                             return n;
                         } catch (n) {
@@ -199,7 +202,10 @@ function e(e, serverOrigin) {
                                 h = Date.now() + (waitSec * 1000);
                                 remaining = waitSec;
                                 updateCountdownUI();
-                                P("warn", "EduNext 429 Too Many Requests (XHR) -> Tự động hoãn " + waitSec + "s");
+                                if (Date.now() - (window.__ENX_LAST_429_LOG__ || 0) > 15000) {
+                                    window.__ENX_LAST_429_LOG__ = Date.now();
+                                    P("warn", "EduNext 429 Too Many Requests (XHR) -> Tự động hoãn " + waitSec + "s");
+                                }
                             }
                         })), t.apply(this, e);
                     }, window.__enx_xhr_hooked = !0;
@@ -615,16 +621,24 @@ function e(e, serverOrigin) {
                 }(n);
                 if (r) {
                     var o = (r.innerText || r.textContent || r.getAttribute("aria-label") || "Nút Nộp").trim();
-                    U(r) && (i = !0, c = Date.now(), l = t, P("success", "✓ ĐÃ BẤM [" + (o.slice(0, 25) || "Nộp câu trả lời") + "] thành công!"), 
-                    L("✓ Đã nộp thành công! Chờ EduNext chấm bài...", "#34d399"));
+                    if (U(r)) {
+                        i = !0;
+                        c = Date.now();
+                        l = t;
+                        P("success", "✓ ĐÃ BẤM [" + (o.slice(0, 25) || "Nộp câu trả lời") + "] thành công!");
+                        L("✓ Đã nộp thành công! Chờ EduNext chấm bài...", "#34d399");
+                    }
                 }
-                try {
-                    var a = D(n, "onSendMessage");
-                    "function" == typeof a && (P("info", "✓ Kích hoạt onSendMessage trực tiếp từ EduNext React Fiber!"), 
-                    a(t, t, {
-                        resolved_intent: "SUBMIT_ANSWER"
-                    }), i = !0, c = Date.now(), l = t, L("✓ Đã nộp qua React Fiber!", "#34d399"));
-                } catch (e) {}
+                // CHỈ gọi React Fiber nếu KHÔNG bấm được nút UI (chống double submission 100%)
+                if (!i) {
+                    try {
+                        var a = D(n, "onSendMessage");
+                        "function" == typeof a && (P("info", "✓ Kích hoạt onSendMessage trực tiếp từ EduNext React Fiber!"), 
+                        a(t, t, {
+                            resolved_intent: "SUBMIT_ANSWER"
+                        }), i = !0, c = Date.now(), l = t, L("✓ Đã nộp qua React Fiber!", "#34d399"));
+                    } catch (e) {}
+                }
                 return i || (function(e) {
                     if (e) {
                         var t = {
@@ -827,9 +841,14 @@ function e(e, serverOrigin) {
                     var n = readEduNextTurn(document);
 
                     // IF 1: Check Dead-End Conversation or Long 429 (> 30s) -> Click [+ New] to start fresh session!
-                    if (n.state === 'need_new_chat') {
-                        P("warn", "⚡ Phát hiện phiên học cũ bị ngắt / nghẽn (429 dài). Tự động bấm [+ New] mở phiên mới ngay...");
-                        L("⚡ Đang tự động bấm [+ New] mở phiên mới...", "#f59e0b");
+                    if (n.state === 'need_new_chat' || n.rateLimitSeconds > 30) {
+                        if (n.rateLimitSeconds > 60) {
+                            P("warn", "⛔ EduNext báo Rate Limit (" + n.rateLimitSeconds + "s). Khuyên bạn F5 hoặc bấm chọn lại bài học!");
+                            L("⛔ Bị Rate Limit " + n.rateLimitSeconds + "s! Bấm F5 hoặc chọn bài học.", "#ef4444");
+                        } else {
+                            P("warn", "⚡ Phát hiện phiên học cũ bị ngắt / nghẽn (429 dài). Tự động bấm [+ New] mở phiên mới ngay...");
+                            L("⚡ Đang tự động bấm [+ New] mở phiên mới...", "#f59e0b");
+                        }
                         var newChatBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
                             return !b.closest('#enx-pro-hud') && /(?:\+\s*New|Tạo\s*mới|New\s*Chat)/i.test((b.innerText || b.textContent || '').trim());
                         });
@@ -840,16 +859,18 @@ function e(e, serverOrigin) {
                                 h = 0; // Clear any old 429 cooldown
                             } catch (_) {}
                         } else {
-                            // Fallback: If no [+ New] button, try [Try again] once
-                            var tryAgainBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
-                                return !b.closest('#enx-pro-hud') && /try\s*again|thử\s*lại/i.test((b.innerText || b.textContent || '').trim());
-                            });
-                            if (tryAgainBtn && Date.now() - (window.__ENX_LAST_TRY_AGAIN__ || 0) > 30000) {
-                                window.__ENX_LAST_TRY_AGAIN__ = Date.now();
-                                try { tryAgainBtn.click(); P("success", "✓ Đã bấm [Try again] thử lại!"); } catch (_) {}
+                            // Fallback: If no [+ New] button and cooldown is small (<= 60s), try [Try again / Thử lại] once
+                            if (n.rateLimitSeconds <= 60) {
+                                var tryAgainBtn = Array.from(document.querySelectorAll('button, a, div[role="button"]')).find(function(b) {
+                                    return !b.closest('#enx-pro-hud') && /try\s*again|thử\s*lại/i.test((b.innerText || b.textContent || '').trim());
+                                });
+                                if (tryAgainBtn && Date.now() - (window.__ENX_LAST_TRY_AGAIN__ || 0) > 30000) {
+                                    window.__ENX_LAST_TRY_AGAIN__ = Date.now();
+                                    try { tryAgainBtn.click(); P("success", "✓ Đã bấm [Thử lại] thử lại!"); } catch (_) {}
+                                }
                             }
                         }
-                        remaining = 5;
+                        remaining = 10;
                         updateCountdownUI();
                         return;
                     }
@@ -985,7 +1006,7 @@ function e(e, serverOrigin) {
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
                                             /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.64 PRO." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.65 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +

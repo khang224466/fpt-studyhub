@@ -137,8 +137,9 @@ function readEduNextTurn(doc) {
   const recentBubbles = chatBubbles.slice(-3);
   const recentText = recentBubbles.map(b => text(b)).join(' ');
 
-  const isDeadConversation = /this\s*conversation\s*can\s*no\s*longer\s*be\s*continued|start\s*a\s*new\s*chat/i.test(recentText);
-  const rateLimitMatch = recentText.match(/Too\s*many\s*requests.*?after\s*(\d+)\s*seconds/i);
+  const isDeadConversation = /(?:this\s*conversation\s*can\s*no\s*longer\s*be\s*continued|start\s*a\s*new\s*chat|cuộc\s*trò\s*chuyện\s*này\s*không\s*thể\s*tiếp\s*tục|bắt\s*đầu\s*cuộc\s*trò\s*chuyện\s*mới)/i.test(recentText);
+  const rateLimitMatch = recentText.match(/(?:Too\s*many\s*requests.*?after|vui\s*lòng\s*thử\s*lại\s*sau|yêu\s*cầu\s*quá\s*nhanh.*?sau)\s*(\d+)\s*(?:seconds|giây)/i) ||
+                         recentText.match(/(\d+)\s*(?:giây|seconds).*?(?:thử\s*lại|try\s*again)/i);
   const rateLimitSeconds = rateLimitMatch ? parseInt(rateLimitMatch[1], 10) : 0;
 
   // 6. State classification

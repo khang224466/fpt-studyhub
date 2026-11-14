@@ -6,7 +6,7 @@ const html = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cầm Bookmark Kéo Lên Bấm Vô Là Chạy — EduNext AI Pro v10.2.64 PRO</title>
+  <title>Cầm Bookmark Kéo Lên Bấm Vô Là Chạy — EduNext AI Pro v10.2.65 PRO</title>
   <link rel="icon" href="https://fpt-studyhub.vercel.app/favicon.ico">
   <style>
     * {
@@ -216,7 +216,7 @@ const html = `<!DOCTYPE html>
 <body>
 
   <div class="container">
-    <div class="badge">⚡ EduNext AI Assistant Pro v10.2.64 PRO (Bản Kéo Thả 0s)</div>
+    <div class="badge">⚡ EduNext AI Assistant Pro v10.2.65 PRO (Bản Kéo Thả 0s)</div>
 
     <h1>Cầm Kéo Nút Này Lên <span>Thanh Dấu Trang</span> Là Xong!</h1>
     <p class="desc">Chuẩn CDN siêu nhẹ 160 ký tự — Nhấp giữ chuột vào nút màu xanh và kéo thả thẳng lên thanh Bookmark!</p>
@@ -234,7 +234,7 @@ const html = `<!DOCTYPE html>
         draggable="true"
       >
         <span>⚡</span>
-        <span id="btn-label-text">KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.64 PRO)</span>
+        <span id="btn-label-text">KÉO NÚT NÀY THẢ LÊN THANH BOOKMARK (v10.2.65 PRO)</span>
       </a>
     </div>
 
@@ -257,7 +257,7 @@ const html = `<!DOCTYPE html>
     <div class="footer-actions">
       <button class="btn-secondary" onclick="copyBookmarklet()">📋 Sao Chép Mã Bookmarklet</button>
       <a class="btn-secondary" href="https://fsc-edunext.fpt.edu.vn/home" target="_blank">🌐 Mở Tab EduNext FPT</a>
-      <a class="btn-secondary" href="/edunext.user.js" target="_blank">📥 Cài Tampermonkey (v10.2.64 PRO)</a>
+      <a class="btn-secondary" href="/edunext.user.js" target="_blank">📥 Cài Tampermonkey (v10.2.65 PRO)</a>
     </div>
   </div>
 
@@ -283,7 +283,7 @@ const html = `<!DOCTYPE html>
 
     // 2. Tạo đường link siêu nhẹ ~190 ký tự qua CDN jsDelivr (Được EduNext cấp phép 100%, kéo thả 0s)
     const keyParam = activeKey ? activeKey : DEFAULT_TOKEN;
-    const bookmarkCode = "javascript:(function(){window.__ENX_KEY__='" + keyParam + "';var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/khang224466/NX@main/BUISINESS/v10_2_64_minified.js?t='+Date.now();s.async=true;(document.head||document.documentElement).appendChild(s);})();";
+    const bookmarkCode = "javascript:(function(){window.__ENX_KEY__='" + keyParam + "';var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/khang224466/NX@main/BUISINESS/v10_2_65_minified.js?t='+Date.now();s.async=true;(document.head||document.documentElement).appendChild(s);})();";
 
     const mainBtn = document.getElementById('main-bookmark-btn');
     if (mainBtn) {
