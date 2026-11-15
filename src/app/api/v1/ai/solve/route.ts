@@ -19,7 +19,7 @@ function checkSolveRateLimit(key: string, limit = 30, windowMs = 60000): boolean
 }
 
 const SYSTEM_PROMPT = `
-Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.67 PRO) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
+Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.68 PRO) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
 
 [QUY TẮC BẮT BUỘC]:
 1. ĐỊNH DẠNG TRẢ LỜI MẪU (RẤT QUAN TRỌNG):
@@ -73,25 +73,36 @@ export async function POST(req: NextRequest) {
     if (typeof body.question !== 'string' || !body.question.trim() || body.question.length > 16000) return reply({ success: false, message: 'Câu hỏi không hợp lệ.' }, 400);
     const images: unknown[] = body.images === undefined ? [] : body.images;
     if (!Array.isArray(images) || images.length > 2 || images.some(img => typeof img !== 'string' || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/.test(img))) return reply({ success: false, message: 'Định dạng ảnh không hợp lệ.' }, 400);
-    const defaultServerKey = Buffer.from('QVEuQWI4Uk42STBzeHlnOEV3aHZDSmlzMkdOQVZEMUcyUVBMNXZYU3pkeWR6dGgtOWVwZw==', 'base64').toString('utf8');
+    const defaultServerKey = Buffer.from('QVEuQWI4Uk42SS1qUVdIcUFvVXllWmtqWG5HdEduckMyUHEwRC1MRzR2dEFDTzc5MFdRUEE=', 'base64').toString('utf8');
     const apiKey = (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length >= 10)
       ? process.env.GEMINI_API_KEY.trim()
       : defaultServerKey;
-    const model = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
-    if (!apiKey || !/^[a-zA-Z0-9.-]+$/.test(model)) return reply({ success: false, message: 'Admin chưa cấu hình AI trên máy chủ.' }, 503);
+    const preferredModel = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
+    if (!apiKey) return reply({ success: false, message: 'Admin chưa cấu hình AI trên máy chủ.' }, 503);
     const parts = [{ text: body.question }, ...images.map(img => {
       const match = (img as string).match(/^data:(image\/[^;]+);base64,(.+)$/)!;
       return { inlineData: { mimeType: match[1], data: match[2] } };
     })];
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.1, maxOutputTokens: 800 } }),
-      signal: AbortSignal.any([req.signal, AbortSignal.timeout(20000)])
-    });
-    if (!res.ok) return reply({ success: false, message: res.status === 429 ? 'AI đang giới hạn lượt gọi. Chờ rồi thử lại.' : 'AI tạm thời không khả dụng.' }, res.status === 429 ? 429 : 502);
-    const data = await res.json();
-    const answer = data.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || '').join('').trim();
-    if (!answer) return reply({ success: false, message: 'AI chưa trả về đáp án. Chưa gửi bài.' }, 502);
+    const candidateModels = [preferredModel, 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+    let lastStatus = 502;
+    let answer = '';
+    for (const mod of candidateModels) {
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.1, maxOutputTokens: 800 } }),
+          signal: AbortSignal.any([req.signal, AbortSignal.timeout(18000)])
+        });
+        if (res.ok) {
+          const data = await res.json();
+          answer = data.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || '').join('').trim();
+          if (answer) break;
+        } else {
+          lastStatus = res.status;
+        }
+      } catch (_) {}
+    }
+    if (!answer) return reply({ success: false, message: lastStatus === 429 ? 'AI đang giới hạn lượt gọi. Chờ rồi thử lại.' : 'AI tạm thời không khả dụng.' }, lastStatus === 429 ? 429 : 502);
     return reply({ success: true, answer, remainingMs: license.remainingMs });
   } catch {
     return reply({ success: false, message: 'Không thể xử lý yêu cầu AI. Chưa gửi bài.' }, 503);
