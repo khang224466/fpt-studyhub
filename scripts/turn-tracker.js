@@ -173,16 +173,10 @@ function readEduNextTurn(doc) {
                            /hẹn\s*gặp\s*(?:em|bạn).{0,30}buổi\s*học\s*tiếp\s*theo/i.test(combinedRecent) ||
                            /congratulations.{0,80}(?:completed|finished).{0,60}(?:lesson|session|course)/i.test(combinedRecent);
 
-  // 5c. Clarify Intent Detection (Vietnamese: Làm rõ ý định & English: Clarify intent)
-  const isClarifyIntent = /(?:làm\s*rõ\s*ý\s*định|clarify\s*intent|int:\s*clarify_intent|ý\s*nào\s*dưới\s*đây\s*đúng\s*với\s*bạn\s*nhất|which\s*of\s*the\s*following\s*(?:best\s*describes|is\s*most\s*accurate)|chờ\s*bạn\s*chọn\s*ở\s*phía\s*trên|waiting\s*for\s*your\s*selection\s*above|không\s*cần\s*nhập\s*văn\s*bản|no\s*text\s*input\s*needed)/i.test(combinedRecent) ||
-                          all('button, [role="button"], a').some(el => /(?:xác\s*nhận\s*(?:lựa\s*chọn|ý\s*định)?|confirm\s*(?:selection|choice)?)/i.test(text(el)));
-
   // 6. State classification
   let state = 'idle';
   if (isLessonComplete) {
     state = 'completed';
-  } else if (isClarifyIntent) {
-    state = 'clarify_intent';
   } else if (isDeadConversation || rateLimitSeconds > 30) {
     state = 'need_new_chat';
   } else if (rateLimitSeconds > 0) {
@@ -212,7 +206,6 @@ function readEduNextTurn(doc) {
     state,
     isDeadConversation,
     isLessonComplete,
-    isClarifyIntent,
     rateLimitSeconds,
     lastStudentBadge: studentBadge,
     lastTeacherBadge: teacherMarkers.at(-1) || null,
