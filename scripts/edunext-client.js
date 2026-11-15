@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.68";
+        var t = "v10.2.69";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -18,7 +18,7 @@ function e(e, serverOrigin) {
         function isDuplicateSubmission(candidate) {
             if (!candidate || typeof candidate !== 'string') return false;
             var norm = candidate.toLowerCase().replace(/^(?:trả\s*lời|đáp\s*án|answer)\s*:\s*/i, '').replace(/[.,!?;:'"()[\]{}]/g, '').replace(/\s+/g, ' ').trim();
-            if (norm.length < 3) return false;
+            if (norm.length < 4 || /^(?:yes|no|ready|ok|sẵn\s*sàng)$/i.test(norm)) return false;
             return submittedHistory.some(function(prev) {
                 var pNorm = prev.toLowerCase().replace(/^(?:trả\s*lời|đáp\s*án|answer)\s*:\s*/i, '').replace(/[.,!?;:'"()[\]{}]/g, '').replace(/\s+/g, ' ').trim();
                 return norm === pNorm || (norm.length > 20 && (pNorm.includes(norm) || norm.includes(pNorm)));
@@ -1044,7 +1044,7 @@ function e(e, serverOrigin) {
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
                                             /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.68 PRO." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.69 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +
@@ -1118,8 +1118,10 @@ function e(e, serverOrigin) {
 
                                         var trimmedA = A.trim();
 
-                                        if (hasActualExercise && /^(?:yes|sẵn\s*sàng|ready)[!.]?$/i.test(trimmedA)) {
-                                            P("warn", "⚠️ AI trả lời nhầm 'Yes' cho bài tập, yêu cầu giải lại bài tập chuyên môn...");
+                                        // Quy tắc chuẩn: Cho phép "Yes" / "Ready" 100% trong môn tiếng Anh (isEnglishContext)
+                                        // Chỉ chặn nếu là bài tập môn tiếng Việt (Hóa, Lý, Toán...) mà AI trả lời nhầm "Sẵn sàng"
+                                        if (!isEnglishContext && hasActualExercise && /^(?:sẵn\s*sàng|ready|yes)[!.]?$/i.test(trimmedA)) {
+                                            P("warn", "⚠️ AI trả lời nhầm 'Sẵn sàng' cho bài tập môn tiếng Việt, yêu cầu giải lại bài tập chuyên môn...");
                                             return void (s = !1);
                                         }
 
@@ -1140,7 +1142,8 @@ function e(e, serverOrigin) {
                                             }
                                         }
 
-                                        if (l && trimmedA.toLowerCase() === l.trim().toLowerCase() && !C) {
+                                        var isShortTransition = /^(?:yes|ready|sẵn\s*sàng|ok)[!.]?$/i.test(trimmedA.replace(/^(?:answer|trả\s*lời)\s*:\s*/i, ''));
+                                        if (l && trimmedA.toLowerCase() === l.trim().toLowerCase() && !C && !isShortTransition) {
                                             L("👀 Đã nộp đáp án '" + l.slice(0, 20) + "', chờ EduNext sang câu mới...", "#38bdf8");
                                             remaining = 5;
                                             updateCountdownUI();
