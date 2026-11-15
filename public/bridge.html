@@ -154,7 +154,7 @@
       <div class="title-box">
         <div class="icon">⚡</div>
         <div>
-          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.70 PRO</span></h1>
+          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.71 PRO</span></h1>
           <div class="sub">Vượt CSP Cloudflare 100% • Đồng Bộ Realtime 2 Chiều</div>
         </div>
       </div>
@@ -237,7 +237,7 @@
       logsEl.scrollTop = logsEl.scrollHeight;
     }
 
-    log('success', '✓ Khởi tạo AI Bridge v10.2.70 PRO thành công!');
+    log('success', '✓ Khởi tạo AI Bridge v10.2.71 PRO thành công!');
 
     // Initialize key in background if custom personal key exists
     let activeSavedKey = '';
@@ -466,7 +466,11 @@
                     contents: [{ role: 'user', parts }],
                     systemInstruction: {
                       parts: [{
-                        text: 'Bạn là Trợ lý Học tập FPT EduNext AI Pro. Đọc kỹ câu hỏi và trả lời đúng mẫu yêu cầu (ví dụ: "Answer: [đáp án]" hoặc "Trả lời: [đáp án]").'
+                        text: `Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.71 PRO).
+[QUY TẮC BẮT BUỘC]:
+1. Nếu là bài tiếng Anh (English): Trả lời 100% bằng tiếng Anh. Định dạng: "Answer: [đáp án]".
+2. BÀI TẬP NỐI TỪ (COLUMN A & B): CHỈ DÙNG các từ trong 2 cột của đề bài. Tuyệt đối KHÔNG tự bịa từ như 'music', KHÔNG trả lời tên địa danh. Ghép đúng 4 collocation chuẩn: folk singing, cultural heritage, beautiful landscape, ancient architecture.
+3. Nếu bài tiếng Việt: Bắt đầu bằng "Trả lời: [đáp án]". Không chào hỏi xã giao.`
                       }]
                     },
                     generationConfig: { temperature: 0.1, maxOutputTokens: 800 }

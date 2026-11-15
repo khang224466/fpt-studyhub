@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.70";
+        var t = "v10.2.71";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -1030,7 +1030,7 @@ function e(e, serverOrigin) {
                                 var C = function(e) {
                                     if (!e) return !1;
                                     var t = e.toLowerCase();
-                                    return t.includes("chưa đúng") || t.includes("chưa chính xác") || t.includes("chưa thực hiện") || t.includes("thử lại") || t.includes("kiểm tra lại") || t.includes("câu trả lời vừa rồi") || t.includes("lặp lại nhiều lần") || t.includes("thử đến lần") || t.includes("điểm cần lưu ý là") || t.includes("thực chất đang hỏi") || t.includes("suy nghĩ lại") || t.includes("không chính xác") || t.includes("chưa phải") || t.includes("not correct") || t.includes("incorrect") || t.includes("try again") || t.includes("check again") || t.includes("wrong answer") || t.includes("definition of a vocabulary word again");
+                                    return t.includes("chưa đúng") || t.includes("chưa chính xác") || t.includes("chưa thực hiện") || t.includes("thử lại") || t.includes("kiểm tra lại") || t.includes("câu trả lời vừa rồi") || t.includes("lặp lại nhiều lần") || t.includes("thử đến lần") || t.includes("điểm cần lưu ý là") || t.includes("thực chất đang hỏi") || t.includes("suy nghĩ lại") || t.includes("không chính xác") || t.includes("chưa phải") || t.includes("not correct") || t.includes("incorrect") || t.includes("try again") || t.includes("check again") || t.includes("wrong answer") || t.includes("definition of a vocabulary word again") || t.includes("aren't yet") || t.includes("aren't quite") || t.includes("not yet") || t.includes("not quite") || t.includes("instead of following") || t.includes("try the exercise") || t.includes("good effort") || t.includes("make sense in meaning") || t.includes("accurate and natural") || t.includes("meaningful pairs");
                                 }(n.fullTeacherMsg || i), E = n.fingerprint;
 
                                 if (E !== u || e || C) {
@@ -1044,7 +1044,7 @@ function e(e, serverOrigin) {
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
                                             /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.70 PRO." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.71 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +
@@ -1076,11 +1076,14 @@ function e(e, serverOrigin) {
                                                 (hintFull ? "Gợi ý cụ thể (Hint): " + hintFull + "\n" : "") +
                                                 (teacherFull ? "Lời nhận xét chi tiết của giáo viên:\n\"" + teacherFull + "\"\n" : "") +
                                                 (prevAnswer ? "Câu trả lời trước đó của học sinh (đã bị sai hoặc từ chối): \"" + prevAnswer + "\"\n" : "") +
-                                                (pastSubmissions ? "Các đáp án đã nộp gần đây (TUYỆT ĐỐI KHÔNG LẶP LẠI): " + pastSubmissions + "\n" : "") +
-                                                "-> YÊU CẦU QUAN TRỌNG NHẤT:\n" +
-                                                "1. Đọc thật kỹ nhận xét và gợi ý của giáo viên để hiểu bản chất yêu cầu (ví dụ: so sánh 'development' và 'qualified', hay hỏi về tuổi, hay hỏi định nghĩa).\n" +
-                                                "2. TUYỆT ĐỐI KHÔNG lặp lại đáp án cũ \"" + prevAnswer + "\" hay các đáp án đã nộp ở trên!\n" +
-                                                "3. Xuất đáp án MỚI HOÀN TOÀN, CHÍNH XÁC đáp ứng đúng yêu cầu của giáo viên."
+                                                (pastSubmissions ? "Các đáp án đã nộp gần đây: " + pastSubmissions + "\n" : "") +
+                                                "-> HƯỚNG DẪN SỬA SAI CHÍNH XÁC:\n" +
+                                                "1. Đọc thật kỹ nhận xét và gợi ý của giáo viên để hiểu lý do vì sao đáp án trước bị chấm sai.\n" +
+                                                "2. Đối với dạng bài NỐI TỪ / MATCHING (Column A & Column B):\n" +
+                                                "   - BẮT BUỘC CHỈ SỬ DỤNG CÁC TỪ CÓ TRONG ĐỀ BÀI (Column A: folk, cultural, beautiful, ancient / Column B: architecture, landscape, singing, heritage).\n" +
+                                                "   - TUYỆT ĐỐI KHÔNG tự bịa thêm từ mới (như 'music') và KHÔNG trả lời tên địa danh.\n" +
+                                                "   - Ghép thành đúng 4 cụm từ collocation chuẩn sách giáo khoa: folk singing, cultural heritage, beautiful landscape, ancient architecture.\n" +
+                                                "3. Xuất đáp án hoàn chỉnh, chuẩn xác nhất theo định dạng yêu cầu."
                                             );
                                         }
 
