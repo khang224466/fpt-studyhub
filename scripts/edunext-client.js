@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.69";
+        var t = "v10.2.70";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -1044,14 +1044,15 @@ function e(e, serverOrigin) {
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
                                             /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.69 PRO." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.70 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +
                                                 "1. Trả lời HOÀN TOÀN BẰNG TIẾNG ANH. Tuyệt đối KHÔNG trả lời bằng tiếng Việt.\n" +
                                                 "2. KHÔNG thêm tiền tố 'Trả lời:'. Nếu đề yêu cầu 'Answer: [your answer]', xuất: 'Answer: [đáp án]'.\n" +
                                                 "3. Nếu là trắc nghiệm, xuất đáp án chính xác.\n" +
-                                                "4. Ngắn gọn, chính xác, không chào hỏi, không giải thích lan man."
+                                                "4. Ngắn gọn, chính xác, không chào hỏi, không giải thích lan man.\n" +
+                                                "5. NỐI TỪ (COLUMN A & COLUMN B): CHỈ DÙNG các từ có trong 2 cột của đề bài (ví dụ: folk singing, cultural heritage, beautiful landscape, ancient architecture). Tuyệt đối KHÔNG tự bịa từ như 'music' và KHÔNG trả lời địa danh khi đề yêu cầu ghép cụm từ."
                                             );
                                         } else {
                                             N.push(

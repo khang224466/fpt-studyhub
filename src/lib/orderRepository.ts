@@ -91,9 +91,12 @@ const deletedOrderIds = new Set<string>();
 
 export async function getOrder(id: string): Promise<OrderItem | null> {
   if (deletedOrderIds.has(id)) return null;
-  if (!useRedis()) return (await localOrders())[id] || memoryStore.get(id) || null;
+  const seed = DEFAULT_SEED_ORDERS.find(s => s.orderId === id);
+  if (!useRedis()) return (await localOrders())[id] || memoryStore.get(id) || seed || null;
   const raw = await redis(['HGET', hash, id]);
-  return raw ? JSON.parse(raw) : null;
+  if (raw) return JSON.parse(raw);
+  if (seed) return seed;
+  return null;
 }
 
 export async function listOrders(): Promise<OrderItem[]> {
