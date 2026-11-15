@@ -44,7 +44,7 @@ export function DemoVideoTrailer() {
     { id: 1, time: 0, title: '1. Tự Động Quét Đề', desc: 'Auto Vision quét đề bài CSD201 Dijkstra' },
     { id: 2, time: 7, title: '2. Gemini Flash-Lite Giải', desc: 'AI phân tích & trích xuất đáp án O((V+E)logV) trong 1.1s' },
     { id: 3, time: 14, title: '3. Điền React Fiber & Nộp', desc: 'Đồng bộ 5 tầng DOM và nộp câu trả lời 100%' },
-    { id: 4, time: 21, title: '4. Vòng Lặp Auto & Tiếng Anh', desc: 'Tự động bắt câu chuyển phần Yes/Ready và làm liên tục' }
+    { id: 4, time: 21, title: '4. Chuyển Phần & Tự Dừng', desc: 'Tự động nộp Yes chuyển phần & tự ngắt khi gặp Lesson Complete' }
   ];
 
   // Matched Q&A for CSD201 Algorithm Question
@@ -52,6 +52,7 @@ export function DemoVideoTrailer() {
   const answerQ2 = "Yes";
 
   const isQuestion1 = playbackTime < 21;
+  const isLessonComplete = playbackTime >= 24.5;
   const currentAnswer = isQuestion1 ? answerQ1 : answerQ2;
 
   let streamedText = "";
@@ -66,7 +67,7 @@ export function DemoVideoTrailer() {
     streamedText = "";
   }
 
-  const countdown = Math.max(7, 35 - Math.floor(playbackTime));
+  const countdown = isLessonComplete ? "Xong" : Math.max(7, 35 - Math.floor(playbackTime));
 
   return (
     <section id="trailer" className="py-20 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-t border-slate-800/80 relative overflow-hidden">
@@ -104,7 +105,7 @@ export function DemoVideoTrailer() {
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                Live Simulation (v10.2.62 PRO)
+                Live Simulation (v10.2.74 PRO)
               </span>
             </div>
           </div>
@@ -196,7 +197,7 @@ export function DemoVideoTrailer() {
                 )}
 
                 {/* Student Transition Answer (Yes) in Step 4 */}
-                {playbackTime >= 22 && !isQuestion1 && (
+                {playbackTime >= 22 && !isQuestion1 && !isLessonComplete && (
                   <div className="flex items-start justify-end gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="bg-emerald-950/60 border border-emerald-500/60 p-3 rounded-2xl rounded-tr-sm shadow-md text-right space-y-1">
                       <div className="flex items-center justify-between gap-4">
@@ -213,6 +214,32 @@ export function DemoVideoTrailer() {
                     </div>
                     <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
                       SV
+                    </div>
+                  </div>
+                )}
+
+                {/* Lesson Complete Conclusion Screen in Step 4 */}
+                {isLessonComplete && (
+                  <div className="bg-slate-900/95 border-2 border-emerald-500/50 p-4 rounded-2xl shadow-xl space-y-2 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>VII COMMUNICATION & CLIL - Lesson Complete</span>
+                      </div>
+                      <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/40">
+                        Score: 95/100
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-300 space-y-1">
+                      <div className="text-white font-medium">I am very impressed by your persistence and high speed!</div>
+                      <div className="flex gap-4 text-[10px] text-slate-400 font-mono">
+                        <span>Correct: <strong className="text-emerald-400">35</strong></span>
+                        <span>Incorrect: <strong className="text-slate-400">2</strong></span>
+                        <span>Streak: <strong className="text-amber-400">9 questions</strong></span>
+                      </div>
+                      <div className="text-[10px] text-emerald-400/90 italic pt-1 font-semibold flex items-center gap-1">
+                        <span>See you in the next lesson! 🚀 (Bot tự động phát hiện kết bài & ngắt an toàn)</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -266,7 +293,7 @@ export function DemoVideoTrailer() {
               </div>
             </div>
 
-            {/* Right: The Floating HUD v10.2.62 PRO */}
+            {/* Right: The Floating HUD v10.2.74 PRO */}
             <div className="w-full md:w-80 p-4 bg-slate-950/95 flex flex-col justify-between border-t md:border-t-0 select-none">
               <div className="space-y-3">
                 {/* HUD Header */}
@@ -279,12 +306,14 @@ export function DemoVideoTrailer() {
                       <div className="text-xs font-extrabold text-white flex items-center gap-1.5">
                         <span>EduNext AI Pro</span>
                         <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1 py-0.2 rounded border border-emerald-500/30 font-mono font-bold">
-                          v10.2.62 PRO
+                          v10.2.74 PRO
                         </span>
                       </div>
                       <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                        <span>Auto Loop 35s</span>
-                        <span className="bg-amber-400 text-slate-950 px-1 py-0.2 rounded font-black text-[9px]">{countdown}s</span>
+                        <span>{isLessonComplete ? "Trạng Thái" : "Auto Loop 35s"}</span>
+                        <span className={`${isLessonComplete ? "bg-emerald-400 text-slate-950" : "bg-amber-400 text-slate-950"} px-1 py-0.2 rounded font-black text-[9px]`}>
+                          {isLessonComplete ? "✅ Xong" : `${countdown}s`}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -303,8 +332,8 @@ export function DemoVideoTrailer() {
 
                   <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-slate-300">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                      <span>Màn hình: Đang kết nối (Auto Vision)</span>
+                      <span className={`w-2 h-2 rounded-full ${isLessonComplete ? "bg-emerald-400" : "bg-emerald-400 animate-pulse"}`} />
+                      <span>{isLessonComplete ? "Màn hình: Hoàn thành bài" : "Màn hình: Đang kết nối (Auto Vision)"}</span>
                     </div>
                     <span className="text-[10px] text-rose-400 font-bold bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-500/30">Ngắt</span>
                   </div>
@@ -313,32 +342,43 @@ export function DemoVideoTrailer() {
                     <button className="flex-1 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-md shadow-emerald-950/50">
                       🎯 Chụp & Giải Câu Này Ngay
                     </button>
-                    <button className="px-3 py-1.5 rounded-lg bg-emerald-950/80 border border-emerald-500 text-emerald-300 font-bold text-xs flex items-center gap-1">
-                      <span>⚡ Auto: {countdown}s</span>
+                    <button className={`px-3 py-1.5 rounded-lg border font-bold text-xs flex items-center gap-1 transition-all ${
+                      isLessonComplete
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                        : 'bg-emerald-950/80 border-emerald-500 text-emerald-300'
+                    }`}>
+                      <span>{isLessonComplete ? "✅ Hoàn thành" : `⚡ Auto: ${countdown}s`}</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Live Console Logs */}
                 <div className="p-2.5 rounded-lg bg-black border border-slate-800 font-mono text-[10px] space-y-1 h-36 overflow-hidden text-slate-400">
-                  <div className="text-emerald-400">[10:14:00] EduNext AI Pro v10.2.62 PRO sẵn sàng!</div>
+                  <div className="text-emerald-400">[10:14:00] EduNext AI Pro v10.2.74 PRO sẵn sàng!</div>
                   <div className="text-emerald-300">[10:14:00] Key hợp lệ: 1 Kỳ Học (4 Tháng) (Sẵn sàng 100%)</div>
-                  {playbackTime >= 2 && (
+                  {playbackTime >= 2 && playbackTime < 24.5 && (
                     <div className="text-cyan-400">[10:14:02] 📸 Auto Vision: Nhận diện đề bài Dijkstra (CSD201)!</div>
                   )}
-                  {playbackTime >= 7 && (
+                  {playbackTime >= 7 && playbackTime < 24.5 && (
                     <div className="text-emerald-400">[10:14:03] ✓ Gemini Flash-Lite trả lời: "Trả lời: O((V+E)logV)..." (1.1s)</div>
                   )}
-                  {playbackTime >= 12 && (
+                  {playbackTime >= 12 && playbackTime < 24.5 && (
                     <div className="text-slate-300">[10:14:04] ✍️ Điền React Fiber 5 tầng & kiểm tra mẫu...</div>
                   )}
                   {playbackTime >= 15 && playbackTime < 21 && (
                     <div className="text-emerald-400 font-bold">[10:14:05] ✓ ĐÃ BẤM [Nộp câu trả lời] thành công! (10/10 Điểm)</div>
                   )}
-                  {playbackTime >= 21 && (
+                  {playbackTime >= 21 && playbackTime < 24.5 && (
                     <>
                       <div className="text-amber-400 font-semibold">[10:14:08] 🚀 Phát hiện câu hỏi chuyển phần: "Are you ready..." ➔ Nộp "Yes"!</div>
                       <div className="text-emerald-400 font-bold">[10:14:09] ✓ ĐÃ NỘP XONG! Tự động chờ câu hỏi tiếp theo...</div>
+                    </>
+                  )}
+                  {isLessonComplete && (
+                    <>
+                      <div className="text-amber-400 font-semibold">[10:14:10] 🚀 Đã chuyển phần "Yes" thành công!</div>
+                      <div className="text-emerald-400 font-bold">[10:14:12] 🎉 PHÁT HIỆN KẾT BÀI: Lesson Complete (Điểm 95/100)!</div>
+                      <div className="text-emerald-300 font-bold">[10:14:12] ✓ Tự động dừng bot 100%. Hoàn tất bài học an toàn!</div>
                     </>
                   )}
                 </div>
@@ -348,10 +388,15 @@ export function DemoVideoTrailer() {
               <div className="pt-2 border-t border-slate-800 text-[11px] text-emerald-400 font-semibold flex items-center gap-1.5 truncate">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
                 <span className="truncate">
-                  {activeStep === 1 && "Đang quét và nhận diện đề bài CSD201..."}
-                  {activeStep === 2 && "Gemini Flash-Lite đang giải thuật toán Dijkstra..."}
-                  {activeStep === 3 && "Đang tự động nộp câu trả lời qua React Fiber..."}
-                  {activeStep === 4 && "Đã nộp xong! Tự động bắt câu chuyển phần & tiếp tục..."}
+                  {isLessonComplete
+                    ? "🎉 Đã hoàn thành bài học (Lesson Complete)! Tự động dừng."
+                    : activeStep === 1
+                    ? "Đang quét và nhận diện đề bài CSD201..."
+                    : activeStep === 2
+                    ? "Gemini Flash-Lite đang giải thuật toán Dijkstra..."
+                    : activeStep === 3
+                    ? "Đang tự động nộp câu trả lời qua React Fiber..."
+                    : "Đang tự động nộp Yes chuyển phần bài tập..."}
                 </span>
               </div>
             </div>
@@ -434,7 +479,7 @@ export function DemoVideoTrailer() {
         <div className="mt-10 p-6 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-950 border border-emerald-500/40 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
             <h4 className="text-base sm:text-lg font-bold text-white">
-              Sẵn Sàng Trải Nghiệm EduNext AI Pro v10.2.62 PRO?
+              Sẵn Sàng Trải Nghiệm EduNext AI Pro v10.2.74 PRO?
             </h4>
             <p className="text-xs text-slate-400 mt-1">
               Đăng ký nhận Key bản quyền ngay để tự động hóa 100% việc làm bài tập trên lớp!
