@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.77";
+        var t = "v10.2.79";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -893,78 +893,104 @@ function e(e, serverOrigin) {
             return false;
         }
 
-                // =========================================================================
+                        // =========================================================================
         // BỘ THEO DÕI ĐỘC LẬP: LÀM RÕ Ý ĐỊNH / CLARIFY INTENT ("TRACK RIÊNG")
-        // Thiết kế theo chỉ đạo: Chạy riêng biệt, chỉ khi widget hiện thì mới bấm,
-        // tuyệt đối KHÔNG can thiệp hay sửa đổi luồng giải bài tập thông thường.
+        // Chỉ kích hoạt khi HIỆN ĐÚNG CÁI KHUNG ĐÓ ("LÀM RÕ Ý ĐỊNH" + "Xác nhận lựa chọn")
+        // Tuyệt đối không click lung tung ở bất kỳ nơi nào khác trên trang!
         // =========================================================================
         var lastClarifyHandledTime = 0;
         var isClarifyProcessing = false;
 
+        function getClarifyIntentCard() {
+            var allElements = Array.from(document.querySelectorAll('div, section, article, [class*="card"], [class*="intent"], [class*="box"], [class*="message"]'));
+            var matchedCards = [];
+            for (var i = 0; i < allElements.length; i++) {
+                var el = allElements[i];
+                if (el.closest('#enx-pro-hud')) continue;
+                if (el.offsetParent === null) continue; // Phải đang hiển thị trên màn hình
+                var txt = (el.innerText || el.textContent || '');
+                if (txt.length > 3000) continue; // Loại trừ các wrapper toàn trang quá lớn
+
+                // 1. Phải chứa đúng tiêu đề "LÀM RÕ Ý ĐỊNH" hoặc "CLARIFY INTENT"
+                var hasHeader = /(?:LÀM\s*RÕ\s*Ý\s*ĐỊNH|CLARIFY\s*INTENT)/i.test(txt);
+                // 2. Phải chứa nút "Xác nhận lựa chọn" hoặc "Confirm selection"
+                var hasConfirmBtn = /(?:xác\s*nhận\s*lựa\s*chọn|confirm\s*selection)/i.test(txt);
+                // 3. Phải chứa các lựa chọn 01, 02...
+                var hasOptions = /(?:01|1)[\s.:\-)].+?(?:02|2)[\s.:\-)]/is.test(txt);
+
+                if (hasHeader && hasConfirmBtn && hasOptions) {
+                    matchedCards.push(el);
+                }
+            }
+            if (matchedCards.length === 0) return null;
+
+            // Sắp xếp để lấy container cụ thể nhất (ít thẻ con nhất) bao trọn 3 thành phần
+            matchedCards.sort(function(a, b) {
+                return a.querySelectorAll('*').length - b.querySelectorAll('*').length;
+            });
+            return matchedCards[0];
+        }
+
         async function checkAndHandleClarifyIntent() {
             if (isClarifyProcessing) return false;
-            if (Date.now() - lastClarifyHandledTime < 5000) return false;
+            if (Date.now() - lastClarifyHandledTime < 4000) return false;
 
             try {
-                // 1. Kiểm tra dấu hiệu thẻ Làm Rõ Ý Định trên toàn bộ trang
-                var pageText = (document.body ? (document.body.innerText || '') : '');
-                var hasClarifyKeywords = /(?:làm\s*rõ\s*ý\s*định|clarify\s*intent|int:\s*clarify_intent|bạn\s*muốn\s*tiếp\s*tục\s*thế\s*nào|ý\s*nào\s*dưới\s*đây\s*đúng|chọn\s*một\s*mục\s*bên\s*dưới|chờ\s*bạn\s*chọn\s*ở\s*phía\s*trên|không\s*cần\s*nhập\s*văn\s*bản|waiting\s*for\s*your\s*selection|no\s*text\s*input)/i.test(pageText);
+                // CHỈ KHI HIỆN ĐÚNG CÁI KHUNG ĐÓ THÌ MỚI XỬ LÝ
+                var card = getClarifyIntentCard();
+                if (!card) return false;
 
-                // 2. Tìm nút Xác nhận lựa chọn
-                var confirmBtns = Array.from(document.querySelectorAll('button, [role="button"], a, div[tabindex], input[type="button"], input[type="submit"], div, span')).filter(function(b) {
-                    if (b.closest('#enx-pro-hud')) return false;
+                // 1. Tìm các thẻ lựa chọn BÊN TRONG ĐÚNG CÁI KHUNG NÀY
+                var optionItems = [];
+                var allInCard = Array.from(card.querySelectorAll('div, label, li, span, button')).filter(function(el) {
+                    if (el.offsetParent === null) return false;
+                    var t = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+                    return /^(?:0?[1-9]|[a-c])[\s.:\-)].{2,80}$/i.test(t);
+                });
+
+                allInCard.forEach(function(el) {
+                    var curr = el;
+                    while (curr && curr.parentElement && curr.parentElement !== card && curr.parentElement !== document.body) {
+                        var pTxt = (curr.parentElement.innerText || curr.parentElement.textContent || '').replace(/\s+/g, ' ');
+                        if (/(?:01|1)[\s.:\-)].+?(?:02|2)[\s.:\-)]/i.test(pTxt)) {
+                            break;
+                        }
+                        curr = curr.parentElement;
+                    }
+                    if (curr && !optionItems.includes(curr)) {
+                        optionItems.push(curr);
+                    }
+                });
+
+                // Cách 2: Dự phòng nếu thẻ dùng cấu trúc radio AntD / HTML5
+                if (optionItems.length < 2) {
+                    optionItems = Array.from(card.querySelectorAll('[role="radio"], .ant-radio-wrapper, .ant-radio, input[type="radio"], [class*="radio"], [class*="intent-column__item"], [class*="choice-item"], [class*="option-item"]')).filter(function(el) {
+                        return el.offsetParent !== null;
+                    });
+                }
+
+                if (optionItems.length < 2) return false;
+
+                // 2. Tìm nút Xác nhận lựa chọn BÊN TRONG ĐÚNG CÁI KHUNG NÀY
+                var confirmBtns = Array.from(card.querySelectorAll('button, [role="button"], a, div[tabindex], input[type="button"], input[type="submit"], div, span')).filter(function(b) {
                     if (b.offsetParent === null) return false;
                     var t = (b.innerText || b.textContent || '').replace(/\s+/g, ' ').trim();
-                    return /(?:xác\s*nhận\s*(?:lựa\s*chọn|ý\s*định)?|confirm\s*(?:selection|choice)?)/i.test(t) && t.length < 40;
+                    return /(?:xác\s*nhận\s*lựa\s*chọn|confirm\s*selection)/i.test(t) && t.length < 35;
                 });
-                var confirmBtn = confirmBtns[confirmBtns.length - 1] || null;
+                var confirmBtn = confirmBtns.find(function(b) {
+                    return b.tagName === 'BUTTON' || b.getAttribute('role') === 'button';
+                }) || confirmBtns[confirmBtns.length - 1] || null;
 
-                // NẾU KHÔNG CÓ CẢ TỪ KHÓA LẪN NÚT BẤM -> THOÁT NGAY (CHỈ KHI HIỆN MỚI BẤM)
-                if (!hasClarifyKeywords && !confirmBtn) return false;
-
-                // 3. Tìm các mục lựa chọn (Options):
-                // Ưu tiên 1: Các thẻ có đánh số 01, 02, 03... (cả tiếng Việt và tiếng Anh)
-                var candidateOptions = Array.from(document.querySelectorAll('div, label, span, p, button, li')).filter(function(el) {
-                    if (el.closest('#enx-pro-hud')) return false;
-                    if (el.offsetParent === null) return false;
-                    var txt = (el.innerText || el.textContent || '').trim();
-                    if (!/^(?:0?[1-9]|[a-c])[\s.:\-)].{2,80}$/i.test(txt)) return false;
-                    return !Array.from(el.children).some(function(child) {
-                        var cTxt = (child.innerText || child.textContent || '').trim();
-                        return /^(?:0?[1-9]|[a-c])[\s.:\-)].{2,80}$/i.test(cTxt);
-                    });
-                });
-
-                // Ưu tiên 2: Thẻ radio hoặc role radio
-                if (candidateOptions.length === 0) {
-                    candidateOptions = Array.from(document.querySelectorAll('[role="radio"], .ant-radio-wrapper, .ant-radio, [class*="radio"], [class*="intent-column__item"], [class*="intent-radial__item"], [class*="choice-item"], [class*="option-item"]')).filter(function(el) {
-                        return !el.closest('#enx-pro-hud') && el.offsetParent !== null;
-                    });
-                }
-
-                // Ưu tiên 3: Tìm theo từ khóa đặc trưng (Hỏi lý thuyết, Tiếp tục, Giải thích đơn giản, etc.)
-                if (candidateOptions.length === 0) {
-                    candidateOptions = Array.from(document.querySelectorAll('div, label, span, p')).filter(function(el) {
-                        if (el.closest('#enx-pro-hud')) return false;
-                        if (el.offsetParent === null) return false;
-                        var txt = (el.innerText || el.textContent || '').trim().toLowerCase();
-                        var matches = txt.includes('tiếp tục sang phần sau') || txt.includes('hỏi lý thuyết') || txt.includes('giải thích đơn giản') ||
-                                      txt.includes('xin giải thích thêm') || txt.includes('cần thêm thời gian') || txt.includes('continue to next') || txt.includes('move on');
-                        return matches && txt.length < 80 && el.children.length <= 2;
-                    });
-                }
-
-                if (candidateOptions.length === 0 && !confirmBtn) return false;
+                if (!confirmBtn) return false;
 
                 isClarifyProcessing = true;
-                L("🎯 [Track riêng] Phát hiện thẻ Làm Rõ Ý Định...", "#f59e0b");
-                P("info", "🎯 [Track riêng] Bắt được thẻ 'Làm Rõ Ý Định' (Clarify Intent)! Đang chọn ngẫu nhiên 1 trong " + (candidateOptions.length || 3) + " lựa chọn...");
+                L("🎯 [Track riêng] Phát hiện đúng khung Làm Rõ Ý Định...", "#f59e0b");
+                P("info", "🎯 [Track riêng] Phát hiện đúng khung 'Làm Rõ Ý Định'! Chọn ngẫu nhiên 1 trong " + optionItems.length + " lựa chọn...");
 
-                // Helper gửi đầy đủ sự kiện chuột & con trỏ
                 function dispatchFullClick(el) {
                     if (!el) return;
                     try { el.focus && el.focus(); } catch(_) {}
-                    try { el.disabled = false; el.removeAttribute('disabled'); } catch(_) {}
+                    try { el.disabled = false; el.removeAttribute('disabled'); el.removeAttribute('aria-disabled'); } catch(_) {}
                     var evtOpts = { bubbles: true, cancelable: true, view: window, composed: true };
                     try { el.dispatchEvent(new PointerEvent('pointerdown', evtOpts)); } catch(_) {}
                     try { el.dispatchEvent(new MouseEvent('mousedown', evtOpts)); } catch(_) {}
@@ -974,43 +1000,78 @@ function e(e, serverOrigin) {
                     try { if (typeof el.click === 'function') el.click(); } catch(_) {}
                 }
 
-                if (candidateOptions.length > 0) {
-                    var chosenIdx = Math.floor(Math.random() * candidateOptions.length);
-                    var chosenEl = candidateOptions[chosenIdx];
-                    var optionText = (chosenEl.innerText || chosenEl.textContent || "").replace(/\s+/g, " ").trim();
+                // Chọn ngẫu nhiên 1 mục bên trong khung
+                var chosenIdx = Math.floor(Math.random() * optionItems.length);
+                var chosenEl = optionItems[chosenIdx];
+                var optionText = (chosenEl.innerText || chosenEl.textContent || "").replace(/\s+/g, " ").trim();
 
-                    var innerRadio = chosenEl.querySelector('input[type="radio"], [role="radio"], .ant-radio, svg, circle, [class*="circle"], [class*="radio"]') || chosenEl;
-                    dispatchFullClick(innerRadio);
-                    dispatchFullClick(chosenEl);
-                    if (chosenEl.parentElement && chosenEl.parentElement !== document.body) {
-                        dispatchFullClick(chosenEl.parentElement);
-                    }
-                    if (innerRadio.tagName === 'INPUT') {
-                        try {
-                            innerRadio.checked = true;
-                            innerRadio.dispatchEvent(new Event('change', { bubbles: true }));
-                        } catch(_) {}
-                    }
-
-                    P("success", '✓ [Track riêng] Đã chọn ngẫu nhiên mục ' + (chosenIdx + 1) + ' / ' + candidateOptions.length + ': "' + optionText.slice(0, 35) + '..."');
-                    L('✓ Đã chọn mục ' + (chosenIdx + 1) + ': "' + optionText.slice(0, 25) + '...", đang bấm xác nhận...', "#34d399");
+                // Kích hoạt toàn bộ các phần tử clickable trong option đã chọn:
+                // a. Radio input (hỗ trợ React controlled input setter)
+                var radioInput = chosenEl.querySelector('input[type="radio"]') || (chosenEl.tagName === 'INPUT' ? chosenEl : null);
+                if (radioInput) {
+                    try {
+                        radioInput.checked = true;
+                        var nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'checked')?.set;
+                        if (nativeSetter) nativeSetter.call(radioInput, true);
+                        radioInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        radioInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    } catch(_) {}
+                    dispatchFullClick(radioInput);
                 }
 
-                await new Promise(function(resolve) { setTimeout(resolve, 350); });
+                // b. Phần tử radio role / SVG circle
+                var innerRadio = chosenEl.querySelector('[role="radio"], .ant-radio, svg, circle, [class*="circle"], [class*="radio"]') || chosenEl;
+                if (innerRadio && innerRadio !== radioInput) {
+                    dispatchFullClick(innerRadio);
+                }
 
-                // Tái tìm nút xác nhận nếu DOM cập nhật sau khi chọn radio
-                var reConfirmBtns = Array.from(document.querySelectorAll('button, [role="button"], a, div[tabindex], input[type="button"], input[type="submit"], div, span')).filter(function(b) {
-                    if (b.closest('#enx-pro-hud')) return false;
+                // c. Label bao quanh nếu có
+                var labelEl = chosenEl.querySelector('label') || (chosenEl.tagName === 'LABEL' ? chosenEl : null);
+                if (labelEl) {
+                    dispatchFullClick(labelEl);
+                }
+
+                // d. Bản thân thẻ option
+                dispatchFullClick(chosenEl);
+                if (chosenEl.parentElement && chosenEl.parentElement !== card) {
+                    dispatchFullClick(chosenEl.parentElement);
+                }
+
+                P("success", '✓ [Track riêng] Đã chọn ngẫu nhiên mục ' + (chosenIdx + 1) + ' / ' + optionItems.length + ': "' + optionText.slice(0, 35) + '..."');
+                L('✓ Đã chọn mục ' + (chosenIdx + 1) + ': "' + optionText.slice(0, 25) + '...", đang bấm xác nhận...', "#34d399");
+
+                // Chờ 400ms để React cập nhật state kích hoạt nút Xác nhận
+                await new Promise(function(resolve) { setTimeout(resolve, 400); });
+
+                // Tái tìm nút xác nhận trong khung (để bắt trạng thái enabled mới nhất)
+                var reConfirmBtns = Array.from(card.querySelectorAll('button, [role="button"], a, div[tabindex], input[type="button"], input[type="submit"], div, span')).filter(function(b) {
                     if (b.offsetParent === null) return false;
                     var t = (b.innerText || b.textContent || '').replace(/\s+/g, ' ').trim();
-                    return /(?:xác\s*nhận\s*(?:lựa\s*chọn|ý\s*định)?|confirm\s*(?:selection|choice)?)/i.test(t) && t.length < 40;
+                    return /(?:xác\s*nhận\s*lựa\s*chọn|confirm\s*selection)/i.test(t) && t.length < 35;
                 });
-                confirmBtn = reConfirmBtns[reConfirmBtns.length - 1] || confirmBtn;
+                confirmBtn = reConfirmBtns.find(function(b) {
+                    return b.tagName === 'BUTTON' || b.getAttribute('role') === 'button';
+                }) || reConfirmBtns[reConfirmBtns.length - 1] || confirmBtn;
 
                 if (confirmBtn) {
+                    try {
+                        confirmBtn.disabled = false;
+                        confirmBtn.removeAttribute('disabled');
+                        confirmBtn.setAttribute('aria-disabled', 'false');
+                    } catch(_) {}
+
                     dispatchFullClick(confirmBtn);
                     var innerBtn = confirmBtn.querySelector('button, span, div');
                     if (innerBtn) dispatchFullClick(innerBtn);
+                    if (confirmBtn.parentElement && confirmBtn.parentElement !== card) {
+                        dispatchFullClick(confirmBtn.parentElement);
+                    }
+
+                    // Chờ 350ms, nếu card vẫn chưa biến mất (chưa ăn click), thử click trực tiếp lần nữa
+                    await new Promise(function(resolve) { setTimeout(resolve, 350); });
+                    if (card.isConnected) {
+                        try { if (typeof confirmBtn.click === 'function') confirmBtn.click(); } catch(_) {}
+                    }
 
                     lastClarifyHandledTime = Date.now();
                     P("success", "✓ [Track riêng] ĐÃ BẤM [Xác nhận lựa chọn] thành công!");
@@ -1018,8 +1079,6 @@ function e(e, serverOrigin) {
                     remaining = 5;
                     updateCountdownUI();
                     return true;
-                } else {
-                    P("warn", "⚠️ [Track riêng] Đã chọn mục nhưng không tìm thấy nút [Xác nhận lựa chọn], thử click lần nữa...");
                 }
                 return false;
             } catch (err) {
@@ -1034,6 +1093,36 @@ function e(e, serverOrigin) {
             if ((d || e) && !s) {
                 var t = K();
                 if (t.allowed) {
+                    // CHỐT CHẶN BÀI HỌC HOÀN THÀNH: Nếu màn hình hiện Lesson Complete / Hoàn thành bài học -> DỪNG TOÀN BỘ AUTO!
+                    var isLessonCompleteNow = (function() {
+                        var docText = (document.body ? (document.body.innerText || '').slice(-3000) : '');
+                        return /(?:lesson\s*complete|see\s*you\s*in\s*the\s*next\s*lesson|review\s*suggestions\s*&\s*message|lesson\s*score\s*:\s*\d+\s*\/\s*100|hoàn\s*thành\s*buổi\s*học|chúc\s*mừng\s*(?:em|bạn)?\s*hoàn\s*thành\s*buổi\s*học)/is.test(docText);
+                    })();
+
+                    if (isLessonCompleteNow) {
+                        d = false; // Tắt auto loop
+                        remaining = 0;
+                        updateCountdownUI();
+                        L("🎉 ĐÃ HOÀN THÀNH BÀI HỌC (Lesson Complete)! Tự động dừng.", "#10b981");
+                        P("success", "🎉 ĐÃ HOÀN THÀNH BÀI HỌC! EduNext AI Pro đã tự động dừng nộp để bạn xem kết quả tổng kết.");
+                        return;
+                    }
+
+                    // CHỐT CHẶN BÀI HỌC HOÀN THÀNH: Nếu màn hình hiện Lesson Complete / Hoàn thành bài học -> DỪNG TOÀN BỘ AUTO!
+                    var isLessonCompleteNow = (function() {
+                        var docText = (document.body ? (document.body.innerText || '').slice(-3000) : '');
+                        return /(?:lesson\s*complete|see\s*you\s*in\s*the\s*next\s*lesson|review\s*suggestions\s*&\s*message|lesson\s*score\s*:\s*\d+\s*\/\s*100|hoàn\s*thành\s*buổi\s*học|chúc\s*mừng\s*(?:em|bạn)?\s*hoàn\s*thành\s*buổi\s*học)/is.test(docText);
+                    })();
+
+                    if (isLessonCompleteNow) {
+                        d = false; // Tắt auto loop
+                        remaining = 0;
+                        updateCountdownUI();
+                        L("🎉 ĐÃ HOÀN THÀNH BÀI HỌC (Lesson Complete)! Tự động dừng.", "#10b981");
+                        P("success", "🎉 ĐÃ HOÀN THÀNH BÀI HỌC! EduNext AI Pro đã tự động dừng nộp để bạn xem kết quả tổng kết.");
+                        return;
+                    }
+
                     // ƯU TIÊN 0: Track riêng kiểm tra ngay thẻ Làm Rõ Ý Định trước khi bắt câu hỏi hay gọi AI
                     if (await checkAndHandleClarifyIntent()) {
                         remaining = 5;
@@ -1095,8 +1184,8 @@ function e(e, serverOrigin) {
                                                 } else {
                             var i = n.lastTeacherMsg || "";
 
-                            // Kiểm tra chốt chặn: Nếu là thẻ Làm Rõ Ý Định thì không gọi Gemini giải
-                            if (/(?:làm\s*rõ\s*ý\s*định|clarify\s*intent|int:\s*clarify_intent|chờ\s*bạn\s*chọn\s*ở\s*phía\s*trên|không\s*cần\s*nhập\s*văn\s*bản)/i.test((n.questionBlockText || "") + " " + (n.fullTeacherMsg || "") + " " + (document.body ? document.body.innerText.slice(-2000) : ""))) {
+                                                        // Kiểm tra chốt chặn: Chỉ khi đúng khung Làm Rõ Ý Định hiển thị thì mới không gọi Gemini
+                            if (getClarifyIntentCard()) {
                                 if (await checkAndHandleClarifyIntent()) return;
                                 L("⏳ Chờ chọn thẻ Làm Rõ Ý Định...", "#f59e0b");
                                 return;
@@ -1203,7 +1292,7 @@ function e(e, serverOrigin) {
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
                                             /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.77 PRO." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.79 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +

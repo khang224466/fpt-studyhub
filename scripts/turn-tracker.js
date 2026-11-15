@@ -162,9 +162,11 @@ function readEduNextTurn(doc) {
   const rateLimitSeconds = rateLimitMatch ? parseInt(rateLimitMatch[1], 10) : 0;
 
   // 5b. Lesson Completion Detection (English: Lesson Complete / See you in the next lesson & Vietnamese: Hoàn thành buổi học)
-  const combinedRecent = recentText + ' ' + (teacherAfterStudent || '') + ' ' + (lastTeacherMsg || '');
+  const fullDocText = (doc?.body ? (doc.body.innerText || '').slice(-3000) : '');
+  const combinedRecent = recentText + ' ' + (teacherAfterStudent || '') + ' ' + (lastTeacherMsg || '') + ' ' + fullDocText;
   const isLessonComplete = /lesson\s*complete/i.test(combinedRecent) ||
                            /see\s*you\s*in\s*the\s*next\s*lesson/i.test(combinedRecent) ||
+                           /review\s*suggestions\s*&\s*message/i.test(combinedRecent) ||
                            /lesson\s*score\s*:\s*\d+\s*\/\s*100/i.test(combinedRecent) ||
                            /(?:correct\s*answers\s*:\s*\d+.*incorrect\s*answers\s*:\s*\d+)/is.test(combinedRecent) ||
                            /(?:strengths.*areas\s*to\s*improve)/is.test(combinedRecent) ||
