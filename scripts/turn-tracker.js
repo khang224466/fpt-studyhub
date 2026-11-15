@@ -161,9 +161,23 @@ function readEduNextTurn(doc) {
                          recentText.match(/(\d+)\s*(?:giây|seconds).*?(?:thử\s*lại|try\s*again)/i);
   const rateLimitSeconds = rateLimitMatch ? parseInt(rateLimitMatch[1], 10) : 0;
 
+  // 5b. Lesson Completion Detection (English: Lesson Complete / See you in the next lesson & Vietnamese: Hoàn thành buổi học)
+  const combinedRecent = recentText + ' ' + (teacherAfterStudent || '') + ' ' + (lastTeacherMsg || '');
+  const isLessonComplete = /lesson\s*complete/i.test(combinedRecent) ||
+                           /see\s*you\s*in\s*the\s*next\s*lesson/i.test(combinedRecent) ||
+                           /lesson\s*score\s*:\s*\d+\s*\/\s*100/i.test(combinedRecent) ||
+                           /(?:correct\s*answers\s*:\s*\d+.*incorrect\s*answers\s*:\s*\d+)/is.test(combinedRecent) ||
+                           /(?:strengths.*areas\s*to\s*improve)/is.test(combinedRecent) ||
+                           /chúc\s*mừng\s*(?:em|bạn)?\s*hoàn\s*thành\s*buổi\s*học/i.test(combinedRecent) ||
+                           /điểm\s*buổi\s*học\s*:\s*\d+\s*\/\s*\d+/i.test(combinedRecent) ||
+                           /hẹn\s*gặp\s*(?:em|bạn).{0,30}buổi\s*học\s*tiếp\s*theo/i.test(combinedRecent) ||
+                           /congratulations.{0,80}(?:completed|finished).{0,60}(?:lesson|session|course)/i.test(combinedRecent);
+
   // 6. State classification
   let state = 'idle';
-  if (isDeadConversation || rateLimitSeconds > 30) {
+  if (isLessonComplete) {
+    state = 'completed';
+  } else if (isDeadConversation || rateLimitSeconds > 30) {
     state = 'need_new_chat';
   } else if (rateLimitSeconds > 0) {
     state = 'rate_limited';
@@ -191,6 +205,7 @@ function readEduNextTurn(doc) {
   return {
     state,
     isDeadConversation,
+    isLessonComplete,
     rateLimitSeconds,
     lastStudentBadge: studentBadge,
     lastTeacherBadge: teacherMarkers.at(-1) || null,

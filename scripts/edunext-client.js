@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.72";
+        var t = "v10.2.73";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -986,26 +986,34 @@ function e(e, serverOrigin) {
                                 }
                             }
 
-                            // 2. Check Actual Lesson Completion (ONLY if NO active input box and NOT a question)
-                            var isActuallyComplete = !activeInput && (function(msg) {
-                                if (!msg) return false;
-                                var t = msg.toLowerCase();
-                                if (t.includes('?') || t.includes('are you ready') || t.includes('sẵn sàng') || t.includes('câu hỏi') || t.includes('question') || t.includes('trả lời:')) return false;
-                                return /chúc\s*mừng\s*(?:em|bạn)?\s*hoàn\s*thành\s*buổi\s*học/i.test(msg) ||
-                                       /điểm\s*buổi\s*học\s*:\s*\d+\s*\/\s*\d+/i.test(msg) ||
-                                       /hẹn\s*gặp\s*(?:em|bạn).{0,30}buổi\s*học\s*tiếp\s*theo/i.test(msg) ||
-                                       /congratulations.{0,80}(?:completed|finished).{0,60}(?:lesson|session|course)/i.test(msg);
-                            })(i);
-
-                            if (isActuallyComplete) {
+                            // 2. Check Actual Lesson Completion (English: Lesson Complete / See you in the next lesson & Vietnamese: Hoàn thành bài học)
+                            function markLessonComplete(reason) {
                                 j();
-                                P("success", "🎉 CHÚC MỪNG: BẠN ĐÃ HOÀN THÀNH TOÀN BỘ BÀI HỌC!");
+                                P("success", "🎉 HOÀN THÀNH TOÀN BỘ BÀI HỌC! (" + (reason || "Lesson Complete") + ")");
                                 L("🎉 HOÀN THÀNH TOÀN BỘ BÀI HỌC!", "#10b981");
                                 d = !1;
                                 var r = document.getElementById("hud-auto-btn");
                                 r && (r.textContent = "✅ Hoàn thành", r.style.background = "rgba(16,185,129,0.2)", r.style.borderColor = "#10b981", r.style.color = "#34d399");
                                 var cdBadge1 = document.getElementById("enx-cd-badge");
                                 cdBadge1 && (cdBadge1.textContent = "✅", cdBadge1.style.background = "#10b981", cdBadge1.style.color = "#fff");
+                            }
+
+                            var isActuallyComplete = n.isLessonComplete || n.state === 'completed' || (function() {
+                                var rawText = (n.fullTeacherMsg || "") + " " + (i || "") + " " + (document.body ? document.body.innerText.slice(-2500) : "");
+                                if (/lesson\s*complete/i.test(rawText)) return true;
+                                if (/see\s*you\s*in\s*the\s*next\s*lesson/i.test(rawText)) return true;
+                                if (/lesson\s*score\s*:\s*\d+\s*\/\s*100/i.test(rawText)) return true;
+                                if (/(?:correct\s*answers\s*:\s*\d+.*incorrect\s*answers\s*:\s*\d+)/is.test(rawText)) return true;
+                                if (/(?:strengths.*areas\s*to\s*improve)/is.test(rawText)) return true;
+                                if (/chúc\s*mừng\s*(?:em|bạn)?\s*hoàn\s*thành\s*buổi\s*học/i.test(rawText)) return true;
+                                if (/điểm\s*buổi\s*học\s*:\s*\d+\s*\/\s*\d+/i.test(rawText)) return true;
+                                if (/hẹn\s*gặp\s*(?:em|bạn).{0,30}buổi\s*học\s*tiếp\s*theo/i.test(rawText)) return true;
+                                if (/congratulations.{0,80}(?:completed|finished).{0,60}(?:lesson|session|course)/i.test(rawText)) return true;
+                                return false;
+                            })();
+
+                            if (isActuallyComplete) {
+                                markLessonComplete("Phát hiện màn hình kết thúc bài học (Lesson Complete)");
                                 return;
                             }
 
@@ -1044,7 +1052,7 @@ function e(e, serverOrigin) {
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
                                             /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.72 PRO." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.73 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +
@@ -1098,6 +1106,9 @@ function e(e, serverOrigin) {
 
                                             var finalAnswer = rawAns.trim();
                                             if (!finalAnswer) return null;
+                                            if (/_{0,2}\s*(?:NO_QUESTION|LESSON_COMPLETE)\s*_{0,2}/i.test(finalAnswer)) {
+                                                return finalAnswer;
+                                            }
                                             if (isEnglishContext) {
                                                 finalAnswer = finalAnswer.replace(/^(?:trả\s*lời|đáp\s*án)\s*:\s*/i, '').trim();
                                                 if (/(?:answer|format)\s*:\s*(?:\[|your)/i.test(_ || prompt) && !/^answer\s*:/i.test(finalAnswer)) {
@@ -1117,6 +1128,12 @@ function e(e, serverOrigin) {
                                             L("👀 Đang quét câu hỏi trên màn hình...", "#94a3b8");
                                             remaining = 5;
                                             updateCountdownUI();
+                                            return void (s = !1);
+                                        }
+
+                                        // KIỂM TRA MÃ KẾT THÚC BÀI HỌC TỪ AI VISION
+                                        if (/_{0,2}\s*LESSON_COMPLETE\s*_{0,2}/i.test(A) || /lesson\s*complete/i.test(A)) {
+                                            markLessonComplete("AI Vision xác nhận kết thúc bài học (Lesson Complete)");
                                             return void (s = !1);
                                         }
 

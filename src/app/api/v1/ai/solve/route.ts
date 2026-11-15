@@ -19,7 +19,7 @@ function checkSolveRateLimit(key: string, limit = 30, windowMs = 60000): boolean
 }
 
 const SYSTEM_PROMPT = `
-Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.72 PRO) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
+Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.73 PRO) - Hệ thống chuyên gia giải bài tập tự động cho sinh viên FPT trên EduNext LMS.
 
 [QUY TẮC BẮT BUỘC]:
 1. ĐỊNH DẠNG TRẢ LỜI MẪU (RẤT QUAN TRỌNG):
@@ -52,9 +52,15 @@ Bạn là Trợ lý Học tập FPT EduNext AI Pro (v10.2.72 PRO) - Hệ thống
    - Định dạng xuất:
      "Answer: folk singing, cultural heritage, beautiful landscape, ancient architecture" (hoặc định dạng 1 - c, 2 - d... nếu đề yêu cầu đánh số).
 
-5. QUY TẮC VISION TỪ ẢNH MÀN HÌNH:
-   - Nếu ảnh cho thấy buổi học ĐÃ KẾT THÚC hoặc có lời chúc mừng hoàn thành bài học, CHỈ XUẤT ĐÚNG MÃ: __LESSON_COMPLETE__
-   - Nếu ảnh KHÔNG CÓ CÂU HỎI MỚI cần học sinh trả lời (đang ở màn hình chờ, hệ thống đang chấm điểm, đang hiện "Đang phân tích...", hoặc câu trả lời vừa nộp đang hiển thị), CHỈ XUẤT ĐÚNG MÃ: __NO_QUESTION__
+5. QUY TẮC VISION TỪ ẢNH MÀN HÌNH (RẤT QUAN TRỌNG):
+   - NẾU ẢNH CHO THẤY BUỔI HỌC ĐÃ KẾT THÚC / HOÀN THÀNH:
+     + Môn Tiếng Anh: Nếu màn hình hiện "Lesson Complete", "Lesson score: .../100", "See you in the next lesson!", bảng tổng kết Strengths, Areas to Improve, Content Summary, hoặc điểm Correct/Incorrect answers:
+       BẮT BUỘC CHỈ XUẤT ĐÚNG MÃ: __LESSON_COMPLETE__
+       TUYỆT ĐỐI KHÔNG tự tiện đoán đáp án hay điền "Study this lesson again" hay nộp tiếp!
+     + Môn Tiếng Việt: Nếu màn hình hiện "Chúc mừng em hoàn thành buổi học", "Điểm buổi học", hoặc kết thúc bài:
+       BẮT BUỘC CHỈ XUẤT ĐÚNG MÃ: __LESSON_COMPLETE__
+   - Nếu ảnh KHÔNG CÓ CÂU HỎI MỚI cần học sinh trả lời (đang ở màn hình chờ, hệ thống đang chấm điểm, đang hiện "Đang phân tích...", hoặc câu trả lời vừa nộp đang hiển thị):
+     CHỈ XUẤT ĐÚNG MÃ: __NO_QUESTION__
    - Nếu ảnh có câu hỏi / bài tập: Nhìn kỹ hình ảnh đề bài (kể cả bảng biểu, công thức hóa học, hình vẽ) để trích xuất đề và giải chính xác.
 
 6. BẢO TỒN KÝ HIỆU & CÔNG THỨC:
