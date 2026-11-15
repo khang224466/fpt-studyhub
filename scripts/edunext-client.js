@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.71";
+        var t = "v10.2.72";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -1044,7 +1044,7 @@ function e(e, serverOrigin) {
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
                                             /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.71 PRO." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.72 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +
@@ -1147,11 +1147,35 @@ function e(e, serverOrigin) {
                                         }
 
                                         var isShortTransition = /^(?:yes|ready|sẵn\s*sàng|ok)[!.]?$/i.test(trimmedA.replace(/^(?:answer|trả\s*lời)\s*:\s*/i, ''));
-                                        if (l && trimmedA.toLowerCase() === l.trim().toLowerCase() && !C && !isShortTransition) {
-                                            L("👀 Đã nộp đáp án '" + l.slice(0, 20) + "', chờ EduNext sang câu mới...", "#38bdf8");
-                                            remaining = 5;
-                                            updateCountdownUI();
-                                            return void (s = !1);
+                                        
+                                        // TUYỆT ĐỐI CHỐNG CỐ CHẤP NỘP LẠI ĐÁP ÁN BỊ TỪ CHỐI
+                                        if (l && trimmedA.toLowerCase() === l.trim().toLowerCase() && !isShortTransition) {
+                                            if (C) {
+                                                P("warn", '⚠️ AI vẫn đưa ra đáp án cũ đã bị giáo viên từ chối ("' + trimmedA.slice(0, 30) + '..."). Yêu cầu đổi phương án khác...');
+                                                var retryPrompt = S + "\n\n🚨 CẢNH BÁO KHẨN CẤP: Đáp án \"" + trimmedA + "\" VỪA BỊ GIÁO VIÊN CHẤM SAI VÀ TỪ CHỐI! TUYỆT ĐỐI KHÔNG GỬI LẠI ĐÁP ÁN NÀY! Hãy đọc kỹ nhận xét và gợi ý của giáo viên để đưa ra 4 cặp từ chuẩn xác khác!";
+                                                var retryAns = await solveOnServer(retryPrompt, T ? T.image : null);
+                                                if (retryAns && typeof retryAns === "string" && retryAns.trim() && retryAns.trim().toLowerCase() !== l.trim().toLowerCase()) {
+                                                    trimmedA = retryAns.trim();
+                                                    if (isEnglishContext) {
+                                                        trimmedA = trimmedA.replace(/^(?:trả\s*lời|đáp\s*án)\s*:\s*/i, '').trim();
+                                                        if (/(?:answer|format)\s*:\s*(?:\[|your)/i.test(_ || retryPrompt) && !/^answer\s*:/i.test(trimmedA)) {
+                                                            trimmedA = 'Answer: ' + trimmedA;
+                                                        }
+                                                    }
+                                                    P("success", '✓ Gemini đổi sang đáp án sửa đổi: "' + trimmedA.slice(0, 35) + '..."');
+                                                } else {
+                                                    P("warn", '⚠️ Chưa có đáp án mới khác đáp án cũ bị từ chối. Chờ quét lại phản hồi...');
+                                                    L("⚠️ Đang chờ quét lại phản hồi của giáo viên...", "#f59e0b");
+                                                    remaining = 5;
+                                                    updateCountdownUI();
+                                                    return void (s = !1);
+                                                }
+                                            } else {
+                                                L("👀 Đã nộp đáp án '" + l.slice(0, 20) + "', chờ EduNext sang câu mới...", "#38bdf8");
+                                                remaining = 5;
+                                                updateCountdownUI();
+                                                return void (s = !1);
+                                            }
                                         }
 
                                         A = trimmedA;

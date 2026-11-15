@@ -12,15 +12,34 @@ function readEduNextTurn(doc) {
       !Array.from(element.children).some(child => /^(?:học\s*sinh|sinh\s*viên|student)$/i.test(text(child)));
   });
   const studentBadge = students.at(-1) || null;
-  const studentMessage = studentBadge ? (studentBadge.closest('.wrap-message-view, [class*="message-item"], [class*="chat-item"], .chat-message, [class*="message"], [class*="chat"], div') || studentBadge) : null;
+  const studentMessage = studentBadge ? (studentBadge.closest('.wrap-message-view, [class*="message-item"], [class*="chat-item"], .chat-message, [class*="message-row"], [class*="chat-row"]') || studentBadge.parentElement) : null;
 
-  // 2. Locate teacher markers that appear AFTER the student message
+  // 1b. Extract actual student answer text from the student message container
+  let studentAnswerText = '';
+  if (studentMessage) {
+    const rawStudentText = text(studentMessage);
+    studentAnswerText = rawStudentText.replace(/^(?:học\s*sinh|sinh\s*viên|student|bạn\s*\(sinh\s*viên\))\s*/i, '').replace(/\s*\d{1,2}\/\d{1,2}\/\d{4}.*$/i, '').trim();
+  }
+
+  // 2. Locate all teacher feedback & messages that appear AFTER the student message
+  let teacherAfterStudent = '';
+  if (studentBadge) {
+    const rawAfter = all('div, p, span, section, article').filter(el => {
+      if (!after(el, studentBadge)) return false;
+      if (el.closest('#enx-pro-hud, .w-chat-input, .chat-footer, textarea, input, button[data-intent="SUBMIT_ANSWER"]')) return false;
+      return true;
+    });
+    // Filter to top-level message blocks after student
+    const topBlocks = rawAfter.filter(el => !rawAfter.some(other => other !== el && other.contains(el)));
+    teacherAfterStudent = topBlocks.map(el => text(el)).filter(t => t.length > 5).join('\n\n');
+  }
+
   const teacherMarkers = all('div, span, p, button, a, small, label, b, strong').filter(element => {
     if (!after(element, studentBadge)) return false;
     const txt = text(element);
-    return /graded\s*by\s*ai|đã\s*chấm\s*bằng\s*ai|^int:\s*\w+|feedback|correct!|incorrect|you've\s*got\s*a\s*solid\s*grasp|on\s*to\s*the\s*next\s*question/i.test(txt);
+    return /graded\s*by\s*ai|đã\s*chấm\s*bằng\s*ai|^int:\s*\w+|feedback|correct!|incorrect|you've\s*got\s*a\s*solid\s*grasp|on\s*to\s*the\s*next\s*question|try\s*again|aren't\s*yet|aren't\s*quite|not\s*yet|not\s*quite/i.test(txt);
   });
-  const hasTeacherResponse = teacherMarkers.length > 0;
+  const hasTeacherResponse = teacherMarkers.length > 0 || Boolean(teacherAfterStudent.trim());
 
   // 3. Locate question content
   function findQuestion() {
@@ -124,8 +143,8 @@ function readEduNextTurn(doc) {
   });
   const hintText = hintEls.map(el => text(el)).filter(Boolean).join('\n');
 
-  const fullTeacherMsg = teacherContainer ? text(teacherContainer) : (content ? text(content) : '');
-  const lastTeacherMsg = fullTeacherMsg || questionBlockText;
+  const fullTeacherMsg = teacherAfterStudent || (teacherContainer ? text(teacherContainer) : (content ? text(content) : ''));
+  const lastTeacherMsg = teacherAfterStudent || fullTeacherMsg || questionBlockText;
   const imageIds = content ? Array.from(content.querySelectorAll('img')).map(image => image.currentSrc || image.src).join('|') : '';
 
   // 4. Composer input detection
@@ -165,7 +184,8 @@ function readEduNextTurn(doc) {
     doc.location?.href || '',
     studentBadge ? (studentBadge.id || text(studentBadge)) : '',
     content ? (content.id || questionBlockText.slice(0, 100)) : '',
-    imageIds
+    imageIds,
+    teacherAfterStudent.slice(0, 100)
   ].join('\n');
 
   return {
@@ -174,7 +194,7 @@ function readEduNextTurn(doc) {
     rateLimitSeconds,
     lastStudentBadge: studentBadge,
     lastTeacherBadge: teacherMarkers.at(-1) || null,
-    lastStudentMsg: studentMessage ? text(studentMessage) : '',
+    lastStudentMsg: studentAnswerText || (studentMessage ? text(studentMessage) : ''),
     lastTeacherMsg,
     fullTeacherMsg,
     hintText,
