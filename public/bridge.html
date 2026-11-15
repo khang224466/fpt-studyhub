@@ -154,7 +154,7 @@
       <div class="title-box">
         <div class="icon">⚡</div>
         <div>
-          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.66 PRO</span></h1>
+          <h1>Cầu Nối AI EduNext <span class="badge">v10.2.67 PRO</span></h1>
           <div class="sub">Vượt CSP Cloudflare 100% • Đồng Bộ Realtime 2 Chiều</div>
         </div>
       </div>
@@ -237,7 +237,7 @@
       logsEl.scrollTop = logsEl.scrollHeight;
     }
 
-    log('success', '✓ Khởi tạo AI Bridge v10.2.66 PRO thành công!');
+    log('success', '✓ Khởi tạo AI Bridge v10.2.67 PRO thành công!');
 
     // Initialize key in background if custom personal key exists
     let activeSavedKey = '';
@@ -411,15 +411,19 @@
           // 1. PRIMARY: Call Secure Cloud Proxy (Zero-Client Leak Architecture)
           log('info', '⚡ Gửi yêu cầu qua Proxy Server bảo mật (Zero-Client Leak)...');
           try {
+            const proxyController = new AbortController();
+            const proxyTimeout = setTimeout(() => proxyController.abort(), 24000);
             const cloudRes = await fetch('/api/v1/ai/solve', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
+              signal: proxyController.signal,
               body: JSON.stringify({
                 question: promptText || 'Giải bài tập trên ảnh',
                 images: imageBase64 ? [imageBase64] : [],
                 licenseKey: rawKey || 'FPT1.eyJvcmRlcklkIjoiT1JELTg4ODctU0VNRVNURVItVklQIiwiZXhwaXJlc0F0IjoxODA0OTkwODg4NTE0LCJwbGFuIjoiMSBL4buzIEjhu41jICg0IFRow6FuZykiLCJub25jZSI6InNlZWQtdmlwLTIwMjYifQ.eaIyaxIoNHGg5Xv1lGJueKphjp1UHa8kE8cPmQdn3LE'
               })
             });
+            clearTimeout(proxyTimeout);
             const cloudData = await cloudRes.json();
             if (cloudData.success && cloudData.answer) {
               answer = cloudData.answer;
@@ -429,8 +433,8 @@
               log('warn', `Server Proxy: ${lastErr}`);
             }
           } catch(ce) {
-            lastErr = ce.message;
-            log('warn', `Lỗi kết nối Server Proxy: ${ce.message}`);
+            lastErr = ce.name === 'AbortError' ? 'Server Proxy phản hồi quá 24s' : ce.message;
+            log('warn', `Lỗi kết nối Server Proxy: ${lastErr}`);
           }
 
           // 2. OPTIONAL FALLBACK: Direct Google Studio call only if user entered a raw personal Gemini key

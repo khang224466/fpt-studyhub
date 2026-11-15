@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.66";
+        var t = "v10.2.67";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -564,7 +564,10 @@ function e(e, serverOrigin) {
             }
         }
         async function z(e) {
-            var t = e.trim(), n = function() {
+            if (!e || typeof e !== "string") return !1;
+            var t = e.trim();
+            if (!t) return !1;
+            var n = function() {
                 for (var e = document.querySelectorAll('textarea.w-md-editor-text-input, .w-md-editor textarea, textarea, input[type="text"], div[contenteditable="true"]'), t = 0; t < e.length; t++) {
                     var n = e[t];
                     if (!n.closest("#enx-pro-hud") && null !== n.offsetParent) return n;
@@ -816,9 +819,9 @@ function e(e, serverOrigin) {
                 var requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
                 var timer = setTimeout(function() {
                     window.removeEventListener('message', receive);
-                    P('warn', 'Cầu Nối AI Bridge phản hồi quá hạn (timeout 25s)');
+                    P('warn', 'Cầu Nối AI Bridge phản hồi quá hạn (timeout 35s), bot tự động thử lại nhịp tiếp theo...');
                     resolve(null);
-                }, 25000);
+                }, 35000);
                 function receive(event) {
                     if (event.data && event.data.type === 'ENX_SOLVE_RES' && event.data.requestId === requestId) {
                         clearTimeout(timer);
@@ -1041,7 +1044,7 @@ function e(e, serverOrigin) {
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
                                             /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.66 PRO." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.67 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +
@@ -1087,9 +1090,10 @@ function e(e, serverOrigin) {
                                             var r = keyInfo.valid && !keyInfo.expired ? keyInfo.key : null;
                                             if (!r) return P("warn", "Chưa có Key bản quyền! Vui lòng kéo Bookmarklet từ fpt-studyhub."), null;
                                             var rawAns = await solveOnServer(prompt, image);
-                                            if (!rawAns) return null;
+                                            if (!rawAns || typeof rawAns !== "string") return null;
 
                                             var finalAnswer = rawAns.trim();
+                                            if (!finalAnswer) return null;
                                             if (isEnglishContext) {
                                                 finalAnswer = finalAnswer.replace(/^(?:trả\s*lời|đáp\s*án)\s*:\s*/i, '').trim();
                                                 if (/(?:answer|format)\s*:\s*(?:\[|your)/i.test(_ || prompt) && !/^answer\s*:/i.test(finalAnswer)) {
@@ -1104,42 +1108,46 @@ function e(e, serverOrigin) {
                                             return finalAnswer;
                                         })(S, T ? T.image : null);
 
-                                        if (hasActualExercise && /^(?:yes|sẵn\\s*sàng|ready)[!.]?$/i.test(A.trim())) {
-                                            P("warn", "⚠️ AI trả lời nhầm 'Yes' cho bài tập, yêu cầu giải lại bài tập chuyên môn...");
-                                            return void (s = !1);
-                                        }
-
-                                        if (!A || /_{0,2}\s*NO_QUESTION\s*_{0,2}/i.test(A)) {
+                                        // CRITICAL SAFEGUARD: Never dereference null or call .trim() if A is null or empty
+                                        if (!A || typeof A !== "string" || !A.trim() || /_{0,2}\s*NO_QUESTION\s*_{0,2}/i.test(A)) {
                                             L("👀 Đang quét câu hỏi trên màn hình...", "#94a3b8");
                                             remaining = 5;
                                             updateCountdownUI();
                                             return void (s = !1);
                                         }
 
+                                        var trimmedA = A.trim();
+
+                                        if (hasActualExercise && /^(?:yes|sẵn\s*sàng|ready)[!.]?$/i.test(trimmedA)) {
+                                            P("warn", "⚠️ AI trả lời nhầm 'Yes' cho bài tập, yêu cầu giải lại bài tập chuyên môn...");
+                                            return void (s = !1);
+                                        }
+
                                         // IF 4: Anti-Duplicate Submission Check
-                                        if (isDuplicateSubmission(A)) {
-                                            P("warn", '⚠️ Đáp án "' + A.slice(0, 30) + '..." đã từng được nộp trước đó. Yêu cầu Gemini đưa ra đáp án khác...');
-                                            var retryPrompt = S + "\n\n🚨 CẢNH BÁO QUAN TRỌNG: Đáp án \"" + A + "\" ĐÃ TỪNG ĐƯỢC NỘP TRƯỚC ĐÓ VÀ BỊ TỪ CHỐI HOẶC BỊ TRÙNG! Hãy đọc kỹ gợi ý và xuất một đáp án MỚI KHÁC HOÀN TOÀN và CHÍNH XÁC!";
+                                        if (isDuplicateSubmission(trimmedA)) {
+                                            P("warn", '⚠️ Đáp án "' + trimmedA.slice(0, 30) + '..." đã từng được nộp trước đó. Yêu cầu Gemini đưa ra đáp án khác...');
+                                            var retryPrompt = S + "\n\n🚨 CẢNH BÁO QUAN TRỌNG: Đáp án \"" + trimmedA + "\" ĐÃ TỪNG ĐƯỢC NỘP TRƯỚC ĐÓ VÀ BỊ TỪ CHỐI HOẶC BỊ TRÙNG! Hãy đọc kỹ gợi ý và xuất một đáp án MỚI KHÁC HOÀN TOÀN và CHÍNH XÁC!";
                                             var retryAns = await solveOnServer(retryPrompt, T ? T.image : null);
-                                            if (retryAns && retryAns.trim() && !isDuplicateSubmission(retryAns)) {
-                                                A = retryAns.trim();
+                                            if (retryAns && typeof retryAns === "string" && retryAns.trim() && !isDuplicateSubmission(retryAns)) {
+                                                trimmedA = retryAns.trim();
                                                 if (isEnglishContext) {
-                                                    A = A.replace(/^(?:trả\s*lời|đáp\s*án)\s*:\s*/i, '').trim();
-                                                    if (/(?:answer|format)\s*:\s*(?:\[|your)/i.test(_ || retryPrompt) && !/^answer\s*:/i.test(A)) {
-                                                        A = 'Answer: ' + A;
+                                                    trimmedA = trimmedA.replace(/^(?:trả\s*lời|đáp\s*án)\s*:\s*/i, '').trim();
+                                                    if (/(?:answer|format)\s*:\s*(?:\[|your)/i.test(_ || retryPrompt) && !/^answer\s*:/i.test(trimmedA)) {
+                                                        trimmedA = 'Answer: ' + trimmedA;
                                                     }
                                                 }
-                                                P("success", '✓ Gemini đổi sang đáp án mới: "' + A.slice(0, 35) + '..."');
+                                                P("success", '✓ Gemini đổi sang đáp án mới: "' + trimmedA.slice(0, 35) + '..."');
                                             }
                                         }
 
-                                        if (l && A.trim().toLowerCase() === l.trim().toLowerCase() && !C) {
+                                        if (l && trimmedA.toLowerCase() === l.trim().toLowerCase() && !C) {
                                             L("👀 Đã nộp đáp án '" + l.slice(0, 20) + "', chờ EduNext sang câu mới...", "#38bdf8");
                                             remaining = 5;
                                             updateCountdownUI();
                                             return void (s = !1);
                                         }
 
+                                        A = trimmedA;
                                         P("success", '✓ Gemini Flash-Lite trả lời: "' + A.slice(0, 35) + '..."');
                                         L("✍️ Đang làm sạch ô nhập & nộp bài...", "#34d399");
 
