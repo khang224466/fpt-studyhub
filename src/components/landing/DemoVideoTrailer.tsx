@@ -105,7 +105,7 @@ export function DemoVideoTrailer() {
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                Live Simulation (v10.2.76 PRO)
+                Live Simulation (v10.2.77 PRO)
               </span>
             </div>
           </div>
@@ -293,7 +293,7 @@ export function DemoVideoTrailer() {
               </div>
             </div>
 
-            {/* Right: The Floating HUD v10.2.76 PRO */}
+            {/* Right: The Floating HUD v10.2.77 PRO */}
             <div className="w-full md:w-80 p-4 bg-slate-950/95 flex flex-col justify-between border-t md:border-t-0 select-none">
               <div className="space-y-3">
                 {/* HUD Header */}
@@ -306,7 +306,7 @@ export function DemoVideoTrailer() {
                       <div className="text-xs font-extrabold text-white flex items-center gap-1.5">
                         <span>EduNext AI Pro</span>
                         <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1 py-0.2 rounded border border-emerald-500/30 font-mono font-bold">
-                          v10.2.76 PRO
+                          v10.2.77 PRO
                         </span>
                       </div>
                       <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
@@ -354,7 +354,7 @@ export function DemoVideoTrailer() {
 
                 {/* Live Console Logs */}
                 <div className="p-2.5 rounded-lg bg-black border border-slate-800 font-mono text-[10px] space-y-1 h-36 overflow-hidden text-slate-400">
-                  <div className="text-emerald-400">[10:14:00] EduNext AI Pro v10.2.76 PRO sẵn sàng!</div>
+                  <div className="text-emerald-400">[10:14:00] EduNext AI Pro v10.2.77 PRO sẵn sàng!</div>
                   <div className="text-emerald-300">[10:14:00] Key hợp lệ: 1 Kỳ Học (4 Tháng) (Sẵn sàng 100%)</div>
                   {playbackTime >= 2 && playbackTime < 24.5 && (
                     <div className="text-cyan-400">[10:14:02] 📸 Auto Vision: Nhận diện đề bài Dijkstra (CSD201)!</div>
@@ -479,7 +479,7 @@ export function DemoVideoTrailer() {
         <div className="mt-10 p-6 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-950 border border-emerald-500/40 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
             <h4 className="text-base sm:text-lg font-bold text-white">
-              Sẵn Sàng Trải Nghiệm EduNext AI Pro v10.2.76 PRO?
+              Sẵn Sàng Trải Nghiệm EduNext AI Pro v10.2.77 PRO?
             </h4>
             <p className="text-xs text-slate-400 mt-1">
               Đăng ký nhận Key bản quyền ngay để tự động hóa 100% việc làm bài tập trên lớp!
