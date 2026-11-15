@@ -1,6 +1,6 @@
 function e(e, serverOrigin) {
     try {
-        var t = "v10.2.74";
+        var t = "v10.2.75";
         if (window.__ENX_PRO_HUD__ && window.__ENX_VERSION__ === t) {
             var n = document.getElementById("enx-pro-hud");
             if (n) return void (n.style.display = "none" === n.style.display ? "block" : "none");
@@ -951,6 +951,121 @@ function e(e, serverOrigin) {
                         } else {
                             var i = n.lastTeacherMsg || "";
 
+                            // 0. BỘ XỬ LÝ "LÀM RÕ Ý ĐỊNH" (CLARIFY INTENT WIDGET - RANDOM 1 TRONG 3 THEO CHỈ ĐẠO)
+                            async function tryHandleClarifyIntent() {
+                                try {
+                                    var rawPageText = (document.body ? document.body.innerText.slice(-3500) : "") + " " + (n.fullTeacherMsg || "");
+                                    var isClarifyContext = n.isClarifyIntent || n.state === 'clarify_intent' || /(?:làm\s*rõ\s*ý\s*định|clarify\s*intent|int:\s*clarify_intent|ý\s*nào\s*dưới\s*đây\s*đúng\s*với\s*bạn\s*nhất|which\s*of\s*the\s*following\s*(?:best\s*describes|is\s*most\s*accurate)|chờ\s*bạn\s*chọn\s*ở\s*phía\s*trên|waiting\s*for\s*your\s*selection\s*above|không\s*cần\s*nhập\s*văn\s*bản|no\s*text\s*input\s*needed)/i.test(rawPageText);
+
+                                    var allButtons = Array.from(document.querySelectorAll('button, [role="button"], a, div[tabindex], input[type="button"], input[type="submit"]')).filter(function(b) {
+                                        if (b.closest('#enx-pro-hud')) return false;
+                                        if (b.offsetParent === null) return false;
+                                        var t = (b.innerText || b.textContent || '').trim();
+                                        return /(?:xác\s*nhận\s*(?:lựa\s*chọn|ý\s*định)?|confirm\s*(?:selection|choice)?)/i.test(t);
+                                    });
+                                    var confirmBtn = allButtons[allButtons.length - 1] || null;
+
+                                    if (!isClarifyContext && !confirmBtn) return false;
+
+                                    var container = confirmBtn ? (confirmBtn.closest('.card, [class*="card"], [class*="intent"], [class*="clarify"], [class*="box"], [class*="message"], [class*="row"], div') || confirmBtn.parentElement) : null;
+                                    var scope = container || document.body;
+
+                                    // Tìm các lựa chọn (thường có 3 lựa chọn 01, 02, 03... Tiếng Việt hoặc Tiếng Anh)
+                                    var candidateOptions = [];
+
+                                    // Lựa chọn có số 01, 02, 03...
+                                    var numberedEls = Array.from(scope.querySelectorAll('div, label, button, li')).filter(function(el) {
+                                        if (el.closest('#enx-pro-hud')) return false;
+                                        if (el.offsetParent === null) return false;
+                                        var txt = (el.innerText || el.textContent || '').trim();
+                                        return /^(?:0?[1-9]|[a-c])[\s.:\-)].{3,80}$/i.test(txt) &&
+                                               !Array.from(el.children).some(function(child) {
+                                                   var cTxt = (child.innerText || child.textContent || '').trim();
+                                                   return /^(?:0?[1-9]|[a-c])[\s.:\-)].{3,80}$/i.test(cTxt);
+                                               });
+                                    });
+
+                                    // Thẻ có radio role hoặc radio class
+                                    var radioEls = Array.from(scope.querySelectorAll('[role="radio"], [class*="radio"], label.ant-radio-wrapper, .ant-radio-button-wrapper, [class*="intent-column__item"], [class*="intent-radial__item"], [class*="option-item"], [class*="choice-item"]')).filter(function(el) {
+                                        return !el.closest('#enx-pro-hud') && el.offsetParent !== null;
+                                    });
+
+                                    // Thẻ khớp từ khóa Tiếng Việt hoặc Tiếng Anh
+                                    var keywordEls = Array.from(scope.querySelectorAll('div, label, button, span, p')).filter(function(el) {
+                                        if (el.closest('#enx-pro-hud')) return false;
+                                        if (el.offsetParent === null) return false;
+                                        var txt = (el.innerText || el.textContent || '').toLowerCase().trim();
+                                        var matchesKeyword = txt.includes('tiếp tục sang phần sau') || txt.includes('xin giải thích thêm') || txt.includes('cần thêm thời gian') ||
+                                                             txt.includes('continue to next') || txt.includes('move on') || txt.includes('explain more') || txt.includes('need more time');
+                                        return matchesKeyword && txt.length < 100 &&
+                                               !Array.from(el.children).some(function(c) {
+                                                   var ct = (c.innerText || c.textContent || '').toLowerCase().trim();
+                                                   return ct.includes('tiếp tục sang phần sau') || ct.includes('xin giải thích thêm') || ct.includes('cần thêm thời gian') ||
+                                                          ct.includes('continue to next') || ct.includes('move on') || ct.includes('explain more') || ct.includes('need more time');
+                                               });
+                                    });
+
+                                    if (numberedEls.length >= 2 && numberedEls.length <= 6) {
+                                        candidateOptions = numberedEls;
+                                    } else if (keywordEls.length >= 2 && keywordEls.length <= 6) {
+                                        candidateOptions = keywordEls;
+                                    } else if (radioEls.length >= 2 && radioEls.length <= 6) {
+                                        candidateOptions = radioEls;
+                                    }
+
+                                    if (candidateOptions.length === 0 && !confirmBtn) return false;
+
+                                    s = true;
+                                    L("🎯 'Làm Rõ Ý Định': Chọn ngẫu nhiên 1 trong 3...", "#f59e0b");
+                                    P("info", "🎯 Bắt được câu hỏi 'Làm Rõ Ý Định' (Clarify Intent)! Chọn ngẫu nhiên 1 trong " + (candidateOptions.length || 3) + " lựa chọn theo yêu cầu...");
+
+                                    if (candidateOptions.length > 0) {
+                                        var chosenIdx = Math.floor(Math.random() * candidateOptions.length);
+                                        var chosenEl = candidateOptions[chosenIdx];
+                                        var optionText = (chosenEl.innerText || chosenEl.textContent || "").replace(/\s+/g, " ").trim();
+
+                                        var innerRadio = chosenEl.querySelector('input[type="radio"], [role="radio"], .ant-radio, svg, circle, [class*="circle"], [class*="radio"]') || chosenEl;
+                                        try { U(innerRadio); } catch (_) {}
+                                        try { U(chosenEl); } catch (_) {}
+
+                                        P("success", '✓ Đã chọn ngẫu nhiên lựa chọn ' + (chosenIdx + 1) + ' / ' + candidateOptions.length + ': "' + optionText.slice(0, 35) + '..."');
+                                        L('✓ Đã chọn mục ' + (chosenIdx + 1) + ': "' + optionText.slice(0, 25) + '...", đang bấm xác nhận...', "#34d399");
+                                    }
+
+                                    await new Promise(function(resolve) { setTimeout(resolve, 350); });
+
+                                    if (!confirmBtn) {
+                                        var reCheckBtns = Array.from(document.querySelectorAll('button, [role="button"], a, div[tabindex], input[type="button"], input[type="submit"]')).filter(function(b) {
+                                            if (b.closest('#enx-pro-hud')) return false;
+                                            var t = (b.innerText || b.textContent || '').trim();
+                                            return /(?:xác\s*nhận\s*(?:lựa\s*chọn|ý\s*định)?|confirm\s*(?:selection|choice)?)/i.test(t);
+                                        });
+                                        confirmBtn = reCheckBtns[reCheckBtns.length - 1] || null;
+                                    }
+
+                                    if (confirmBtn) {
+                                        try { U(confirmBtn); } catch (_) {}
+                                        P("success", "✓ ĐÃ BẤM [Xác nhận lựa chọn] thành công!");
+                                        L("✓ Đã bấm Xác nhận lựa chọn! Chờ câu hỏi tiếp theo...", "#10b981");
+                                    } else {
+                                        P("warn", "⚠️ Đã chọn mục nhưng không tìm thấy nút [Xác nhận lựa chọn], thử click lần nữa...");
+                                    }
+
+                                    s = false;
+                                    remaining = 5;
+                                    updateCountdownUI();
+                                    return true;
+                                } catch (err) {
+                                    s = false;
+                                    P("warn", "Lỗi xử lý bảng Làm Rõ Ý Định: " + (err.message || err));
+                                    return false;
+                                }
+                            }
+
+                            if (await tryHandleClarifyIntent()) {
+                                return;
+                            }
+
                             // 1. Ready & Transition Check - STRICT ANTI-"YES" FIREWALL FOR EXERCISES
                             var hasActualExercise = (function() {
                                 var combined = (n.questionBlockText || "") + " " + (n.fullTeacherMsg || "") + " " + (i || "");
@@ -1052,7 +1167,7 @@ function e(e, serverOrigin) {
                                             /^[a-zA-Z0-9\s.,?!'"\-:;()]+$/.test((_ || i).slice(0, 100)) ||
                                             /\b(what|where|when|why|who|how|which|choose|fill|sentence|paragraph|grammar|vocabulary|modal|verb|english|passage|blank|correct|answer|read|complete|obligation|permission|definition)\b/i.test(_ || i);
 
-                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.74 PRO." ];
+                                        var N = [ "Bạn là Trợ lý Học tập FPT EduNext AI Pro v10.2.75 PRO." ];
                                         if (isEnglishContext) {
                                             N.push(
                                                 "QUY TẮC BẮT BUỘC CHO MÔN TIẾNG ANH (ENGLISH LESSON):\n" +
@@ -1106,7 +1221,7 @@ function e(e, serverOrigin) {
 
                                             var finalAnswer = rawAns.trim();
                                             if (!finalAnswer) return null;
-                                            if (/_{0,2}\s*(?:NO_QUESTION|LESSON_COMPLETE)\s*_{0,2}/i.test(finalAnswer)) {
+                                            if (/_{0,2}\s*(?:NO_QUESTION|LESSON_COMPLETE|CLARIFY_INTENT)\s*_{0,2}/i.test(finalAnswer)) {
                                                 return finalAnswer;
                                             }
                                             if (isEnglishContext) {
@@ -1134,6 +1249,12 @@ function e(e, serverOrigin) {
                                         // KIỂM TRA MÃ KẾT THÚC BÀI HỌC TỪ AI VISION
                                         if (/_{0,2}\s*LESSON_COMPLETE\s*_{0,2}/i.test(A) || /lesson\s*complete/i.test(A)) {
                                             markLessonComplete("AI Vision xác nhận kết thúc bài học (Lesson Complete)");
+                                            return void (s = !1);
+                                        }
+
+                                        // KIỂM TRA MÃ LÀM RÕ Ý ĐỊNH TỪ AI VISION
+                                        if (/_{0,2}\s*CLARIFY_INTENT\s*_{0,2}/i.test(A)) {
+                                            await tryHandleClarifyIntent();
                                             return void (s = !1);
                                         }
 
@@ -1208,7 +1329,10 @@ function e(e, serverOrigin) {
                                                 }
                                                 return null;
                                             })();
-                                            if (!curInput) throw new Error('Không tìm thấy ô nhập liệu để nộp bài.');
+                                            if (!curInput) {
+                                                if (await tryHandleClarifyIntent()) return;
+                                                throw new Error('Không tìm thấy ô nhập liệu để nộp bài.');
+                                            }
                                             if (!await z(A)) throw new Error('Chưa điền/nộp được câu trả lời.');
                                             submittedHistory.push(A);
                                             if (submittedHistory.length > 25) submittedHistory.shift();

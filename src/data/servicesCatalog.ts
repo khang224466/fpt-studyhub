@@ -7,21 +7,22 @@ export const SERVICES_CATALOG: ServiceItem[] = [
     slug: 'edunext-assistant',
     category: 'edunext',
     categoryLabel: 'EduNext LMS',
-    tagline: 'Trợ lý học tập thông minh v10.2.74 PRO: Hỗ trợ trọn vẹn cả Tiếng Anh (Yes / Ready / Lesson Complete) & Tiếng Việt, giải bài siêu tốc, hạn mức 7 bài/tuần, bảo mật 100%',
+    tagline: 'Trợ lý học tập thông minh v10.2.75 PRO: Tự động chọn ngẫu nhiên Làm Rõ Ý Định, hỗ trợ trọn vẹn cả Tiếng Anh & Tiếng Việt, giải bài siêu tốc, hạn mức 7 bài/tuần, bảo mật 100%',
     iconName: 'GraduationCap',
     targetDomain: 'fsc-edunext.fpt.edu.vn',
     authMethod: 'extensionBridge',
-    badge: 'Đang Hoạt Động (v10.2.74 PRO)',
+    badge: 'Đang Hoạt Động (v10.2.75 PRO)',
     isComingSoon: false,
     features: [
       'Auto Loop 100%: Tự động giải liên tục từ câu đầu đến khi hoàn thành bài học',
-      'Hỗ trợ toàn diện môn Tiếng Anh: Tự động phát hiện câu hỏi bắt đầu (Yes/Ready) và làm bài',
+      'Xử lý Làm Rõ Ý Định (Clarify Intent): Tự động chọn ngẫu nhiên 1 trong 3 và bấm xác nhận',
+      'Hỗ trợ toàn diện môn Tiếng Anh: Tự động phát hiện câu hỏi bắt đầu (Yes/Ready) và tự dừng khi kết bài',
       'Giới hạn mở rộng: Thoải mái giải 7 bài/tuần cho mỗi môn (Áp dụng cho mọi gói bản quyền)',
       'Tích hợp thời hạn bản quyền tự động (1 Tuần, 1 Tháng, 1 Kỳ) minh bạch',
       'Cloud AI Proxy & Gemini 2.0 Flash-Lite: Trả lời siêu tốc trong 1.2s',
       'Đồng bộ React 18 Fiber 5 tầng, tự động kích hoạt onSendMessage & Enter',
       'Cơ chế chống 429 Too Many Requests thông minh với backoff tự động',
-      'Bookmarklet 1-Click Zero-Install độc lập v10.2.74 PRO (Không cần Tampermonkey)'
+      'Bookmarklet 1-Click Zero-Install độc lập v10.2.75 PRO (Không cần Tampermonkey)'
     ],
     plans: [
       { id: 'edunext-1w', duration: '1w', durationLabel: '1 Tuần', price: 30000, originalPrice: 50000 },
